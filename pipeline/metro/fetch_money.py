@@ -251,9 +251,12 @@ def etenders():
     for st, label in ET_STATUS.items():
         first = et_page(st, 0, 10); total = first["recordsTotal"]; got = 0; n = 1000
         # closed tenders: the newest 40 000 are enough each week once the archive is built
-        limit = total if (st != 3 or not old.get("tenders")) else min(total, 40000)
+        # closed tenders: the newest 20 000 each run (earlier runs' records are kept), so the archive grows without one run taking hours
+        limit = min(total, 20000) if st == 3 else total
+        deadline = time.time() + 25 * 60
         starts = list(range(0, limit, n))
         def page(s):
+            if time.time() > deadline: gaps.append({"status": label, "start": s, "length": n, "error": "time limit for this run"}); return []
             try: return et_page(st, s, n)["data"]
             except Exception:
                 out = []

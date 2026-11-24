@@ -17,7 +17,7 @@ from shapely.prepared import prep
 
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
-from themes import THEMES, util_sub
+from themes import THEMES, util_sub, theme_for
 from common import paths
 PP = paths(); SLUG = PP["slug"]
 OUT = PP["out"]; CITY = PP["city"]; EXTRA = PP["extra"]; PUB = PP["pub"]; TMP = PP["tmp"]
@@ -76,7 +76,7 @@ def write_pos(lid, gs):
 # ---------------------------------------------------------------- City GIS layers
 layers, tilejobs, geoms = [], collections.defaultdict(list), {}
 tables, feeds = [], []
-for c in sel["chosen"]:
+for c in sorted(sel["chosen"], key=lambda c: -len(c["fields"])):   # richest copy first, so duplicates with fewer fields are the ones dropped
     if not c["id"]:
         c = {**c, "id": "city-of-cape-town-boundary", "name": "City of Cape Town boundary", "_file": ".json"}
     path = os.path.join(CITY, c.get("_file") or c["id"] + ".json")
@@ -84,6 +84,14 @@ for c in sel["chosen"]:
         sel["skipped"].append({"name": c["name"], "service": c["service"], "url": c["url"], "n": c["n"], "why": "download failed this run"}); continue
     raw = json.load(open(path))
     feats = raw["features"]
+    c = {**c, "theme": theme_for(c["service"], c["name"])}   # themes may change without a new download
+    # an exact duplicate: the same records (every value, ignoring record numbers and geometry) as a layer already kept
+    import hashlib
+    skip = {"OBJECTID", "OBJECTID_1", "FID", "_area", "GlobalID"}
+    sig = hashlib.sha1(json.dumps(sorted(json.dumps({k: v for k, v in f["p"].items() if k not in skip and v is not None}, sort_keys=True, default=str) for f in feats)).encode()).hexdigest()
+    dup = None if c["name"] in ("Land Parcels", "Erven") or len(feats) < 20 else next((l for l in layers if l.get("_sig") == sig and l["geom"] == c["geom"]), None)
+    if dup:
+        sel["skipped"].append({"name": c["name"], "service": c["service"], "url": c["url"], "n": c["n"], "why": f"duplicate of '{dup['name']}' (identical records)"}); continue
     if c["geom"] and not any(f["g"] for f in feats):   # the City publishes some layers without positions
         c = {**c, "geom": None, "no_geometry": True}
     fields = [f for f in raw["fields"] if f[0] not in ("OBJECTID", "OBJECTID_1", "FID")]
@@ -118,7 +126,7 @@ for c in sel["chosen"]:
         tables.append({"id": lid, "name": c["name"], "n": len(rows), "fields": meta["fields"], "url": c["url"], "retrieved": raw["retrieved"], "theme": c["theme"],
                        "note": "The City publishes this layer without map positions, so it is listed as a table." if c.get("no_geometry") else None})
     else:
-        layers.append(meta)
+        meta["_sig"] = sig; layers.append(meta)
     print(f"{lid}: {len(rows)} ({c['theme']}) label={label} cat={cat}", flush=True)
 
 # ---------------------------------------------------------------- extra: service requests as a tiled point layer + area stats
@@ -420,6 +428,7 @@ manifest = {"app": "Cape Monitor", "district": {"slug": SLUG, "label": PP["label
             "built": NOW, "suburbs": sorted({str(f["p"].get("OFC_SBRB_NAME")).upper() for f in geoms.get(lid_for("Official Suburb", "Official Planning Suburbs") or "", []) if f["p"].get("OFC_SBRB_NAME")}), "themes": [{"id": t, "en": en, "af": af} for t, en, af in THEMES], "layers": layers, "tables": tables, "feeds": feeds,
             "parcels": {"layer": PARCELS, "shard": SHARD}, "skipped": sel["skipped"], "heritage": heritage,
             "tilesets": sorted({t for l in layers for t in l.get("tilesets", [])})}
+for l in layers: l.pop("_sig", None)
 dump(manifest, "manifest.json")
 shutil.copy(os.path.join(OUT, "district.geojson"), os.path.join(PUB, "district.geojson"))
 print("layers", len(layers), "tables", len(tables), "feeds", len(feeds), "dossiers", sum(len(v) for v in shards.values()))
