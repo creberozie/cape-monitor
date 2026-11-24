@@ -197,8 +197,25 @@ def city_registers(docs):
                 bids += parse_bids(text, d)
             else:
                 increases.append({"doc": d["url"], "title": d["title"], "month": d["month"], "text": text[:60000]})
+    # layout-change detection: the parser expects the City's two known register layouts. Warn when a register yields nothing,
+    # when bid counts often disagree with the register's own TOTAL line, or when the number of parsed bids falls sharply.
+    warnings = []
+    per = {}
+    for t in bids: per[t["doc"]] = per.get(t["doc"], 0) + len(t["bids"])
+    regs = [d for d in todo if d["page"] == "tenders-received" and re.search(r"opening|receiv", d["file"], re.I)]
+    empty = [d["url"] for d in regs if not per.get(d["url"])]
+    if empty: warnings.append(f"{len(empty)} of {len(regs)} bid registers gave no bids (new layout or scanned image?): " + ", ".join(e.rsplit("/", 1)[-1] for e in empty[:5]))
+    checked = [t for t in bids if t["total"] is not None]
+    bad = [t for t in checked if not t["parse_complete"]]
+    if checked and len(bad) / len(checked) > 0.10: warnings.append(f"{len(bad)} of {len(checked)} tenders: parsed bids differ from the register's TOTAL line")
+    old = os.path.join(CACHE, "city-bids.json")
+    if os.path.exists(old):
+        prev = sum(len(t["bids"]) for t in json.load(open(old)).get("tenders", []))
+        cur = sum(len(t["bids"]) for t in bids)
+        if prev and cur < 0.8 * prev: warnings.append(f"parsed bids fell from {prev} to {cur}")
+    for w in warnings: log("WARNING city-bids:", w)
     dump({"id": "city-bids", "title": "Bids received at City tender openings (parsed from the City's monthly registers)", "url": SCM + "tenders-received/",
-          "retrieved": now(), "tenders": bids, "failed": failed}, os.path.join(CACHE, "city-bids.json"))
+          "retrieved": now(), "tenders": bids, "failed": failed, "warnings": warnings}, os.path.join(CACHE, "city-bids.json"))
     dump({"id": "city-sum-increases", "title": "City tender-sum increases (as published)", "url": SCM + "tender-sum-increases/", "retrieved": now(),
           "docs": increases}, os.path.join(CACHE, "city-sum-increases.json"))
     return f"{len(bids)} tenders, {sum(len(b['bids']) for b in bids)} bids; {len(increases)} increase registers; {len(failed)} PDFs failed"

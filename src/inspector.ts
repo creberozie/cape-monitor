@@ -179,7 +179,8 @@ export async function showStart() {
     $("#right").innerHTML = `<div class="card primary"><div class="kicker">City of Cape Town · metro overview</div><h2>Public records, joined and sourced</h2>
       <p class="mu">Cape Monitor brings together what the City, the courts and the state have already published, often in obscure places: tender decisions, bids read out at openings, quotations, eTenders, City land sales, tribunal cases and every City GIS layer, plot by plot. Every record links to its source.</p>
       <div class="facts"><div class="fact"><b>${I ? I.districts.filter((d) => d.built).length : "—"}/8</b><span>districts built</span></div><div class="fact"><b>${F ? fmt(F.flags.length) : "—"}</b><span>pattern flags</span></div><div class="fact"><b>${I ? fmt(I.districts.reduce((s, d) => s + (d.plots || 0), 0)) : "—"}</b><span>plots</span></div></div>
-      <p class="note">Choose a planning district on the map for its plots and layers. Money, flags, courts and news are in the panel below for the whole city.</p></div>
+      <p class="note">Choose a planning district on the map for its plots and layers. Money, flags, courts and news are in the panel below for the whole city.</p>
+      <p class="note">Some records name private individuals as the state published them; see Sources.</p></div>
       <h3>Planning districts</h3>${(I?.districts || []).map((d) => d.built ? `<a class="row" href="${districtUrl(d.slug)}"><span class="t">${esc(d.label)}</span><small>${fmt(d.plots || 0)} plots · ${d.layers} layers · data ${esc(String(d.built).slice(0, 10))}</small></a>` : `<div class="row"><span class="t dim">${esc(d.label)}</span><small>not built yet</small></div>`).join("")}
       ${watchHtml}`;
     return;

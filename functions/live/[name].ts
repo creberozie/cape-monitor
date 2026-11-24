@@ -1,6 +1,6 @@
 // Live layers, served by Cloudflare (Pages Functions run on Workers) and cached at the edge for a few minutes.
 //   /live/fires  NASA FIRMS VIIRS (Suomi NPP) detections, last 24 h, around the Cape (no key needed)
-//   /live/ships  AIS positions around the Cape from aisstream.io (needs the AISSTREAM_KEY secret on the Pages project)
+//   /live/ships  not active (see ships() below)
 //   /live/news   latest Western Cape headlines (IOL Western Cape, News24) for a quick live check
 interface Env { AISSTREAM_KEY?: string }
 const BOX = { w: 17.6, s: -34.9, e: 19.6, n: -32.9 };   // the Cape Peninsula, False Bay, Saldanha approaches
@@ -18,25 +18,11 @@ async function fires() {
   return { items, source: src, at: now() };
 }
 
-async function ships(env: Env) {
-  if (!env.AISSTREAM_KEY) return { items: [], error: "AIS needs a free aisstream.io API key saved as the AISSTREAM_KEY secret of this site", source: "https://aisstream.io", at: now() };
-  const r = await fetch("https://stream.aisstream.io/v0/stream", { headers: { Upgrade: "websocket" } });
-  const ws = (r as any).webSocket as WebSocket | null;
-  if (!ws) return { items: [], error: `aisstream answered ${r.status}`, source: "https://aisstream.io", at: now() };
-  (ws as any).accept();
-  const seen = new Map<number, any>();
-  ws.addEventListener("message", (ev: MessageEvent) => {
-    try {
-      const m = JSON.parse(typeof ev.data === "string" ? ev.data : new TextDecoder().decode(ev.data as ArrayBuffer)); const md = m.MetaData || {};
-      const p = m.Message?.PositionReport || m.Message?.StandardClassBPositionReport || {};
-      if (md.MMSI && md.latitude != null) seen.set(md.MMSI, { mmsi: md.MMSI, name: (md.ShipName || "").trim() || `MMSI ${md.MMSI}`, lat: md.latitude, lon: md.longitude,
-        speed_knots: p.Sog, course: p.Cog, heading: p.TrueHeading, nav_status: p.NavigationalStatus, time_utc: md.time_utc });
-    } catch { /* ignore malformed messages */ }
-  });
-  ws.send(JSON.stringify({ APIKey: env.AISSTREAM_KEY, BoundingBoxes: [[[BOX.s, BOX.w], [BOX.n, BOX.e]]], FilterMessageTypes: ["PositionReport", "StandardClassBPositionReport"] }));
-  await new Promise((res) => setTimeout(res, 8000));
-  try { ws.close(); } catch { /* already closed */ }
-  return { items: [...seen.values()], source: "https://aisstream.io", at: now(), note: "Positions received in an 8-second listening window; ships that did not report in that window are not shown." };
+// AIS ships: not active. A useful ship layer needs a persistent listener (a Durable Object holding one aisstream.io
+// WebSocket and keeping the latest position per vessel), which needs a paid Workers plan and an aisstream.io key.
+// Opening a WebSocket per request is not used: it is slow, misses ships that do not report in the window and wastes quota.
+async function ships(_env: Env) {
+  return { items: [], error: "Live AIS is not active yet: it needs a persistent listener (Cloudflare Durable Object) and an aisstream.io key", source: "https://aisstream.io", at: now() };
 }
 
 async function news() {

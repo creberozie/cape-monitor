@@ -28,6 +28,12 @@ export const flagsData = () => getJSON<{ kinds: Record<string, string>; note: st
 const supName = async (id: string) => (await suppliers()).rows.find((r) => r[0] === id)?.[1] ?? id;
 const supNames = async () => { const S = await suppliers(); return new Map(S.rows.map((r) => [r[0] as string, r[1] as string])); };
 
+/** Some published records name private individuals (land buyers, sole proprietors, contact people). They stay in, as published;
+ * the owner decides on any redaction. Entries marked as possible private individuals can be hidden in this browser. */
+export const PERSONAL_NOTE = "Some records name private individuals and their contact details (City land buyers, sole proprietors, contact people on awards), exactly as the state published them. Profiles that look like a private individual are marked; you can hide them.";
+export const hidePersons = () => localStorage.getItem("cm-hide-persons") === "1";
+export const IDENTITY_NOTE = "A supplier is identified only by its published name, normalised for case, punctuation and suffixes such as (Pty) Ltd or CC. No fuzzy matching: two spellings of one company appear as two profiles, and two companies with the same name would share one. Check the CIPC register before relying on identity.";
+
 // ---------------------------------------------------------------- generic table renderer (filter, sort, group, export)
 interface View { tid: string; rows: any[][]; q: string; sort: number; dir: number; group: number; year: string }
 let view: View | null = null;
@@ -91,8 +97,9 @@ const SUBS: [string, string][] = [["overview", "Overview"], ["suppliers", "Suppl
   ["rfq", "Quotations"], ["etenders", "eTenders (WC)"], ["departments", "Departments"], ["land", "City land sales"], ["docs", "Documents"]];
 export async function moneyTab(host: HTMLElement, k?: string) {
   if (k) sub = k;
-  host.innerHTML = `<nav class="subnav">${SUBS.map(([id, l]) => `<button data-sub="${id}" class="${id === sub ? "on" : ""}">${l}</button>`).join("")}</nav><div id="msub"></div>`;
+  host.innerHTML = `<div class="note warnbox personal">${esc(PERSONAL_NOTE)} <label><input type="checkbox" class="hidep" ${hidePersons() ? "checked" : ""}> Hide them</label></div><nav class="subnav">${SUBS.map(([id, l]) => `<button data-sub="${id}" class="${id === sub ? "on" : ""}">${l}</button>`).join("")}</nav><div id="msub"></div>`;
   host.querySelectorAll("[data-sub]").forEach((b) => (b as HTMLElement).onclick = () => moneyTab(host, (b as HTMLElement).dataset.sub));
+  (host.querySelector(".hidep") as HTMLInputElement).onchange = (e) => { localStorage.setItem("cm-hide-persons", (e.target as HTMLInputElement).checked ? "1" : "0"); moneyTab(host); };
   const el = host.querySelector("#msub") as HTMLElement;
   try {
     if (sub === "overview") await overview(el);
@@ -125,12 +132,13 @@ let supQ = "", supSort = 3;
 async function supplierList(el: HTMLElement) {
   const S = await suppliers(); const q = supQ.toLowerCase();
   let rows = q ? S.rows.filter((r) => String(r[1]).toLowerCase().includes(q) || String(r[0]).includes(q.replace(/\s+/g, "-"))) : S.rows;
+  if (hidePersons()) rows = rows.filter((r) => !r[13]);
   rows = [...rows].sort((a, b) => supSort === 3 ? (b[3] + b[5]) - (a[3] + a[5]) : (Number(b[supSort]) || 0) - (Number(a[supSort]) || 0));
   const H: [number, string][] = [[1, "Supplier"], [2, "Award decisions"], [3, "Fixed value of decisions"], [12, "Rates-based budgets"], [4, "Quotation orders"], [5, "Quotation value"], [6, "Bids"], [7, "eTenders"], [8, "Land bought"], [11, "Flags"]];
   el.innerHTML = `<div class="toolbar"><input class="sq" placeholder="Find a supplier…" value="${esc(supQ)}" aria-label="Find a supplier"><button class="tb sx">Export CSV</button>
-    <span class="note">${fmt(rows.length)} of ${fmt(S.rows.length)} suppliers named in published City and eTender records. A supplier is identified by its published name only.</span></div>
+    <span class="note">${fmt(rows.length)} of ${fmt(S.rows.length)} suppliers named in published City and eTender records.</span></div><div class="note">${esc(IDENTITY_NOTE)}</div>
     <div class="tscroll"><table class="t"><thead><tr>${H.map(([k, l]) => `<th data-ss="${k}">${l}${supSort === k ? " ▼" : ""}</th>`).join("")}<th>Years</th></tr></thead><tbody>
-    ${rows.slice(0, 300).map((r) => `<tr class="click" data-sup="${esc(r[0])}"><td>${esc(r[1])}</td><td class="mono">${fmt(r[2])}</td><td class="mono">${r[3] ? short(r[3]) : ""}</td><td class="mono dim">${r[12] ? short(r[12]) : ""}</td><td class="mono">${fmt(r[4])}</td><td class="mono">${r[5] ? short(r[5]) : ""}</td><td class="mono">${fmt(r[6])}</td><td class="mono">${fmt(r[7])}</td><td class="mono">${r[8] || ""}</td><td class="mono">${r[11] ? `<span class="flagc">${r[11]}</span>` : ""}</td><td class="mono dim">${esc(r[9] || "")}${r[10] && r[10] !== r[9] ? "–" + esc(r[10]) : ""}</td></tr>`).join("")}</tbody></table></div>`;
+    ${rows.slice(0, 300).map((r) => `<tr class="click" data-sup="${esc(r[0])}"><td>${esc(r[1])}${r[13] ? ' <span class="pill person" title="Possibly a private individual">person?</span>' : ""}</td><td class="mono">${fmt(r[2])}</td><td class="mono">${r[3] ? short(r[3]) : ""}</td><td class="mono dim">${r[12] ? short(r[12]) : ""}</td><td class="mono">${fmt(r[4])}</td><td class="mono">${r[5] ? short(r[5]) : ""}</td><td class="mono">${fmt(r[6])}</td><td class="mono">${fmt(r[7])}</td><td class="mono">${r[8] || ""}</td><td class="mono">${r[11] ? `<span class="flagc">${r[11]}</span>` : ""}</td><td class="mono dim">${esc(r[9] || "")}${r[10] && r[10] !== r[9] ? "–" + esc(r[10]) : ""}</td></tr>`).join("")}</tbody></table></div>`;
   let tm: any; (el.querySelector(".sq") as HTMLInputElement).oninput = (e) => { clearTimeout(tm); tm = setTimeout(() => { supQ = (e.target as HTMLInputElement).value; supplierList(el).then(() => { const i = el.querySelector(".sq") as HTMLInputElement; i.focus(); i.setSelectionRange(i.value.length, i.value.length); }); }, 200); };
   el.querySelectorAll("[data-ss]").forEach((th) => (th as HTMLElement).onclick = () => { supSort = +(th as HTMLElement).dataset.ss!; supplierList(el); });
   (el.querySelector(".sx") as HTMLElement).onclick = () => exportCSV("suppliers", S.fields, rows, "Cape Monitor supplier index built from City of Cape Town Open Data Portal, City bid registers and the eTender portal");
@@ -196,7 +204,8 @@ export async function openSupplier(id: string) {
   const sharePhone = phones.length ? S.rows.length && F.flags.filter((f) => f.kind === "phone" && f.subjects.some((s) => s[1] === id)).flatMap((f) => f.subjects.map((s) => s[1])).filter((s) => s !== id) : [];
   const q = encodeURIComponent(`"${name.replace(/\s*\((pty|ply)\)\s*ltd\.?/i, "").trim()}"`);
   const yearsRow = ix[9] ? `${ix[9]}${ix[10] !== ix[9] ? "–" + ix[10] : ""}` : "—";
-  open(`<div class="card primary"><div class="kicker">Supplier profile</div><h2>${esc(name)}</h2>
+  open(`<div class="card primary"><div class="kicker">Supplier profile${ix[13] ? " · possibly a private individual" : ""}</div><h2>${esc(name)}</h2>
+      ${ix[13] ? `<div class="note warnbox">This profile looks like a private individual. The records are shown exactly as the state published them.</div>` : ""}
       ${P.names.length > 1 ? `<div class="sm mu">Published as: ${P.names.map(([n, c]: [string, number]) => `${esc(n)} <span class="dim">(${c})</span>`).join("; ")}</div>` : ""}
       <div class="facts"><div class="fact"><b>${fmt(ix[2])}</b><span>award decisions</span></div><div class="fact"><b>${ix[3] ? short(ix[3]) : "—"}</b><span>fixed values of decisions naming it</span></div><div class="fact"><b>${ix[12] ? short(ix[12]) : "—"}</b><span>rates-based budgets (estimates)</span></div><div class="fact"><b>${fmt(ix[4])}</b><span>quotation orders</span></div>
         <div class="fact"><b>${ix[5] ? short(ix[5]) : "—"}</b><span>quotation value</span></div><div class="fact"><b>${fmt(ix[6])}</b><span>bids</span></div><div class="fact"><b>${esc(yearsRow)}</b><span>years active in records</span></div></div>
@@ -205,7 +214,7 @@ export async function openSupplier(id: string) {
       <div class="links sm"><span class="dim">Look up:</span><a href="https://www.saflii.org/cgi-bin/sinosrch-adw.cgi?query=${q}&method=boolean&meta=%2Fsaflii" target="_blank" rel="noopener">SAFLII judgments ↗</a>
         <a href="${esc(m.registers.cipc)}" target="_blank" rel="noopener">CIPC / BizPortal ↗</a><a href="${esc(m.registers.csd)}" target="_blank" rel="noopener">Central Supplier Database ↗</a>
         <a href="${esc(m.registers.restricted)}" target="_blank" rel="noopener">Treasury restricted suppliers ↗</a></div>
-      <div class="note">Totals add every published decision that names this supplier; a decision shared with others is counted in full for each, never divided. Fixed values and rates-based budgets (estimates of spend, not amounts paid) are kept apart; both are as published, including any capture errors in the source. Directors are not in these sources: CIPC records need a CIPC search.</div></div>
+      <div class="note">${esc(IDENTITY_NOTE)}</div><div class="note">Totals add every published decision that names this supplier; a decision shared with others is counted in full for each, never divided. Fixed values and rates-based budgets (estimates of spend, not amounts paid) are kept apart; both are as published, including any capture errors in the source. Directors are not in these sources: CIPC records need a CIPC search.</div></div>
     ${flags.length ? `<h3>Pattern flags<span class="c">${flags.length}</span></h3>${flags.map((f) => `<div class="row" data-flag="${esc(f.id)}"><span class="t">${esc(f.title)}</span><small>${esc(F.kinds[f.kind])}</small></div>`).join("")}<div class="note">${esc(F.note)}</div>` : ""}
     ${network(id, name, P.cobid || [], [...co], sharePhone as string[], names)}
     ${P.refs.awards ? `<h3>City award decisions<span class="c">${P.refs.awards.length}</span></h3>${await rowsTable("awards", P.refs.awards, ["date", "ref", "decision", "reason", "code", "desc", "value_text", "budget_text", "sup"])}` : ""}

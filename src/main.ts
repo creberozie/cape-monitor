@@ -99,7 +99,8 @@ async function search(q: string) {
   }
   if (ql.length >= 3) {
     const S = await suppliers().catch(() => null);
-    if (S) { let n = 0; for (const r of S.rows) if (String(r[1]).toLowerCase().includes(ql)) { out.push({ l: String(r[1]), s: `supplier · ${fmt(r[2] + r[4] + r[6] + r[7])} records`, go: () => openSupplier(r[0]) }); if (++n >= 8) break; } }
+    const hide = localStorage.getItem("cm-hide-persons") === "1";
+    if (S) { let n = 0; for (const r of S.rows) if (String(r[1]).toLowerCase().includes(ql) && !(hide && r[13])) { out.push({ l: String(r[1]), s: `supplier · ${fmt(r[2] + r[4] + r[6] + r[7])} records`, go: () => openSupplier(r[0]) }); if (++n >= 8) break; } }
   }
   for (const L of M.layers) if (L.name.toLowerCase().includes(ql)) out.push({ l: L.name, s: `layer · ${fmt(L.n)}`, go: () => { toggle(L.id, true); renderLeft(); } });
   for (const L of M.layers) {

@@ -114,3 +114,5 @@ a.row { color: var(--ink); text-decoration: none; }
   #q { font-size: 16px; }
   body.inspect #closeinspect { display: block; position: fixed; right: 10px; bottom: calc(58vh - 18px); z-index: 46; background: var(--pn); }
 }
+
+.pill.person { border-color: var(--warn); color: var(--warn); } .personal label { white-space: nowrap; margin-left: 6px; }

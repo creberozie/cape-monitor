@@ -412,21 +412,24 @@ for ref, idx in bid_tenders.items():
 # the same buyer official on several eTender awards to one supplier
 off = collections.defaultdict(list)
 for i, r in enumerate(et_rows):
-    if r[9] and r[14]:
+    if r[9] and r[14] and not re.search(r"help ?desk|tender|office|\bscm\b|supply chain|procurement|\bbid|desk|unit|section|enquir|department", str(r[9]), re.I):
         for s in r[14]: off[(str(r[9]).strip().upper(), str(r[2]), s)].append(i)
 for (o, buyer, sid), idx in off.items():
     if len(idx) >= 3:
         flag("official", f"{o.title()} ({buyer}): contact person on {len(idx)} awards to {REG.by[sid]['names'].most_common(1)[0][0]}",
-             "The buyer's contact person named on the eTender portal for each of these awards to the same supplier.", [["etenders", i] for i in idx],
+             "The buyer's contact person named on the eTender portal for each of these awards to the same supplier. A buyer's supply-chain officer is often the contact on many tenders, so this shows who handled them, not who decided.", [["etenders", i] for i in idx],
              [["supplier", sid], ["official", o], ["department", buyer]])
 
 # shared contact numbers between differently named companies (eTender award records)
+# Buyers often type their own office number or a placeholder into the award contact field, so a number only counts when it is
+# not any buyer's published number, is not placeholder-like (few distinct digits, ending 0000), and links 2 to 5 companies.
+buyer_phones = {re.sub(r"\D", "", str(t.get("telephone") or ""))[-9:] for t in et_detail.values()}
 ph = collections.defaultdict(set)
 for s in REG.by.values():
     for p in s["phones"]:
-        if len(p) == 9 and len(set(p)) > 2: ph[p].add(s["id"])
+        if len(p) == 9 and len(set(p)) > 3 and not p.endswith("0000") and p not in buyer_phones: ph[p].add(s["id"])
 for p, sids in ph.items():
-    if len(sids) >= 2:
+    if 2 <= len(sids) <= 5:
         recs = [["etenders", i] for s in sids for i in REG.by[s]["refs"]["et"]]
         flag("phone", f"{len(sids)} companies share the contact number ending {p[-4:]}",
              "Award records on the eTender portal give the same contact number for these differently named companies: " + "; ".join(REG.by[s]["names"].most_common(1)[0][0] for s in sorted(sids)) + ".",
@@ -448,6 +451,20 @@ for f in flags:
         if kind == "supplier" and sid in REG.by: REG.by[sid].setdefault("flags", []).append(f["id"])
 
 # ================================================================ write suppliers, departments, flags
+BUSINESS = re.compile(r"\b(PTY|LTD|CC|INC|LIMITED|TRADING|PROJECTS?|CONSTRUCTION|SERVICES?|ENTERPRISES?|HOLDINGS|GROUP|SOLUTIONS|CONSULT\w*|ENGINEER\w*|"
+                      r"SUPPL\w*|INVESTMENTS?|DEVELOPMENTS?|PROPERTIES|PROPERTY|TRUST|ASSOCIATES|AND SONS|CATERERS?|SECURITY|TRANSPORT|MUNICIPALITY|"
+                      r"DEPARTMENT|COUNCIL|UNIVERSITY|COLLEGE|SCHOOL|CHURCH|FOUNDATION|ASSOCIATION|COMPANY|CORPORATION|AGENCY|BANK|T/A|JV|NPC|SOC|"
+                      r"CLUB|CENTRE|CENTER|MINISTRY|STUDIO|SYSTEMS|TECHNOLOG\w*|ELECTRICAL|PLUMBING|MOTORS|SA|AFRICA)\b", re.I)
+EXTRA_BUSINESS = re.compile(r"\b(INCORPORATED|ATTORNEYS|NOTARIES|CONVEYANCERS|MAINTENANCE|MANAGEMENT|FACILITIES|SOFTWARE|TRAINING|PARTNERS|"
+                            r"AUDITORS|ARCHITECTS|PLANNERS|AUTOMATION|INNOVATIONS|MECHANICAL|DIVISION|VENTURE|PUMPS|IT|OCC)\b", re.I)
+def likely_person(s):
+    """Conservative label for a private individual, used only to mark and optionally hide; never to remove a record:
+    a City land buyer whose name has no business word, or a personal title followed by two to four name words."""
+    n = s["names"].most_common(1)[0][0].replace("’", "'")
+    if BUSINESS.search(n) or EXTRA_BUSINESS.search(n) or re.search(r"\d|&amp|\(", n): return False
+    if s["refs"].get("land") and not s["refs"].get("awards") and not s["refs"].get("rfq"): return True
+    return bool(re.match(r"^(MR|MRS|MS|MISS|DR|PROF)\.?\s+[A-Z][A-Za-z'.-]*(\s+[A-Z][A-Za-z'.-]+){1,3}$", n, re.I))
+
 active = [s for s in REG.by.values() if any(s["refs"].values())]
 index = []
 prof = collections.defaultdict(dict)
@@ -456,12 +473,12 @@ for (a, b), n in pairs.items(): cob[a][b] = n; cob[b][a] = n
 for s in active:
     yrs = sorted(s["years"])
     index.append([s["id"], s["names"].most_common(1)[0][0], len(s["refs"]["awards"]), round(s["award_value"]), len(s["refs"]["rfq"]), round(s["rfq_value"]),
-                  len(s["refs"]["bids"]), len(s["refs"]["et"]), len(s["refs"]["land"]), yrs[0] if yrs else None, yrs[-1] if yrs else None, len(s.get("flags", [])), round(s["award_budget"])])
+                  len(s["refs"]["bids"]), len(s["refs"]["et"]), len(s["refs"]["land"]), yrs[0] if yrs else None, yrs[-1] if yrs else None, len(s.get("flags", [])), round(s["award_budget"]), 1 if likely_person(s) else 0])
     prof[bucket(s["id"])][s["id"]] = {
         "names": s["names"].most_common(), "refs": {k: v for k, v in s["refs"].items() if v}, "phones": sorted(s["phones"]), "contacts": sorted(s["contacts"]),
         "flags": s.get("flags", []), "cobid": cob[s["id"]].most_common(30)}
 index.sort(key=lambda r: -(r[3] + r[5]))
-dump({"fields": ["id", "name", "awards", "award_value", "rfq", "rfq_value", "bids", "etenders", "land", "first", "last", "flags", "award_budget"], "rows": index}, os.path.join(PUB, "suppliers.json"))
+dump({"fields": ["id", "name", "awards", "award_value", "rfq", "rfq_value", "bids", "etenders", "land", "first", "last", "flags", "award_budget", "person"], "rows": index}, os.path.join(PUB, "suppliers.json"))
 for b, v in prof.items(): dump(v, os.path.join(PUB, "sup", f"{b}.json"))
 
 deps = collections.defaultdict(lambda: {"n": 0, "value": 0.0, "years": collections.Counter(), "sup": collections.Counter(), "src": set()})
@@ -479,7 +496,7 @@ flags.sort(key=lambda f: (list(KINDS).index(f["kind"]), -(f.get("value") or 0)))
 dump({"kinds": KINDS, "note": "Patterns in published data. Each lists the records it rests on. A pattern is not a finding of wrongdoing; most have lawful explanations.",
       "thresholds": [{"from": t[0], "value": t[1], "text": t[2], "url": t[3]} for t in THRESHOLDS], "flags": flags}, os.path.join(PUB, "flags.json"))
 
-dump({"built": NOW, "tables": tables, "counts": {"suppliers": len(index), "flags": len(flags), "tenders": len(tender), **{k: v["n"] for k, v in tables.items()}},
+dump({"built": NOW, "warnings": (BD or {}).get("warnings", []) + [f"eTender portal: {len((ET or {}).get('gaps', []))} pages could not be read this run"] * bool((ET or {}).get("gaps")), "tables": tables, "counts": {"suppliers": len(index), "flags": len(flags), "tenders": len(tender), **{k: v["n"] for k, v in tables.items()}},
       "buckets": BUCKETS, "shard": SHARD, "et_shard": 2000,
       "registers": {"cipc": "https://www.bizportal.gov.za/", "csd": "https://secure.csd.gov.za/", "restricted": "https://www.treasury.gov.za/ocpo/",
                     "etenders": "https://www.etenders.gov.za/"}}, os.path.join(PUB, "money.json"))

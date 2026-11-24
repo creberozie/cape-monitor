@@ -34,7 +34,7 @@ pipeline/metro/      run.py: districts.py, fetch_money.py, build_money.py, feeds
 pipeline/check.py    checks before anything is saved or deployed; index.py lists what is built; smoke.py tests the live site
 functions/live/      Cloudflare Pages Functions: /live/fires, /live/ships, /live/news
 src/                 the app (MapLibre + PMTiles over HTTP range requests)
-.github/workflows/   data.yml (weekly districts, metro every three hours), deploy.yml (build, deploy, test, report)
+.github/workflows/   data.yml (weekly districts, metro daily), deploy.yml (build, deploy, test, report)
 ```
 
 Each part (each district, the metro set) saves its own last good data. A part that fails keeps its last good data, so the
@@ -42,3 +42,22 @@ live site never loses a district because one source was down. Status of every de
 
 Local: `npm ci && pip install shapely pmtiles`, then `CM_DISTRICT=blaauwberg npm run data`, `python3 -I pipeline/metro/run.py full`,
 `python3 -I pipeline/index.py`, `npm run dev`.
+
+## Limits, stated plainly
+
+- **Identity.** Suppliers are matched by published name only (normalised for case, punctuation, "(Pty) Ltd", "CC"); there is no fuzzy matching.
+  Two spellings of one company are two profiles. Directors and registration dates are not in any free public source used here.
+- **Personal information.** Some records name private individuals and their contact details (City land buyers, sole proprietors,
+  contact people on awards), exactly as published by the state. Likely private individuals are labelled and can be hidden in the
+  browser; nothing is removed. Whether to redact is the owner's legal decision.
+- **Places.** News, tribunal cases and gazette notices are placed at the centre of the official suburb they name (with an alias list for
+  everyday names), never at an address. Plots are linked to notices only by erf number plus suburb as printed.
+- **PDF parsing.** The City's bid registers and the Provincial Gazette are read from PDFs. Each run checks for layout changes (registers
+  yielding nothing, bids not matching the register's TOTAL line, sharp drops) and lists warnings under Sources.
+- **Performance.** A full-screen vector map scores about 45 on Lighthouse's lab mobile test, because the lab renders WebGL in software
+  on a throttled CPU. Real phones render the map on the GPU and Cloudflare serves files compressed; the practical targets are first map
+  on screen within about 3 s on 4G and no layer styles built until a layer is switched on. Accessibility and best practices score 100.
+- **Live ships (AIS)** are not active: they need a persistent listener (Cloudflare Durable Object) and an aisstream.io key.
+- **Language.** Map, layers and plot dossiers are in English and Afrikaans; Money, Justice and Notices panels are English only for now.
+- **Actions minutes.** In a private repository GitHub allows 2 000 free minutes a month; the metro refresh therefore runs daily, not
+  three-hourly. A public repository has no minute limit.

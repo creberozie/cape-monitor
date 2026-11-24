@@ -4,7 +4,7 @@ import { M, getJSON, tableRows, layerById, Table, DP, DISTRICT, METRO, districtU
 import { t, esc, fmt, money } from "./i18n";
 import { openRecord, openWatched } from "./inspector";
 import { map } from "./map";
-import { moneyTab, moneyMeta, suppliers } from "./money";
+import { moneyTab, moneyMeta, suppliers, PERSONAL_NOTE, IDENTITY_NOTE } from "./money";
 import { watches, toggleWatch, updateCount, exportCSV } from "./util";
 
 const $ = (s: string) => document.querySelector(s) as HTMLElement;
@@ -174,8 +174,12 @@ async function watchlist() {
 }
 
 async function sources() {
-  const mm = await moneyMeta().catch(() => null); const J = await getJSON<any>(METRO + "justice.json").catch(() => null); const F = await getJSON<any>(METRO + "feed.json").catch(() => null);
-  const metro = `<h3>City-wide sources</h3><table class="t"><thead><tr><th>Group</th><th>Source</th><th>Records</th><th>Fetched</th></tr></thead><tbody>
+  const mm = await moneyMeta().catch(() => null); const NN = await getJSON<any>(METRO + "notices.json").catch(() => null); const J = await getJSON<any>(METRO + "justice.json").catch(() => null); const F = await getJSON<any>(METRO + "feed.json").catch(() => null);
+  const metro = `<h3>Personal information and identity</h3><div class="note warnbox">${esc(PERSONAL_NOTE)} Officials named on tenders appear in their public capacity.</div><div class="note">${esc(IDENTITY_NOTE)}</div>
+    <div class="note">Place tags (news, tribunal cases, gazette notices) are matched by suburb name and placed at the suburb centre, not an address. Erven are matched by erf number and suburb name as published. Pattern flags are patterns in published data, each with its rule, its records and, where one applies, the regulation it cites.</div>
+    <div class="note">Money, Justice and Notices panels are in English only in this version; the map, layers and plot dossiers are in English and Afrikaans.</div>
+    ${(mm as any)?.warnings?.length || NN?.warnings?.length ? `<h3>Parser and source warnings</h3>${[...((mm as any)?.warnings || []), ...(NN?.warnings || [])].map((w: string) => `<div class="note warnbox">${esc(w)}</div>`).join("")}` : ""}
+    <h3>City-wide sources</h3><table class="t"><thead><tr><th>Group</th><th>Source</th><th>Records</th><th>Fetched</th></tr></thead><tbody>
     ${mm ? Object.values(mm.tables).map((x: any) => `<tr><td class="dim">Money</td><td><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a> · ${esc(x.source)}${x.note ? `<div class="sm dim">${esc(x.note)}</div>` : ""}</td><td class="mono">${fmt(x.n)}</td><td class="mono">${esc(x.retrieved.slice(0, 10))}</td></tr>`).join("") : ""}
     ${J ? J.sources.map((x: any) => `<tr><td class="dim">Justice</td><td><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a></td><td class="mono">${fmt(x.n)}</td><td class="mono">${esc(x.retrieved.slice(0, 10))}</td></tr>`).join("") : ""}
     ${F ? F.feeds.map((x: any) => `<tr><td class="dim">Feed</td><td><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>${x.error ? ` <span class="warn">unavailable: ${esc(x.error)}</span>` : ""}</td><td class="mono">${fmt(x.n)}</td><td class="mono">${esc(x.retrieved.slice(0, 10))}</td></tr>`).join("") : ""}
@@ -214,7 +218,7 @@ const NOT_ADDED: [string, string, string][] = [
   ["SAPS station crime statistics", "https://www.saps.gov.za/services/crimestats.php", "saps.gov.za did not answer from the build machine. The City's police station layer is in each district under Justice."],
   ["ISS Crime Hub", "https://crimehub.org/", "Interactive pages only; no published data file found."],
   ["Community newspapers (Tygerburger, Netwerk24 locals)", "https://www.netwerk24.com/", "Feeds refuse automated requests (HTTP 403)."],
-  ["Live AIS ships", "https://aisstream.io/", "Ready, but needs a free aisstream.io key saved as the site's AISSTREAM_KEY secret."],
+  ["Live AIS ships", "https://aisstream.io/", "Not active. Needs a persistent listener (a Cloudflare Durable Object, paid Workers plan) and a free aisstream.io key; a connection per page view is too slow and incomplete."],
   ["City web procurement portal (open RFQs)", "https://web1.capetown.gov.za/web1/procurementportal/", "Did not answer from the build machine. Open City tenders are taken from the national eTender portal instead."],
 ];
 export function renderTabs() {

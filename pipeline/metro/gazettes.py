@@ -6,7 +6,7 @@ City of Cape Town notice or names a Cape Town suburb. For each we keep: gazette 
 English text as published, the erven and suburbs it names, and its kind (closure, removal of restrictions, rezoning, liquor
 licence, by-law, ...). Plots are matched in the app by erf number and suburb. Writes public/data/metro/notices.json.
 Run: gazettes.py [years...]   default: the current and previous year (the archive back to 2000 is listed with --all)."""
-import json, os, re, sys, time, html, datetime, subprocess, urllib.request, urllib.parse, concurrent.futures as cf
+import json, os, re, sys, time, html, datetime, subprocess, urllib.request, urllib.error, urllib.parse, concurrent.futures as cf
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))); sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import ROOT, HERE, now, dump
 from places import tag
@@ -17,8 +17,10 @@ PDFS = os.path.join(HERE, "cache", "metro", "gazettes"); os.makedirs(PDFS, exist
 
 
 def get(url, binary=False):
+    err = None
     for k in range(4):
         try:
+            if k and binary and isinstance(err, urllib.error.HTTPError) and err.code == 404: break
             b = urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=120).read()
             return b if binary else b.decode("utf-8", "replace")
         except Exception as e: err = e; time.sleep(4 * (k + 1))
@@ -80,8 +82,15 @@ def read_pdf(g):
     key = re.sub(r"[^A-Za-z0-9.-]+", "_", urllib.parse.unquote(g["url"].split("file=")[-1].split("&")[0]))[-120:]
     pdf = os.path.join(PDFS, key); txt = pdf + ".txt"
     if not os.path.exists(txt):
-        if not os.path.exists(pdf): open(pdf, "wb").write(get(g["url"], binary=True))
-        subprocess.run(["pdftotext", "-layout", pdf, txt], check=True, timeout=300)
+        if not os.path.exists(pdf):
+            data = get(g["url"], binary=True)
+            if not data.startswith(b"%PDF"): raise RuntimeError("the Province's link does not return a PDF (broken link on westerncape.gov.za)")
+            open(pdf, "wb").write(data)
+        r = subprocess.run(["pdftotext", "-layout", pdf, txt], capture_output=True, timeout=300)
+        if r.returncode or not os.path.exists(txt):
+            for f in (pdf, txt):
+                if os.path.exists(f): os.remove(f)   # a broken download is fetched again next run
+            raise RuntimeError("unreadable PDF: " + r.stderr.decode(errors="replace")[:100])
     return open(txt, encoding="utf-8", errors="replace").read()
 
 
@@ -118,8 +127,21 @@ def run():
         except Exception: return d
     for n in notices: n["date_iso"] = iso(n["date"])
     notices.sort(key=lambda n: (n["date_iso"] or "", n["number"] or ""), reverse=True)
+    # layout-change detection: ordinary gazettes always carry notices; warn when many yield none, or the total falls sharply
+    warnings = []
+    per = {}
+    for n in notices: per[n["url"]] = per.get(n["url"], 0) + 1
+    ordinary = [x for x in gaz if re.search(r"ordinary|gaz-\d", x["title"] + x["url"], re.I) and not re.search(r"extra", x["title"], re.I)]
+    blank = [x for x in ordinary if not per.get(x["url"])]
+    if ordinary and len(blank) / len(ordinary) > 0.2: warnings.append(f"{len(blank)} of {len(ordinary)} ordinary gazettes gave no Cape Town notices (layout change?)")
+    outp = os.path.join(ROOT, "public", "data", "metro", "notices.json")
+    if os.path.exists(outp):
+        prev = json.load(open(outp))
+        if prev.get("source", {}).get("years") == want and len(notices) < 0.7 * len(prev.get("notices", [])):
+            warnings.append(f"notices fell from {len(prev['notices'])} to {len(notices)} for the same years")
+    for w in warnings: print("WARNING gazettes:", w)
     dump({"built": now(), "source": {"name": "Western Cape Provincial Gazette (Department of the Premier)", "url": LIST, "years": want, "gazettes": len(gaz)},
-          "failed": failed, "notices": notices}, os.path.join(ROOT, "public", "data", "metro", "notices.json"))
+          "failed": failed, "warnings": warnings, "notices": notices}, os.path.join(ROOT, "public", "data", "metro", "notices.json"))
     print(len(gaz), "gazettes;", len(notices), "notices kept;", sum(1 for n in notices if n["city"]), "City of Cape Town;", sum(1 for n in notices if n["erfs"]), "name an erf;", len(failed), "failed")
 
 
