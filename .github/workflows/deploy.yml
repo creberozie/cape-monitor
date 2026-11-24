@@ -1,0 +1,102 @@
+name: Deploy
+# Builds the site from the last good data of every district and of the metro set, deploys it to Cloudflare Pages
+# (site + live functions), then tests the deployed site and writes a plain status report to the ci-status branch.
+# main deploys to production; any other branch to a preview URL. If the build or checks fail nothing is deployed.
+on:
+  push:
+    branches: [main, "claude/**"]
+    paths: ["src/**", "functions/**", "public/**", "index.html", "package.json", "vite.config.ts", "tests/**", ".github/workflows/deploy.yml"]
+  workflow_dispatch: {}
+  workflow_call:
+    inputs:
+      data_run: { type: string, default: "" }
+      district_result: { type: string, default: "" }
+      metro_result: { type: string, default: "" }
+permissions: { contents: write }
+concurrency: { group: "deploy-${{ github.ref }}", cancel-in-progress: false }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      PROJECT: cape-monitor
+      BRANCH: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      # last good data for each part
+      - { uses: actions/cache/restore@v4, with: { path: public/data/d/blaauwberg, key: "good-blaauwberg-x", restore-keys: "good-blaauwberg-" } }
+      - { uses: actions/cache/restore@v4, with: { path: public/data/d/table-bay, key: "good-table-bay-x", restore-keys: "good-table-bay-" } }
+      - { uses: actions/cache/restore@v4, with: { path: public/data/d/tygerberg, key: "good-tygerberg-x", restore-keys: "good-tygerberg-" } }
+      - { uses: actions/cache/restore@v4, with: { path: public/data/d/northern, key: "good-northern-x", restore-keys: "good-northern-" } }
+      - { uses: actions/cache/restore@v4, with: { path: public/data/d/southern, key: "good-southern-x", restore-keys: "good-southern-" } }
+      - { uses: actions/cache/restore@v4, with: { path: public/data/d/cape-flats, key: "good-cape-flats-x", restore-keys: "good-cape-flats-" } }
+      - { uses: actions/cache/restore@v4, with: { path: public/data/d/mitchells-plain-khayelitsha, key: "good-mitchells-plain-khayelitsha-x", restore-keys: "good-mitchells-plain-khayelitsha-" } }
+      - { uses: actions/cache/restore@v4, with: { path: public/data/d/helderberg, key: "good-helderberg-x", restore-keys: "good-helderberg-" } }
+      - { uses: actions/cache/restore@v4, with: { path: public/data/metro, key: "good-metro-x", restore-keys: "good-metro-" } }
+      - name: Index the available data
+        run: python3 -I pipeline/index.py
+      - name: Build the site
+        run: npm run build
+      - name: Check limits (file size, file count) before deploying
+        run: python3 -I pipeline/check.py dist
+      - name: Deploy to Cloudflare Pages
+        id: pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFARE_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          mkdir -p logs
+          npx wrangler --version
+          npx wrangler pages project create "$PROJECT" --production-branch=main 2>&1 | tee logs/pages-project.log || true
+          npx wrangler pages deploy dist --project-name="$PROJECT" --branch="$BRANCH" --commit-dirty=true 2>&1 | tee logs/pages-deploy.log
+          URL=$(grep -oE 'https://[a-zA-Z0-9.-]+\.pages\.dev' logs/pages-deploy.log | tail -1)
+          if [ "$BRANCH" = "main" ]; then URL="https://$PROJECT.pages.dev"; fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+      - name: Smoke-test the deployed site
+        id: smoke
+        if: ${{ steps.pages.outputs.url != '' }}
+        run: python3 -I pipeline/smoke.py "${{ steps.pages.outputs.url }}" | tee logs/smoke.log
+      - name: Browser tests and Lighthouse against the deployed site
+        if: ${{ steps.pages.outputs.url != '' }}
+        continue-on-error: true
+        env: { BASE_URL: "${{ steps.pages.outputs.url }}" }
+        run: |
+          npx playwright install --with-deps chromium >/dev/null
+          npx playwright test --reporter=line --trace off 2>&1 | tee logs/playwright.log || true
+          npx --yes lighthouse@12 "${{ steps.pages.outputs.url }}" --only-categories=performance,accessibility,best-practices --form-factor=mobile \
+            --chrome-flags="--headless=new --no-sandbox" --output=json --output-path=logs/lighthouse.json --quiet || true
+          python3 -c "import json;j=json.load(open('logs/lighthouse.json'));print({k:round(v['score']*100) for k,v in j['categories'].items()});a=j['audits'];print({k:a[k]['displayValue'] for k in ('first-contentful-paint','largest-contentful-paint','total-blocking-time','cumulative-layout-shift','speed-index')})" | tee logs/lighthouse-summary.txt || true
+      - name: Collect logs of the data jobs
+        if: ${{ always() && inputs.data_run != '' }}
+        uses: actions/download-artifact@v4
+        with: { pattern: "log-*", path: logs/data, merge-multiple: true }
+        continue-on-error: true
+      - name: Write status report to the ci-status branch
+        if: ${{ always() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          URL: ${{ steps.pages.outputs.url }}
+          RUN: ${{ github.run_id }}
+          DR: ${{ inputs.district_result }}
+          MR: ${{ inputs.metro_result }}
+          JOB: ${{ job.status }}
+        run: |
+          mkdir -p logs; cp public/data/index.json logs/data-index.json 2>/dev/null || true
+          python3 - <<'PY'
+          import json, os, glob, datetime
+          out = {"run": os.environ["RUN"], "branch": os.environ["BRANCH"], "sha": os.environ.get("GITHUB_SHA"), "at": datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z",
+                 "url": os.environ.get("URL"), "deploy_job": os.environ.get("JOB"), "district_jobs": os.environ.get("DR"), "metro_job": os.environ.get("MR")}
+          json.dump(out, open("logs/status.json", "w"), indent=1)
+          PY
+          git config --global user.name "cape-monitor-ci"; git config --global user.email "ci@users.noreply.github.com"
+          D=$(mktemp -d); cd "$D"
+          git init -q; git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git fetch -q --depth 1 origin ci-status; then git checkout -q -b ci-status FETCH_HEAD; else git checkout -q --orphan ci-status; fi
+          dest="runs/${BRANCH//\//-}"; rm -rf "$dest"; mkdir -p "$dest"; cp -r "$GITHUB_WORKSPACE"/logs/* "$dest"/ 2>/dev/null || true
+          find "$dest" -name '*.log' -size +2M -exec sh -c 'tail -c 2000000 "$1" > "$1.tail" && mv "$1.tail" "$1"' _ {} \;
+          git add -A; git commit -q -m "status ${BRANCH} run ${RUN}" || true
+          for i in 1 2 3 4; do git push -q origin ci-status && break; sleep $((i*5)); git fetch -q --depth 1 origin ci-status && git rebase -q FETCH_HEAD || true; done

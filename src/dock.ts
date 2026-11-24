@@ -1,9 +1,11 @@
 // The bottom dock: Brief (district and suburb statistics), Activity (latest City records), Feed (news and GI-TOC),
 // Records (every table, searchable), Sources (what is in, when it was fetched, what was left out and why), Heritage.
-import { M, getJSON, tableRows, layerById, Table } from "./data";
+import { M, getJSON, tableRows, layerById, Table, DP, DISTRICT, METRO, districtUrl, DataIndex } from "./data";
 import { t, esc, fmt, money } from "./i18n";
-import { openRecord } from "./inspector";
+import { openRecord, openWatched } from "./inspector";
 import { map } from "./map";
+import { moneyTab, moneyMeta, suppliers } from "./money";
+import { watches, toggleWatch, updateCount, exportCSV } from "./util";
 
 const $ = (s: string) => document.querySelector(s) as HTMLElement;
 type Area = { sr_total: number; sr_type: [string, number][]; sr_month: [string, number][]; plans_year: [string, number][]; plans_value: [string, number][];
@@ -18,36 +20,55 @@ const spark = (rows: [string, number][]) => { if (rows.length < 2) return ""; co
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polygon class="a" points="0,${H} ${pts} ${W},${H}"/></svg><div class="sm dim" style="display:flex;justify-content:space-between"><span>${esc(rows[0][0])}</span><span>${esc(rows[rows.length - 1][0])}</span></div>`; };
 const sum = (list: Area[], key: "sr_type" | "sr_month" | "plans_year" | "plans_value") => { const m = new Map<string, number>(); for (const a of list) for (const [k, v] of a[key]) m.set(k, (m.get(k) || 0) + v); return [...m]; };
 
+let cmp = "";
 async function brief() {
-  areas ??= await getJSON("data/areas.json");
-  const subs = Object.keys(areas!.suburb).filter((k) => /^[ -~]+$/.test(k)).sort();
+  if (!DISTRICT) return metroBrief();
+  areas ??= await getJSON(DP + "areas.json");
+  const kind = ((document.getElementById("area-kind") as HTMLSelectElement | null)?.value || "suburb") as "suburb" | "ward";
+  const keys = Object.keys(areas![kind]).filter((k) => /^[ -~]+$/.test(k)).sort((a, b) => kind === "ward" ? +a - +b : a.localeCompare(b));
   const sel = (document.getElementById("area-sel") as HTMLSelectElement | null)?.value || "";
-  const list = sel ? [areas!.suburb[sel]] : subs.map((k) => areas!.suburb[k]);
-  const a = sel ? areas!.suburb[sel] : null;
-  const months = sum(list, "sr_month").sort((x, y) => x[0].localeCompare(y[0])).filter(([m]) => m);
-  const types = sum(list, "sr_type").sort((x, y) => y[1] - x[1]);
-  const py = sum(list, "plans_year").sort((x, y) => x[0].localeCompare(y[0])), pv = sum(list, "plans_value").sort((x, y) => x[0].localeCompare(y[0]));
-  const L = (id: string) => layerById.get(id);
-  const kpi = (v: any, l: string) => `<div class="kpi"><b>${v}</b><span>${esc(l)}</span></div>`;
-  const parcels = L(M.parcels.layer);
-  const pop = a?.population ? Object.entries(a.population).filter(([k, v]) => typeof v === "number" && !/id/i.test(k)) : [];
-  $("#dockbody").innerHTML = `<div class="toolbar"><b>${sel ? esc(sel) : esc(M.district.name)}</b><select id="area-sel"><option value="">Whole district</option>${subs.map((s) => `<option ${s === sel ? "selected" : ""}>${esc(s)}</option>`).join("")}</select>
+  cmp = (document.getElementById("area-cmp") as HTMLSelectElement | null)?.value ?? cmp;
+  const col = (key: string) => {
+    const list = key ? [areas![kind][key]].filter(Boolean) : keys.map((k) => areas![kind][k]);
+    const months = sum(list, "sr_month").sort((x, y) => x[0].localeCompare(y[0])).filter(([m]) => m);
+    const types = sum(list, "sr_type").sort((x, y) => y[1] - x[1]);
+    const py = sum(list, "plans_year").sort((x, y) => x[0].localeCompare(y[0])), pv = sum(list, "plans_value");
+    const a = key ? areas![kind][key] : null;
+    const pop = a?.population ? Object.entries(a.population).filter(([k, v]) => typeof v === "number" && !/id/i.test(k)) : [];
+    const kpi = (v: any, l: string) => `<div class="kpi"><b>${v}</b><span>${esc(l)}</span></div>`;
+    return `<div class="cmpcol"><h3>${key ? esc((kind === "ward" ? "Ward " : "") + key) : "Whole district"}</h3>
+      <div class="kpis">${kpi(fmt(list.reduce((s, x) => s + x.sr_total, 0)), "service requests")}${kpi(fmt(py.reduce((s, x) => s + x[1], 0)), "building plans")}
+        ${kpi(money(pv.reduce((s, x) => s + x[1], 0) / 1e6) + "m", "declared building value")}${pop.slice(0, 3).map(([k, v]) => kpi(fmt(v as number), k.replace(/_/g, " "))).join("")}</div>
+      <div class="grid"><div class="tile"><div class="caps">Service requests per month</div>${spark(months)}</div>
+        <div class="tile"><div class="caps">Top service-request types</div>${bars(types, 8)}</div>
+        <div class="tile"><div class="caps">Building plans per year</div>${bars(py.map(([y, n]) => [y, n] as [string, number]).reverse(), 13)}</div>
+        ${a?.licences ? `<div class="tile"><div class="caps">Business licences</div>${bars(a.licences, 8)}</div>` : ""}</div></div>`;
+  };
+  const opts = (v: string, none: string) => `<option value="">${none}</option>${keys.map((k) => `<option ${k === v ? "selected" : ""}>${esc(k)}</option>`).join("")}`;
+  $("#dockbody").innerHTML = `<div class="toolbar"><b>${esc(M.district.label || M.district.name)}</b><select id="area-kind" aria-label="Compare by"><option value="suburb" ${kind === "suburb" ? "selected" : ""}>Suburbs</option><option value="ward" ${kind === "ward" ? "selected" : ""}>Wards</option></select>
+      <select id="area-sel" aria-label="Area">${opts(sel, "Whole district")}</select><span class="sm">compare with</span><select id="area-cmp" aria-label="Compare with">${opts(cmp, "— nothing —")}</select>
       <span class="note">Service requests since Jan 2023; building plans matched to plots in this district.</span></div>
-    <div class="kpis">${!sel ? kpi(fmt(parcels?.n || 0), "plots (erven)") : ""}${kpi(fmt(list.reduce((s, x) => s + x.sr_total, 0)), "service requests")}${kpi(fmt(py.reduce((s, x) => s + x[1], 0)), "building plans")}
-      ${kpi(money(pv.reduce((s, x) => s + x[1], 0) / 1e6) + "m", "declared building value")}${pop.slice(0, 3).map(([k, v]) => kpi(fmt(v as number), k.replace(/_/g, " "))).join("")}
-      ${!sel ? M.layers.filter((l) => ["police-stations", "fire-stations", "schools", "health-care-facilities"].includes(l.id)).map((l) => kpi(fmt(l.n), l.name)).join("") : ""}</div>
-    <div class="grid"><div class="tile"><div class="caps">Service requests per month</div>${spark(months)}</div>
-      <div class="tile"><div class="caps">Top service-request types</div>${bars(types, 10)}</div>
-      <div class="tile"><div class="caps">Building plans per year</div>${bars(py.map(([y, n]) => [y, n] as [string, number]).reverse(), 13)}</div>
-      ${!sel ? `<div class="tile"><div class="caps">Busiest suburbs (service requests)</div>${bars(Object.entries(areas!.suburb).filter(([k]) => /^[ -~]+$/.test(k)).map(([k, v]) => [k, v.sr_total] as [string, number]).sort((x, y) => y[1] - x[1]), 12)}</div>` : ""}
-      ${a?.licences ? `<div class="tile"><div class="caps">Business licences</div>${bars(a.licences, 8)}</div>` : ""}</div>`;
-  (document.getElementById("area-sel") as HTMLSelectElement).onchange = () => brief();
+    <div class="${cmp ? "cmp" : ""}">${col(sel)}${cmp ? col(cmp) : ""}</div>
+    ${!sel && !cmp ? `<div class="tile"><div class="caps">Busiest ${kind === "ward" ? "wards" : "suburbs"} (service requests)</div>${bars(keys.map((k) => [k, areas![kind][k].sr_total] as [string, number]).sort((x, y) => y[1] - x[1]), 12)}</div>` : ""}`;
+  for (const id of ["area-kind", "area-sel", "area-cmp"]) (document.getElementById(id) as HTMLSelectElement).onchange = (e) => { if (id === "area-kind") { (document.getElementById("area-sel") as HTMLSelectElement).value = ""; cmp = ""; (document.getElementById("area-cmp") as HTMLSelectElement).value = ""; } brief(); };
+}
+
+async function metroBrief() {
+  const I = await getJSON<DataIndex>("data/index.json").catch(() => null);
+  const ms = await Promise.all((I?.districts || []).filter((d) => d.built).map(async (d) => ({ d, a: await getJSON<any>(`data/d/${d.slug}/areas.json`).catch(() => null) })));
+  const tot = (a: any) => a ? Object.values(a.suburb as Record<string, any>).reduce((s: number, x: any) => s + x.sr_total, 0) : 0;
+  const plans = (a: any) => a ? Object.values(a.suburb as Record<string, any>).reduce((s: number, x: any) => s + x.plans_year.reduce((t: number, y: any) => t + y[1], 0), 0) : 0;
+  const m = await moneyMeta().catch(() => null);
+  $("#dockbody").innerHTML = `<div class="toolbar"><b>City of Cape Town</b><span class="note">District figures come from each district's own build; money is city-wide.</span></div>
+    ${m ? `<div class="kpis">${[["suppliers", "supplier profiles"], ["awards", "award decisions"], ["bids", "bids read out"], ["rfq", "quotation orders"], ["etenders", "WC eTenders"], ["flags", "pattern flags"]].map(([k, l]) => `<div class="kpi"><b>${fmt(m.counts[k] || 0)}</b><span>${l}</span></div>`).join("")}</div>` : ""}
+    <div class="tscroll"><table class="t"><thead><tr><th>District</th><th>Plots</th><th>Map layers</th><th>Service requests</th><th>Building plans matched</th><th>Data built</th></tr></thead><tbody>
+    ${(I?.districts || []).map((d) => { const a = ms.find((x) => x.d.slug === d.slug)?.a; return `<tr><td><a href="${districtUrl(d.slug)}">${esc(d.label)}</a></td><td class="mono">${d.plots ? fmt(d.plots) : ""}</td><td class="mono">${d.layers ?? ""}</td><td class="mono">${a ? fmt(tot(a)) : ""}</td><td class="mono">${a ? fmt(plans(a)) : ""}</td><td class="mono">${d.built ? esc(d.built.slice(0, 10)) : "not built yet"}</td></tr>`; }).join("")}</tbody></table></div>`;
 }
 
 async function activity() {
   const L = layerById.get("service-requests"); if (!L) { $("#dockbody").innerHTML = `<div class="empty">No service-request data.</div>`; return; }
   const last = Math.floor((L.n - 1) / M.parcels.shard);
-  const [a, b] = await Promise.all([getJSON<any[][]>(`data/attrs/service-requests/${last}.json`), last > 0 ? getJSON<any[][]>(`data/attrs/service-requests/${last - 1}.json`) : Promise.resolve([])]);
+  const [a, b] = await Promise.all([getJSON<any[][]>(`${DP}attrs/service-requests/${last}.json`), last > 0 ? getJSON<any[][]>(`${DP}attrs/service-requests/${last - 1}.json`) : Promise.resolve([])]);
   const f = (k: string) => L.fields.findIndex((x) => x[0] === k);
   const rows = [...b.map((r, k) => [r, (last - 1) * M.parcels.shard + k] as const), ...a.map((r, k) => [r, last * M.parcels.shard + k] as const)].reverse().slice(0, 300);
   $("#dockbody").innerHTML = `<div class="note">Latest ${rows.length} service requests logged in ${esc(M.district.name)} (of ${fmt(L.n)} since January 2023). Click one to see it on the map.</div>
@@ -56,13 +77,13 @@ async function activity() {
 }
 
 async function feed() {
-  const F = await getJSON<{ items: any[] }>("data/feed.json");
-  const only = (document.getElementById("feed-local") as HTMLInputElement | null)?.checked ?? false;
-  const items = F.items.filter((i) => !only || i.places.some((p: string) => !["Cape Town", "Western Cape", "West Coast"].includes(p)));
+  const F = await getJSON<{ items: any[]; feeds: any[] }>(METRO + "feed.json");
+  const only = (document.getElementById("feed-local") as HTMLInputElement | null)?.checked ?? !!DISTRICT;
+  const items = F.items.filter((i) => !only || i.places.some((p: any) => !DISTRICT || p[1] === DISTRICT));
   items.sort((a, b) => Date.parse(b.date || 0) - Date.parse(a.date || 0));
-  $("#dockbody").innerHTML = `<div class="toolbar"><label><input type="checkbox" id="feed-local" ${only ? "checked" : ""}> Only items naming a place in ${esc(M.district.name)}</label>
-      ${M.feeds.map((f) => `<span class="pill">${esc(f.name)} · ${f.n}</span>`).join("")}</div>
-    ${items.map((i) => `<div class="feeditem"><a href="${esc(i.link)}" target="_blank" rel="noopener">${esc(i.title)}</a><div class="meta">${esc(M.feeds.find((f) => f.id === i.feed)?.name)} · ${esc(i.date)}${i.places.length ? " · " + i.places.map((p: string) => `<span class="pill">${esc(p)}</span>`).join("") : ""}</div><div class="sm mu">${esc(i.summary)}</div></div>`).join("") || `<div class="empty">No items.</div>`}`;
+  $("#dockbody").innerHTML = `<div class="toolbar"><label><input type="checkbox" id="feed-local" ${only ? "checked" : ""}> Only items naming a suburb ${DISTRICT ? "in " + esc(M.district.label) : "in Cape Town"}</label>
+      ${F.feeds.map((f) => `<a class="pill" href="${esc(f.url)}" target="_blank" rel="noopener" title="${esc(f.error || "fetched " + f.retrieved)}">${esc(f.name)} · ${f.error ? "unavailable" : f.n}</a>`).join("")}</div>
+    ${items.slice(0, 300).map((i) => `<div class="feeditem"><a href="${esc(i.link)}" target="_blank" rel="noopener">${esc(i.title)}</a><div class="meta">${esc(F.feeds.find((f) => f.id === i.feed)?.name)} · ${esc(String(i.date).slice(0, 16).replace("T", " "))}${i.places.length ? " · " + i.places.map((p: any) => `<span class="pill">${esc(p[0])}</span>`).join("") : ""}</div><div class="sm mu">${esc(i.summary)}</div></div>`).join("") || `<div class="empty">No items.</div>`}`;
   (document.getElementById("feed-local") as HTMLInputElement).onchange = () => feed();
 }
 
@@ -96,7 +117,49 @@ async function records(id?: string) {
   $("#dockbody").querySelectorAll("th[data-sort]").forEach((th) => (th as HTMLElement).onclick = () => { const k = +(th as HTMLElement).dataset.sort!; tv!.dir = tv!.sort === k ? -tv!.dir : -1; tv!.sort = k; records(); });
 }
 
-function sources() {
+async function justice() {
+  const J = await getJSON<any>(METRO + "justice.json").catch(() => null);
+  if (!J) { $("#dockbody").innerHTML = `<div class="empty">Court records are not in this build yet.</div>`; return; }
+  const q = ((document.getElementById("j-q") as HTMLInputElement | null)?.value || "").toLowerCase();
+  const only = (document.getElementById("j-sup") as HTMLInputElement | null)?.checked ?? false;
+  const items = J.items.filter((c: any) => (!q || `${c.parties} ${c.case} ${c.type}`.toLowerCase().includes(q)) && (!only || c.suppliers.length));
+  $("#dockbody").innerHTML = `<div class="toolbar"><input id="j-q" placeholder="Filter by party, case number, type…" value="${esc(q)}"><label><input type="checkbox" id="j-sup" ${only ? "checked" : ""}> Only cases naming a City supplier</label>
+      <button class="tb" id="j-x">Export CSV</button>${J.sources.map((s: any) => `<a class="pill" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)} · ${fmt(s.n)} · fetched ${esc(s.retrieved.slice(0, 10))}</a>`).join("")}</div>
+    <div class="note">Not added: ${J.not_added.map((n: any) => `<a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.name)}</a>: ${esc(n.why)}`).join(" ")}</div>
+    <div class="tscroll"><table class="t"><thead><tr><th>Order date</th><th>Case</th><th>Type</th><th>Parties</th><th>Status</th><th>City suppliers named</th><th>Places</th><th>Documents</th></tr></thead><tbody>
+    ${items.slice(0, 400).map((c: any) => `<tr><td class="mono">${esc(c.date)}</td><td><a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.case)}</a></td><td>${esc(c.type)}</td><td>${esc(c.parties)}</td><td>${esc(c.status)}</td>
+      <td>${c.suppliers.map((s: string) => `<a href="#s=${esc(s)}" data-sup="${esc(s)}">${esc(s)}</a>`).join(", ")}</td><td>${c.places.map((p: any) => esc(p[0])).join(", ")}${c.erfs.length ? " · erf " + c.erfs.map(esc).join(", ") : ""}</td>
+      <td>${c.docs.map((d: any) => `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.title)}</a>`).join("<br>")}</td></tr>`).join("")}</tbody></table></div>
+    ${items.length > 400 ? `<div class="note">First 400 of ${fmt(items.length)}; export has all.</div>` : ""}`;
+  let tm: any; (document.getElementById("j-q") as HTMLInputElement).oninput = () => { clearTimeout(tm); tm = setTimeout(() => justice().then(() => { const i = document.getElementById("j-q") as HTMLInputElement; i.focus(); i.setSelectionRange(i.value.length, i.value.length); }), 250); };
+  (document.getElementById("j-sup") as HTMLInputElement).onchange = () => justice();
+  (document.getElementById("j-x") as HTMLElement).onclick = () => exportCSV("tribunal-cases", ["date", "case", "type", "parties", "status", "suppliers", "places", "erfs", "url", "documents"],
+    items.map((c: any) => [c.date, c.case, c.type, c.parties, c.status, c.suppliers, c.places.map((p: any) => p[0]), c.erfs, c.url, c.docs.map((d: any) => d.url)]), "Competition Tribunal decided cases, " + J.sources[0].url);
+}
+
+async function watchlist() {
+  const W = watches();
+  // suppliers can be re-counted from the index without opening each profile
+  if (W.some((w) => w.kind === "supplier")) { const S = await suppliers().catch(() => null); if (S) for (const w of W.filter((w) => w.kind === "supplier")) { const r = S.rows.find((x) => x[0] === w.id); if (r) updateCount("supplier", w.id, r[2] + r[4] + r[6] + r[7] + r[8]); } }
+  const L = watches();
+  $("#dockbody").innerHTML = `<div class="note">Your watchlist is kept in this browser only (nothing is sent anywhere). Items show how many records were added since you last opened them. Use ☆ Watch on any supplier, tender, plot, record, department or flag.</div>
+    ${L.length ? `<div class="tscroll"><table class="t"><thead><tr><th>Item</th><th>Kind</th><th>District</th><th>Records</th><th>Change</th><th>Added</th><th></th></tr></thead><tbody>
+    ${L.map((w, k) => `<tr class="click" data-wopen="${k}"><td>${esc(w.label)}</td><td>${esc(w.kind)}</td><td>${esc(w.district || "city-wide")}</td><td class="mono">${fmt(w.n)}</td><td class="mono">${w.n !== w.seen ? `<b class="new">${w.n - w.seen > 0 ? "+" : ""}${w.n - w.seen}</b>` : ""}</td><td class="mono">${esc(w.added)}</td><td><button class="mini" data-wdel="${k}">Remove</button></td></tr>`).join("")}</tbody></table></div>
+    <button class="tb" id="w-x">Export watchlist (CSV)</button>` : `<div class="empty">Nothing watched yet.</div>`}`;
+  $("#dockbody").querySelectorAll("[data-wdel]").forEach((b) => (b as HTMLElement).onclick = (e) => { e.stopPropagation(); const w = L[+(b as HTMLElement).dataset.wdel!]; toggleWatch(w); watchlist(); });
+  $("#dockbody").querySelectorAll("[data-wopen]").forEach((r) => (r as HTMLElement).onclick = () => openWatched(L[+(r as HTMLElement).dataset.wopen!]));
+  const x = document.getElementById("w-x"); if (x) x.onclick = () => exportCSV("watchlist", ["label", "kind", "id", "district", "records", "seen", "added"], L.map((w) => [w.label, w.kind, w.id, w.district, w.n, w.seen, w.added]));
+}
+
+async function sources() {
+  const mm = await moneyMeta().catch(() => null); const J = await getJSON<any>(METRO + "justice.json").catch(() => null); const F = await getJSON<any>(METRO + "feed.json").catch(() => null);
+  const metro = `<h3>City-wide sources</h3><table class="t"><thead><tr><th>Group</th><th>Source</th><th>Records</th><th>Fetched</th></tr></thead><tbody>
+    ${mm ? Object.values(mm.tables).map((x: any) => `<tr><td class="dim">Money</td><td><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a> · ${esc(x.source)}${x.note ? `<div class="sm dim">${esc(x.note)}</div>` : ""}</td><td class="mono">${fmt(x.n)}</td><td class="mono">${esc(x.retrieved.slice(0, 10))}</td></tr>`).join("") : ""}
+    ${J ? J.sources.map((x: any) => `<tr><td class="dim">Justice</td><td><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a></td><td class="mono">${fmt(x.n)}</td><td class="mono">${esc(x.retrieved.slice(0, 10))}</td></tr>`).join("") : ""}
+    ${F ? F.feeds.map((x: any) => `<tr><td class="dim">Feed</td><td><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>${x.error ? ` <span class="warn">unavailable: ${esc(x.error)}</span>` : ""}</td><td class="mono">${fmt(x.n)}</td><td class="mono">${esc(x.retrieved.slice(0, 10))}</td></tr>`).join("") : ""}
+    </tbody></table>
+    <h3>Not added, and why</h3><table class="t"><tbody>${NOT_ADDED.map(([n, u, w]) => `<tr><td><a href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a></td><td>${esc(w)}</td></tr>`).join("")}${(J?.not_added || []).map((n: any) => `<tr><td><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.name)}</a></td><td>${esc(n.why)}</td></tr>`).join("")}</tbody></table>`;
+  if (!DISTRICT) { $("#dockbody").innerHTML = `<div class="note">Everything city-wide in Cape Monitor, where it comes from and when it was fetched. Each district's GIS layers are listed under Sources inside that district.</div>${metro}`; return; }
   const byTheme = M.themes.map((th) => ({ th, ls: M.layers.filter((l) => l.theme === th.id) })).filter((x) => x.ls.length);
   $("#dockbody").innerHTML = `<div class="note">Everything in Cape Monitor, where it comes from and when it was fetched. Data built ${esc(M.built.slice(0, 16).replace("T", " "))} UTC. Counts are records inside the ${esc(M.district.name)} planning district unless marked city-wide.</div>
     <table class="t"><thead><tr><th>Theme</th><th>Layer or table</th><th>Records</th><th>Source</th><th>Fetched</th></tr></thead><tbody>
@@ -104,12 +167,13 @@ function sources() {
     ${M.tables.map((x) => `<tr><td class="dim">Records</td><td>${esc(x.name)}</td><td class="mono">${fmt(x.n)}</td><td><a href="${esc(x.url)}" target="_blank" rel="noopener">City of Cape Town Open Data Portal</a> ${x.scope === "city-wide" ? "· city-wide" : ""}</td><td class="mono">${esc((x.retrieved || "").slice(0, 10))}</td></tr>`).join("")}
     ${M.feeds.map((x) => `<tr><td class="dim">Feed</td><td>${esc(x.name)}</td><td class="mono">${fmt(x.n)}</td><td><a href="${esc(x.url)}" target="_blank" rel="noopener">RSS</a></td><td class="mono">${esc((x.retrieved || "").slice(0, 10))}</td></tr>`).join("")}
     </tbody></table>
+    ${metro}
     <h3>Left out (${M.skipped.filter((s) => s.why !== "no records in this district").length}) and empty here (${M.skipped.filter((s) => s.why === "no records in this district").length})</h3>
     <table class="t"><thead><tr><th>Layer</th><th>Service</th><th>Why</th></tr></thead><tbody>${M.skipped.sort((a, b) => a.why.localeCompare(b.why)).map((s) => `<tr><td><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)}</a></td><td class="dim">${esc(s.service)}</td><td>${esc(s.why)}</td></tr>`).join("")}</tbody></table>`;
 }
 
 async function heritage() {
-  const H = await getJSON<any>("data/heritage.json").catch(() => null);
+  const H = await getJSON<any>(DP + "heritage.json").catch(() => null);
   if (!H) { $("#dockbody").innerHTML = `<div class="empty">No heritage module.</div>`; return; }
   $("#dockbody").innerHTML = `<div class="note">The Blaauwberg heritage research register: ${H.finds.length} sourced finds (middens, burials, shipwrecks, Stone Age sites, battle), ${H.registers.length} records from SAHRIS, Wikidata and OpenStreetMap, and ${H.stories.length} stories. The City's heritage inventory is in the Heritage layers on the left.</div>
     <div class="grid">${H.finds.map((f: any, k: number) => `<div class="tile"><div class="caps">${esc(f.cat)} · ${esc(f.place)}${f.radius ? " ±" + fmt(f.radius) + " m" : ""}</div><b>${esc(f.name)}</b><div class="sm" style="margin:4px 0">${esc(f.facts)}</div>
@@ -117,7 +181,20 @@ async function heritage() {
     <h3>Stories</h3><div class="grid">${H.stories.map((s: any) => `<div class="tile"><div class="caps">${esc(s.date)}</div><b>${esc(s.title)}</b><div class="sm" style="white-space:pre-wrap;margin-top:4px">${esc(s.text)}</div><div class="links">${s.sources.map((x: any) => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title.slice(0, 50))}</a>`).join("")}</div></div>`).join("")}</div>`;
 }
 
-const TABS: [string, () => any][] = [["brief", brief], ["activity", activity], ["feed", feed], ["records", () => records()], ["heritage", heritage], ["sources", sources]];
+const TABS: [string, () => any][] = [["brief", brief], ["money", () => moneyTab($("#dockbody"))], ["justice", justice], ["feed", feed],
+  ...(DISTRICT ? [["activity", activity], ["records", () => records()]] as [string, () => any][] : []), ["watchlist", watchlist],
+  ...(DISTRICT === "blaauwberg" ? [["heritage", heritage]] as [string, () => any][] : []), ["sources", sources]];
+const NOT_ADDED: [string, string, string][] = [
+  ["Government Gazette and Western Cape Provincial Gazette (gazettes.africa)", "https://gazettes.africa/", "gazettes.africa now asks for a login (HTTP 401) for every page. The provincial gazette page on westerncape.gov.za loads its list by script; the national gazette archive on gov.za did not answer from the build machine. Planned next: read the Western Cape gazette PDFs directly."],
+  ["City land-use applications and public participation notices", "https://www.capetown.gov.za/", "Published through the City's e-services and notice pages, not as data; not yet read."],
+  ["Council and committee agendas and minutes", "https://www.capetown.gov.za/", "Published as PDFs per meeting; not yet read."],
+  ["CIPC company register: directors, registration dates, addresses", "https://www.bizportal.gov.za/", "No free bulk or API access; searches need a login. Director networks and 'award soon after registration' flags therefore cannot be computed from public data here. Each supplier profile links to the register."],
+  ["SAPS station crime statistics", "https://www.saps.gov.za/services/crimestats.php", "saps.gov.za did not answer from the build machine. The City's police station layer is in each district under Justice."],
+  ["ISS Crime Hub", "https://crimehub.org/", "Interactive pages only; no published data file found."],
+  ["Community newspapers (Tygerburger, Netwerk24 locals)", "https://www.netwerk24.com/", "Feeds refuse automated requests (HTTP 403)."],
+  ["Live AIS ships", "https://aisstream.io/", "Ready, but needs a free aisstream.io key saved as the site's AISSTREAM_KEY secret."],
+  ["City web procurement portal (open RFQs)", "https://web1.capetown.gov.za/web1/procurementportal/", "Did not answer from the build machine. Open City tenders are taken from the national eTender portal instead."],
+];
 export function renderTabs() {
   $("#tabs").innerHTML = TABS.map(([k]) => `<button data-tab="${k}" class="${k === tab ? "on" : ""}">${t(k as any)}</button>`).join("") + `<span class="sp"></span><button data-size="1" title="Bigger or smaller">⇕</button>`;
 }

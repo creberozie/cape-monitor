@@ -5,3 +5,7 @@
   Cache-Control: public, max-age=3600
 /basemap/*
   Cache-Control: public, max-age=604800
+/live/*
+  Cache-Control: no-store
+/data/index.json
+  Cache-Control: public, max-age=300

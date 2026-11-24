@@ -1,15 +1,13 @@
 """Step 1: discover every City of Cape Town GIS layer and count its records inside the chosen planning district.
-Writes pipeline/out/catalogue.json. Run: python3 pipeline/catalogue.py BLAAUWBERG"""
+Writes pipeline/out/<district>/catalogue.json. Run: CM_DISTRICT=blaauwberg python3 pipeline/catalogue.py"""
 import json, os, sys, concurrent.futures as cf
 sys.path.insert(0, os.path.dirname(__file__))
 from arcgis import get, post, spatial, query_polygon
+from common import paths, CITY_GIS as ROOT, DMD_LAYER as dmd
 
-ROOT = "https://citymaps.capetown.gov.za/agsext/rest/services/"
-OUT = os.path.join(os.path.dirname(__file__), "out"); os.makedirs(OUT, exist_ok=True)
-DISTRICT = (sys.argv[1] if len(sys.argv) > 1 else "BLAAUWBERG").upper()
+P = paths(); OUT = P["out"]; DISTRICT = P["name"]
 
 # the district boundary (official Development Management District)
-dmd = ROOT + "Theme_Based/Political_Administrative_Boundaries/MapServer/3"
 area = get(dmd + "/query", {"where": f"PBDM_RGN_NAME='{DISTRICT}'", "outFields": "*", "outSR": 4326, "f": "geojson", "geometryPrecision": 5})
 assert area["features"], DISTRICT
 json.dump(area, open(os.path.join(OUT, "district.geojson"), "w"))

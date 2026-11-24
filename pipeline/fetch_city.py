@@ -4,9 +4,9 @@ import json, os, sys, re, datetime, concurrent.futures as cf
 sys.path.insert(0, os.path.dirname(__file__))
 from arcgis import fetch_features, domains, spatial, query_polygon, in_district
 from themes import theme_for, excluded, slug
+from common import paths
 
-HERE = os.path.dirname(__file__)
-OUT = os.path.join(HERE, "out"); CACHE = os.path.join(HERE, "cache", "city"); os.makedirs(CACHE, exist_ok=True)
+P = paths(); OUT = P["out"]; CACHE = P["city"]
 REFRESH = "--refresh" in sys.argv
 MAX = 400_000
 

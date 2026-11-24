@@ -11,7 +11,7 @@
     "preview": "vite preview --port 4173",
     "data": "python3 -I pipeline/catalogue.py BLAAUWBERG && python3 -I pipeline/fetch_city.py && python3 -I pipeline/fetch_extra.py && python3 -I pipeline/build.py",
     "data:refresh": "python3 -I pipeline/catalogue.py BLAAUWBERG && python3 -I pipeline/fetch_city.py --refresh && python3 -I pipeline/fetch_extra.py --refresh && python3 -I pipeline/build.py",
-    "vendor": "node -e \"for (const f of ['maplibre-gl-worker.mjs','maplibre-gl-shared.mjs']) require('fs').copyFileSync('node_modules/maplibre-gl/dist/'+f, 'public/vendor/'+f)\"",
+    "vendor": "node -e \"require('fs').mkdirSync('public/vendor',{recursive:true});for (const f of ['maplibre-gl-worker.mjs','maplibre-gl-shared.mjs']) require('fs').copyFileSync('node_modules/maplibre-gl/dist/'+f, 'public/vendor/'+f)\"",
     "predev": "npm run vendor",
     "prebuild": "npm run vendor"
   },
@@ -19,10 +19,12 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261124.2",
     "@playwright/test": "^1.65.1",
     "@types/geojson": "^7946.0.16",
     "typescript": "^7.0.2",
-    "vite": "^8.3.8"
+    "vite": "^8.3.8",
+    "wrangler": "^4.168.0"
   },
   "dependencies": {
     "geojson-vt": "^5.0.4",

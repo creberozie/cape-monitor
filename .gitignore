@@ -9,3 +9,4 @@ public/vendor
 release
 dist-pack2
 dist-gz
+__pycache__
