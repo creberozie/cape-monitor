@@ -228,6 +228,9 @@ export function bindDock() {
     openTab(b.dataset.tab!); };
   $("#dockbody").onclick = (e) => { const el = e.target as HTMLElement; const r = el.closest("[data-rec]") as HTMLElement | null; if (r) { const [l, i] = r.dataset.rec!.split(":"); openRecord(l, +i); }
     const f = el.closest("[data-fly]") as HTMLElement | null; if (f) { const [x, y] = f.dataset.fly!.split(",").map(Number); map.flyTo({ center: [x, y], zoom: 15 }); } };
-  openTab("brief");
+  renderTabs(); $("#dockbody").innerHTML = `<div class="empty">${t("loading")}</div>`;
+  // the first panel waits until the map has drawn, so it does not compete with the first paint
+  let done = false; const go = () => { if (!done) { done = true; openTab(tab); } };
+  map.once("idle", go); setTimeout(go, 4000);
 }
 export type { Table };

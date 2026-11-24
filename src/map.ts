@@ -62,8 +62,9 @@ export async function initMap(container: string, outlines: { slug: string; label
   map.addLayer({ id: "districts-line", type: "line", source: "districts", paint: { "line-color": ["case", ["==", ["get", "cur"], 1], "#38d39f", "#5d6b74"], "line-width": ["case", ["==", ["get", "cur"], 1], 1.8, 1], "line-dasharray": [3, 2] } });
   if (!DISTRICT) map.addLayer({ id: "districts-label", type: "symbol", source: "districts", layout: { "text-field": ["get", "label"], "text-font": ["Noto Sans Medium"], "text-size": 13 }, paint: { "text-color": "#dfe6ea", "text-halo-color": "#0b0f12", "text-halo-width": 1.5 } });
   for (const t of M.tilesets) map.addSource("ts-" + t, { type: "vector", url: tiles(`${DP}tiles/${t}.pmtiles`) });
-  const sorted = [...M.layers].filter((l) => sets(l).length).sort((a, b) => (ORDER[a.geom || "Point"] - ORDER[b.geom || "Point"]) || (b.n - a.n));
-  for (const L of sorted) addLayer(L);
+  // draw-order anchors: record layers are added only when first switched on, and slot in below the right anchor
+  map.addSource("anchor", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  for (const a of ["anchor-line", "anchor-point", "anchor-top"]) map.addLayer({ id: a, type: "circle", source: "anchor" });
   if (layerById.has("service-requests")) {
     map.addLayer({ id: "service-requests-density~h", type: "heatmap", source: "ts-" + layerById.get("service-requests")!.tileset, "source-layer": "service-requests-density", maxzoom: 13.5, layout: { visibility: "none" },
       paint: { "heatmap-weight": ["interpolate", ["linear"], ["get", "v"], 0, 0, 400, 1], "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 8, 10, 13, 30], "heatmap-opacity": .75,
@@ -81,19 +82,24 @@ export async function initMap(container: string, outlines: { slug: string; label
   return map;
 }
 
+const added = new Set<string>();
+const ANCHOR: Record<string, string> = { Polygon: "anchor-line", Polyline: "anchor-point", Point: "anchor-top", Multipoint: "anchor-top" };
 function addLayer(L: Layer) {
+  if (added.has(L.id)) return; added.add(L.id);
+  const before = ANCHOR[L.geom || "Point"];
+  const _add = map.addLayer.bind(map) as any; const add = (spec: any) => _add(spec, before);
   const col = colourExpr(L), vis = { visibility: "none" as const }, minzoom = L.minzoom ?? 9;
   sets(L).forEach((ts, k) => {
     const src = "ts-" + ts, sl = L.id, b = k ? `${L.id}@${k}` : L.id;
     if (L.geom === "Polygon") {
       const parcels = L.id === M.parcels.layer;
-      map.addLayer({ id: `${b}~f`, type: "fill", source: src, "source-layer": sl, minzoom, layout: vis, paint: { "fill-color": col, "fill-opacity": parcels ? 0 : L.theme === "property" && /ward|suburb|district|region/i.test(L.name) ? .04 : L.n > 5000 ? .16 : .2 } });
-      map.addLayer({ id: `${b}~l`, type: "line", source: src, "source-layer": sl, minzoom, layout: vis, paint: { "line-color": parcels ? "#aab4bb" : col, "line-width": ["interpolate", ["linear"], ["zoom"], 11, .4, 16, parcels ? 1 : 1.6], "line-opacity": parcels ? .55 : .9 } });
-      if (parcels) map.addLayer({ id: `${b}~t`, type: "symbol", source: src, "source-layer": sl, minzoom: 16, layout: { ...vis, "text-field": ["get", "n"], "text-font": ["Noto Sans Regular"], "text-size": 10 }, paint: { "text-color": "#c3ccd2", "text-halo-color": "#0b0f12", "text-halo-width": 1.3 } });
+      add({ id: `${b}~f`, type: "fill", source: src, "source-layer": sl, minzoom, layout: vis, paint: { "fill-color": col, "fill-opacity": parcels ? 0 : L.theme === "property" && /ward|suburb|district|region/i.test(L.name) ? .04 : L.n > 5000 ? .16 : .2 } });
+      add({ id: `${b}~l`, type: "line", source: src, "source-layer": sl, minzoom, layout: vis, paint: { "line-color": parcels ? "#aab4bb" : col, "line-width": ["interpolate", ["linear"], ["zoom"], 11, .4, 16, parcels ? 1 : 1.6], "line-opacity": parcels ? .55 : .9 } });
+      if (parcels) add({ id: `${b}~t`, type: "symbol", source: src, "source-layer": sl, minzoom: 16, layout: { ...vis, "text-field": ["get", "n"], "text-font": ["Noto Sans Regular"], "text-size": 10 }, paint: { "text-color": "#c3ccd2", "text-halo-color": "#0b0f12", "text-halo-width": 1.3 } });
     } else if (L.geom === "Polyline") {
-      map.addLayer({ id: `${b}~l`, type: "line", source: src, "source-layer": sl, minzoom, layout: { ...vis, "line-cap": "round" }, paint: { "line-color": col, "line-width": ["interpolate", ["linear"], ["zoom"], 11, .8, 16, 2.4] } });
+      add({ id: `${b}~l`, type: "line", source: src, "source-layer": sl, minzoom, layout: { ...vis, "line-cap": "round" }, paint: { "line-color": col, "line-width": ["interpolate", ["linear"], ["zoom"], 11, .8, 16, 2.4] } });
     } else {
-      map.addLayer({ id: `${b}~p`, type: "circle", source: src, "source-layer": sl, minzoom, layout: vis, paint: {
+      add({ id: `${b}~p`, type: "circle", source: src, "source-layer": sl, minzoom, layout: vis, paint: {
         "circle-color": col, "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, L.n > 2000 ? 1.6 : 3, 16, L.n > 2000 ? 4.5 : 7],
         "circle-stroke-color": "#0b0f12", "circle-stroke-width": L.n > 2000 ? .4 : 1 } });
     }
@@ -103,6 +109,7 @@ function addLayer(L: Layer) {
 export function setVisible(id: string, on: boolean) {
   const L = layerById.get(id);
   on ? visible.add(id) : visible.delete(id);
+  if (on && L && sets(L).length) addLayer(L);
   const all = L ? [...ids(L), ...(id === M.parcels.layer ? sets(L).map((_, k) => `${k ? `${id}@${k}` : id}~t`) : []), ...(id === "service-requests" ? ["service-requests-density~h"] : [])] : [id + "~p"];
   for (const lid of all) if (map.getLayer(lid)) map.setLayoutProperty(lid, "visibility", on ? "visible" : "none");
 }
