@@ -13,5 +13,6 @@ for s in DISTRICTS:
         out["districts"].append({"slug": s, "label": LABEL[s], "built": None})
 p = os.path.join(ROOT, "public", "data", "metro", "districts.json")
 if os.path.exists(p): out["metro"] = json.load(open(p)).get("built")
+os.makedirs(os.path.join(ROOT, "public", "data"), exist_ok=True)
 json.dump(out, open(os.path.join(ROOT, "public", "data", "index.json"), "w"), indent=1)
 print("data index:", [(d["slug"], (d["built"] or "MISSING")[:10]) for d in out["districts"]], "metro", out["metro"])
