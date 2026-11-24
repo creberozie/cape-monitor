@@ -1,0 +1,7 @@
+page 200 2427
+districts with data: ['blaauwberg', 'southern']
+  blaauwberg: manifest ok (253 layers); tiles community range request -> HTTP 200, 228495 bytes
+  southern: manifest ok (250 layers); tiles community range request -> HTTP 200, 411260 bytes
+  data/metro/money/money.json 200 5230
+  live/news 200 17385
+SMOKE: range requests not honoured

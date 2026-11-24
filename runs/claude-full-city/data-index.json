@@ -1,5 +1,5 @@
 {
- "built": "2026-11-24T22:57:46+00:00",
+ "built": "2026-11-24T23:08:12+00:00",
  "districts": [
   {
    "slug": "blaauwberg",
@@ -32,7 +32,15 @@
   {
    "slug": "southern",
    "label": "Southern",
-   "built": null
+   "built": "2026-11-24T22:58:43+00:00",
+   "bounds": [
+    18.30722,
+    -34.35834,
+    18.50142,
+    -33.94235
+   ],
+   "layers": 250,
+   "plots": 92946
   },
   {
    "slug": "cape-flats",
