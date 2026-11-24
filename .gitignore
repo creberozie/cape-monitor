@@ -1,0 +1,11 @@
+node_modules
+dist
+pipeline/cache
+pipeline/tmp
+pipeline/out
+public/data
+*.log
+public/vendor
+release
+dist-pack2
+dist-gz
