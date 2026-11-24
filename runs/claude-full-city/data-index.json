@@ -1,0 +1,54 @@
+{
+ "built": "2026-11-24T22:57:46+00:00",
+ "districts": [
+  {
+   "slug": "blaauwberg",
+   "label": "Blaauwberg",
+   "built": "2026-11-24T22:50:46+00:00",
+   "bounds": [
+    18.34132,
+    -33.91808,
+    18.61024,
+    -33.47128
+   ],
+   "layers": 253,
+   "plots": 67114
+  },
+  {
+   "slug": "table-bay",
+   "label": "Table Bay",
+   "built": null
+  },
+  {
+   "slug": "tygerberg",
+   "label": "Tygerberg",
+   "built": null
+  },
+  {
+   "slug": "northern",
+   "label": "Northern",
+   "built": null
+  },
+  {
+   "slug": "southern",
+   "label": "Southern",
+   "built": null
+  },
+  {
+   "slug": "cape-flats",
+   "label": "Cape Flats",
+   "built": null
+  },
+  {
+   "slug": "mitchells-plain-khayelitsha",
+   "label": "Mitchells Plain / Khayelitsha",
+   "built": null
+  },
+  {
+   "slug": "helderberg",
+   "label": "Helderberg",
+   "built": null
+  }
+ ],
+ "metro": "2026-11-24T21:51:16+00:00"
+}

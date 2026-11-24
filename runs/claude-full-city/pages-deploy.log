@@ -1,0 +1,24 @@
+
+ ⛅️ wrangler 4.168.0
+────────────────────
+✨ Compiled Worker successfully
+Uploading... (0/1482)
+Uploading... (10/1482)
+Uploading... (23/1482)
+Uploading... (37/1482)
+Uploading... (62/1482)
+Uploading... (82/1482)
+Uploading... (101/1482)
+Uploading... (151/1482)
+Uploading... (233/1482)
+Uploading... (331/1482)
+Uploading... (1108/1482)
+Uploading... (1225/1482)
+Uploading... (1482/1482)
+✨ Success! Uploaded 1482 files (22.00 sec)
+
+✨ Uploading _headers
+✨ Uploading Functions bundle
+🌎 Deploying...
+✨ Deployment complete! Take a peek over at https://dbc7480b.cape-monitor.pages.dev
+✨ Deployment alias URL: https://claude-full-city.cape-monitor.pages.dev
