@@ -3,7 +3,10 @@ import { test, expect, Page } from "@playwright/test";
 
 const errors = (p: Page) => { const e: string[] = []; p.on("pageerror", (x) => e.push(x.message)); p.on("console", (m) => { if (m.type() === "error" && !/favicon|Failed to load resource/.test(m.text())) e.push(m.text()); }); return e; };
 const phone = (p: Page) => (p.viewportSize()?.width || 0) <= 900;
-async function tab(p: Page, name: string) { await p.locator(`#tabs [data-tab=${name}]`).click(); await p.waitForTimeout(1200); }
+async function tab(p: Page, name: string) {
+  if (phone(p) && await p.locator("body.inspect").count()) await p.locator("#closeinspect").click();   // on phones the dossier sheet covers the tabs
+  await p.locator(`#tabs [data-tab=${name}]`).click(); await p.waitForTimeout(1200);
+}
 /** nothing may stick out of its card, tab or panel: every element's right edge stays inside its scroll container */
 async function noOverflow(p: Page, sel: string) {
   const bad = await p.$$eval(`${sel} *`, (els) => els.filter((el) => { const r = el.getBoundingClientRect(); if (!r.width) return false;
@@ -30,10 +33,11 @@ test("money panels, supplier profile, flag and tender dossier", async ({ page })
     await expect(page.locator("#msub")).not.toContainText("not in this build");
     await noOverflow(page, "#dockbody");
   }
-  await page.locator("[data-sub=suppliers]").click(); await page.locator("tr.click[data-sup]").first().click();
+  await page.locator("[data-sub=suppliers]").click(); await page.locator("#msub tr.click[data-sup]").first().click();
   await expect(page.locator("#right .kicker").first()).toHaveText(/Supplier profile/i, { timeout: 20000 });
   await noOverflow(page, "#right");
-  await page.locator("[data-sub=flags]").click(); await page.locator("[data-flag]").first().click();
+  if (phone(page)) await page.locator("#closeinspect").click();
+  await page.locator("[data-sub=flags]").click(); await page.locator("#msub [data-flag]").first().click();
   await expect(page.locator("#right .kicker").first()).toContainText("Pattern in published data", { timeout: 20000 });
   await expect(page.locator("#right table.t tbody tr").first()).toBeVisible();
   await page.goto("./#t=46Q/2023/24"); await expect(page.locator("#right h2").first()).toContainText("46Q/2023/24", { timeout: 30000 });
