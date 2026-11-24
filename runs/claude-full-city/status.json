@@ -1,10 +1,10 @@
 {
- "run": "45486003987",
+ "run": "45486004022",
  "branch": "claude/full-city",
  "sha": "7f2f00ebbc007c136446c45ed75e1242c31a4161",
- "at": "2026-11-24T21:49:27Z",
+ "at": "2026-11-24T21:49:50Z",
  "url": "",
  "deploy_job": "failure",
- "district_jobs": "",
- "metro_job": ""
+ "district_jobs": "cancelled",
+ "metro_job": "cancelled"
 }
