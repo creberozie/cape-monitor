@@ -14,7 +14,9 @@ on:
     branches: [main, "claude/**"]
     paths: [".github/workflows/data.yml"]   # code-only changes do not refetch every source; edit this file to force a data run
 permissions: { contents: write }
-concurrency: { group: "data-${{ github.ref }}", cancel-in-progress: ${{ github.event_name == 'push' }} }
+concurrency:
+  group: "data-${{ github.ref }}"
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 env:
   FULL: ${{ github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule == '23 1 * * 1') || (github.event_name == 'workflow_dispatch' && inputs.scope != 'metro') }}
 jobs:
