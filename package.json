@@ -9,11 +9,13 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview --port 4173",
-    "data": "python3 -I pipeline/catalogue.py BLAAUWBERG && python3 -I pipeline/fetch_city.py && python3 -I pipeline/fetch_extra.py && python3 -I pipeline/build.py",
-    "data:refresh": "python3 -I pipeline/catalogue.py BLAAUWBERG && python3 -I pipeline/fetch_city.py --refresh && python3 -I pipeline/fetch_extra.py --refresh && python3 -I pipeline/build.py",
+    "data": "python3 -I pipeline/catalogue.py && python3 -I pipeline/fetch_city.py && python3 -I pipeline/fetch_extra.py && python3 -I pipeline/build.py",
+    "data:refresh": "python3 -I pipeline/catalogue.py && python3 -I pipeline/fetch_city.py --refresh && python3 -I pipeline/fetch_extra.py --refresh && python3 -I pipeline/build.py",
     "vendor": "node -e \"require('fs').mkdirSync('public/vendor',{recursive:true});for (const f of ['maplibre-gl-worker.mjs','maplibre-gl-shared.mjs']) require('fs').copyFileSync('node_modules/maplibre-gl/dist/'+f, 'public/vendor/'+f)\"",
     "predev": "npm run vendor",
-    "prebuild": "npm run vendor"
+    "prebuild": "npm run vendor",
+    "metro": "python3 -I pipeline/metro/run.py full",
+    "test": "playwright test --trace off"
   },
   "keywords": [],
   "author": "",

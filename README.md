@@ -1,55 +1,44 @@
 # Cape Monitor
 
-An intelligence desk for the City of Cape Town: every public record we can reach, joined plot by plot, on one map.
-Phase 1 covers the City's **Blaauwberg** planning district. The pipeline is written per district, so the other seven
-districts (Table Bay, Tygerberg, Northern, Southern, Cape Flats, Mitchells Plain/Khayelitsha, Helderberg) are a data run,
-not a rebuild.
+A public accountability instrument for the City of Cape Town. It republishes, joined and sourced, what the City, the
+Province, the courts and the national state have already published: tender decisions, bids read out at tender openings,
+quotation orders, eTender records, City land sales, gazette notices, tribunal cases and every City GIS layer, plot by plot,
+for all eight planning districts. Every record carries its source, publication date, retrieval date and a link to the
+original. Pattern flags are labelled as patterns in published data, with the records behind them one click away.
 
 ## What is in it
 
-- **Every City GIS layer** that has records in the district (around 270 layers: plots, zoning, overlays, heritage,
-  water, sewer, electricity, stormwater, telecoms, roads, transport, facilities, environment, safety, Koeberg zones),
-  all fields as recorded.
-- **City records**: service requests since January 2023 (with map positions), building plan approvals 2014 onward
-  (matched to plots), City property sales, quotation and tender awards (city-wide, with supplier names and values),
-  traffic crashes, fire incidents, business licences, food-premises certificates, population estimates.
-- **Feeds**: News24, IOL Western Cape, Daily Maverick, GI-TOC analysis and Assassination Witness, tagged with the
-  places they name.
-- **Heritage module** (from Blaauwberg TimeFlyer): sourced finds, audited heritage records, stories.
+**Money and tenders (city-wide)**
+- City tender and adjudication decisions 2021–2026 (Open Data Portal; duplicated source rows collapsed, record numbers kept).
+- Bids read out at City tender openings 2016–2026, parsed from the City's monthly *Receiving / Opening of Tenders* registers.
+- City quotation (RFQ) orders 2020–2026 (values that form a spreadsheet fill-series in the source are marked and left out of totals).
+- National eTender portal: every tender placed by a Western Cape buyer (any sphere): briefing sessions, responsible official,
+  documents, bidders with amounts, awards with contact details. Kept across runs, because the portal drops old records.
+- City land sales; the City's tender-page documents (awards registers, tender-sum increases, s33 contracts).
+- Supplier profiles (identified by published name only), department profiles, tender dossiers, network views.
+- Pattern flags: threshold splitting, near-threshold orders, repeat winners, post-award expansions, deviations,
+  co-bidding, award above the lowest price read out, shared contact numbers, single-bid tenders. Thresholds are cited to
+  the MFMA SCM Regulations (GN 868 of 2005; GN 4198, GG 49863 of 14 Dec 2023).
 
-Click a plot: the right panel shows the plot, then its building plans, service requests, City sales, the records on it,
-every zone and overlay covering it, and the nearest police, fire, clinic, school and library. Click anything else: that
-record first, then everything else at that point.
+**Justice**: Competition Tribunal decided cases tagged to suppliers and suburbs; police stations and other justice layers per district;
+SAFLII search link on every supplier.
+**Notices**: Western Cape Provincial Gazette, notice by notice, with the erven and suburbs each names, linked from plot dossiers.
+**Districts**: every City GIS layer with records in the district, building plans, service requests, City sales and the plot dossier.
+**Live**: news and NGO feeds tagged to suburbs; NASA FIRMS fires; AIS ships (needs an aisstream.io key).
 
-## Run it
-
-```bash
-npm install
-pip install shapely pmtiles
-npm run data          # fetch everything for Blaauwberg (first run: 1-2 hours) and build public/data
-npm run dev           # local site at http://localhost:5173
-npm run build         # production site in dist/
-```
-
-`npm run data:refresh` fetches everything again instead of using the download cache.
-
-## Layout
+## How it runs
 
 ```
-pipeline/   catalogue.py (find layers) → fetch_city.py, fetch_extra.py (download) → build.py (join, tile, write)
-            arcgis.py (robust ArcGIS client), themes.py (grouping and exclusions, with reasons), tile.mjs, pack_pmtiles.py
-src/        main.ts (layers, search, links), map.ts (rendering, exact picking), inspector.ts (dossiers), dock.ts (panels)
-public/     basemap (Cape Town vector tiles, fonts, icons), web app manifest, service worker; data/ is generated
-docs/       source register, research register, audit of heritage pins
-.github/    weekly data refresh and deploy to Cloudflare Pages
+pipeline/            per district (CM_DISTRICT=<slug>): catalogue.py → fetch_city.py → fetch_extra.py → build.py
+pipeline/metro/      run.py: districts.py, fetch_money.py, build_money.py, feeds.py, justice.py, gazettes.py
+pipeline/check.py    checks before anything is saved or deployed; index.py lists what is built; smoke.py tests the live site
+functions/live/      Cloudflare Pages Functions: /live/fires, /live/ships, /live/news
+src/                 the app (MapLibre + PMTiles over HTTP range requests)
+.github/workflows/   data.yml (weekly districts, metro every three hours), deploy.yml (build, deploy, test, report)
 ```
 
-## Publish
+Each part (each district, the metro set) saves its own last good data. A part that fails keeps its last good data, so the
+live site never loses a district because one source was down. Status of every deploy is written to the `ci-status` branch.
 
-1. Create a GitHub repository `cape-monitor` and push this folder.
-2. In Cloudflare: Workers & Pages → Create → Pages → "Upload assets" is not needed; instead create an API token
-   (template "Edit Cloudflare Workers") and note the account ID.
-3. In GitHub: Settings → Secrets → Actions: add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
-4. Actions → "Build data and deploy" → Run workflow. The site appears at `https://cape-monitor.pages.dev`.
-   It then refreshes itself every Monday. If any step fails nothing is deployed and the last good version stays live.
-5. Optional: restrict the site to invited people with Cloudflare Zero Trust → Access (free up to 50 users).
+Local: `npm ci && pip install shapely pmtiles`, then `CM_DISTRICT=blaauwberg npm run data`, `python3 -I pipeline/metro/run.py full`,
+`python3 -I pipeline/index.py`, `npm run dev`.

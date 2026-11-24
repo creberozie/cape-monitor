@@ -107,13 +107,14 @@ async function records(id?: string) {
   const show = rows.slice(0, 500);
   $("#dockbody").innerHTML = `<div class="toolbar"><select id="tv-t">${tables.map((x) => `<option value="${x.id}" ${x.id === T.id ? "selected" : ""}>${esc(x.name)} (${fmt(x.n)})</option>`).join("")}</select>
       <input id="tv-q" placeholder="Filter rows…" value="${esc(tv.q)}"><select id="tv-g"><option value="-1">Group by…</option>${T.fields.map((f, k) => `<option value="${k}" ${k === tv!.group ? "selected" : ""}>${esc(f[1] || f[0])}</option>`).join("")}</select>
-      <span class="note">${fmt(rows.length)} rows${rows.length > 500 ? " (first 500 shown)" : ""} · ${T.scope === "city-wide" ? "whole city" : esc(M.district.name)} · <a href="${esc(T.url)}" target="_blank" rel="noopener">source</a> · fetched ${esc((T.retrieved || "").slice(0, 10))}</span></div>
+      <button class="tb" id="tv-x">Export CSV</button><span class="note">${fmt(rows.length)} rows${rows.length > 500 ? " (first 500 shown; export has all)" : ""} · ${T.scope === "city-wide" ? "whole city" : esc(M.district.name)} · <a href="${esc(T.url)}" target="_blank" rel="noopener">source</a> · fetched ${esc((T.retrieved || "").slice(0, 10))}</span></div>
     ${T.note ? `<div class="note">${esc(T.note)}</div>` : ""}${groupHtml}
-    <table class="t"><thead><tr>${T.fields.map((f, k) => `<th data-sort="${k}" title="${esc(f[0])}">${esc(f[1] || f[0])}${tv!.sort === k ? (tv!.dir > 0 ? " ▲" : " ▼") : ""}</th>`).join("")}</tr></thead>
-    <tbody>${show.map((r) => `<tr>${r.map((v, k) => `<td${k === numCol ? ' class="mono"' : ""}>${v == null ? "" : k === numCol ? money(v) : esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+    <div class="tscroll"><table class="t"><thead><tr>${T.fields.map((f, k) => `<th data-sort="${k}" title="${esc(f[0])}">${esc(f[1] || f[0])}${tv!.sort === k ? (tv!.dir > 0 ? " ▲" : " ▼") : ""}</th>`).join("")}</tr></thead>
+    <tbody>${show.map((r) => `<tr>${r.map((v, k) => `<td${k === numCol ? ' class="mono"' : ""}>${v == null ? "" : k === numCol ? money(v) : esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
   ($("#tv-t") as HTMLSelectElement).onchange = (e) => records((e.target as HTMLSelectElement).value);
   let tm: any; ($("#tv-q") as HTMLInputElement).oninput = (e) => { clearTimeout(tm); tm = setTimeout(() => { tv!.q = (e.target as HTMLInputElement).value; records(); setTimeout(() => { const el = $("#tv-q") as HTMLInputElement; el.focus(); el.setSelectionRange(el.value.length, el.value.length); }); }, 250); };
   ($("#tv-g") as HTMLSelectElement).onchange = (e) => { tv!.group = +(e.target as HTMLSelectElement).value; records(); };
+  ($("#tv-x") as HTMLElement).onclick = () => exportCSV(`${T.id}-${DISTRICT}${tv!.q ? "-filtered" : ""}`, T.fields.map((f) => f[1] || f[0]), rows, `${T.name}. Source: ${T.url}, fetched ${T.retrieved}.`);
   $("#dockbody").querySelectorAll("th[data-sort]").forEach((th) => (th as HTMLElement).onclick = () => { const k = +(th as HTMLElement).dataset.sort!; tv!.dir = tv!.sort === k ? -tv!.dir : -1; tv!.sort = k; records(); });
 }
 
