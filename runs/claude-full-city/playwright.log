@@ -5,41 +5,12 @@ Running 12 tests using 2 workers
 [2/12] [desktop] › tests/app.spec.ts:18:1 › metro overview loads, lists districts and has no errors
 [3/12] [tablet] › tests/app.spec.ts:28:1 › money panels, supplier profile, flag and tender dossier
 [4/12] [desktop] › tests/app.spec.ts:28:1 › money panels, supplier profile, flag and tender dossier
-[5/12] [desktop] › tests/app.spec.ts:47:1 › justice, feed, watchlist and sources panels
-[6/12] (retries) [tablet] › tests/app.spec.ts:28:1 › money panels, supplier profile, flag and tender dossier (retry #1)
-[7/12] [desktop] › tests/app.spec.ts:54:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
-  1) [tablet] › tests/app.spec.ts:28:1 › money panels, supplier profile, flag and tender dossier ───
-
-    Error: expect(locator).toBeVisible() failed
-
-    Locator: locator('#msub .kpis')
-    Expected: visible
-    Timeout: 20000ms
-    Error: element(s) not found
-
-    Call log:
-      - Expect "toBeVisible" locator('#msub .kpis') with timeout 20000ms
-      - waiting for locator('#msub .kpis')
-
-
-      28 | test("money panels, supplier profile, flag and tender dossier", async ({ page }) => {
-      29 |   const e = errors(page); await page.goto("./"); await expect(page.locator("#boot")).toHaveCount(0, { timeout: 30000 });
-    > 30 |   await tab(page, "money"); await expect(page.locator("#msub .kpis")).toBeVisible({ timeout: 20000 });
-         |                                                                       ^
-      31 |   for (const s of ["suppliers", "flags", "awards", "bids", "rfq", "etenders", "departments", "land", "docs"]) {
-      32 |     await page.locator(`[data-sub=${s}]`).click(); await page.waitForTimeout(1500);
-      33 |     await expect(page.locator("#msub")).not.toContainText("not in this build");
-        at /home/runner/work/cape-monitor/cape-monitor/tests/app.spec.ts:30:71
-
-    Error Context: test-results/app-money-panels-supplier-profile-flag-and-tender-dossier-tablet/error-context.md
-
-
-[8/12] [tablet] › tests/app.spec.ts:47:1 › justice, feed, watchlist and sources panels
+[5/12] [tablet] › tests/app.spec.ts:47:1 › justice, feed, watchlist and sources panels
+[6/12] [desktop] › tests/app.spec.ts:47:1 › justice, feed, watchlist and sources panels
+[7/12] [tablet] › tests/app.spec.ts:54:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
+[8/12] [desktop] › tests/app.spec.ts:54:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
 [9/12] [phone] › tests/app.spec.ts:18:1 › metro overview loads, lists districts and has no errors
 [10/12] [phone] › tests/app.spec.ts:28:1 › money panels, supplier profile, flag and tender dossier
-[11/12] [tablet] › tests/app.spec.ts:54:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
-[12/12] [phone] › tests/app.spec.ts:47:1 › justice, feed, watchlist and sources panels
-[13/12] [phone] › tests/app.spec.ts:54:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
-  1 flaky
-    [tablet] › tests/app.spec.ts:28:1 › money panels, supplier profile, flag and tender dossier ────
-  11 passed (1.8m)
+[11/12] [phone] › tests/app.spec.ts:47:1 › justice, feed, watchlist and sources panels
+[12/12] [phone] › tests/app.spec.ts:54:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
+  12 passed (1.9m)
