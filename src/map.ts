@@ -38,7 +38,9 @@ class RangeOrWhole {
   }
 }
 const protocol = new Protocol();
-const tiles = (path: string) => { const url = new URL(path, BASE).href; protocol.add(new PMTiles(new RangeOrWhole(url) as any)); return "pmtiles://" + url; };
+/** in production every tile file is under /t/ (answered with range requests by functions/t); in development it stays in public/ */
+const tilePath = (path: string) => import.meta.env.DEV ? path : path.replace(/^data\/d\/([^/]+)\/tiles\//, "t/$1/").replace(/^basemap\//, "t/basemap/") + `?v=${encodeURIComponent(M.built || "")}`;
+const tiles = (path: string) => { const url = new URL(tilePath(path), BASE).href; protocol.add(new PMTiles(new RangeOrWhole(url) as any)); return "pmtiles://" + url; };
 
 export async function initMap(container: string, outlines: { slug: string; label: string; outline: GeoJSON.Geometry }[] = []) {
   maplibregl.addProtocol("pmtiles", protocol.tile);

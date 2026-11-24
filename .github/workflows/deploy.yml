@@ -39,7 +39,7 @@ jobs:
       - name: Index, build and check (file size, file count) before deploying
         run: |
           set -o pipefail; mkdir -p logs
-          ( python3 -I pipeline/index.py && npm run build && python3 -I pipeline/check.py dist ) 2>&1 | tee logs/build.log
+          ( python3 -I pipeline/index.py && npm run build && python3 -I pipeline/tiles_out.py && python3 -I pipeline/check.py dist ) 2>&1 | tee logs/build.log
       - name: Deploy to Cloudflare Pages
         id: pages
         env:
@@ -57,7 +57,9 @@ jobs:
       - name: Smoke-test the deployed site
         id: smoke
         if: ${{ steps.pages.outputs.url != '' }}
-        run: python3 -I pipeline/smoke.py "${{ steps.pages.outputs.url }}" | tee logs/smoke.log
+        run: |
+          set -o pipefail
+          python3 -I pipeline/smoke.py "${{ steps.pages.outputs.url }}" 2>&1 | tee logs/smoke.log
       - name: Browser tests and Lighthouse against the deployed site
         if: ${{ steps.pages.outputs.url != '' }}
         continue-on-error: true
