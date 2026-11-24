@@ -29,5 +29,6 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         # the account is found from the token itself (the token belongs to one account)
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          apiToken: ${{ secrets.CLOUDFARE_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
+          preCommands: npx wrangler pages project create cape-monitor --production-branch=main || true
           command: pages deploy dist --project-name=cape-monitor --branch=main
