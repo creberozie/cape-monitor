@@ -89,9 +89,11 @@ async function showPlot(i: number, f: any, s: number, hits: { layer: string; i: 
   const ward = v("WARD_NAME") || (wardRec ? val(wardRec, "WARD_NAME") : null);
   const named = async () => {   // court/tribunal records and news that name this erf number in this plot's suburb
     const erf = String(v("PRTY_NMBR") || "").replace(/^0+/, ""); const sub = String(v("OFC_SBRB_NAME") || v("ALT_NAME") || "").toUpperCase(); if (!erf) return "";
-    const [J, F] = await Promise.all([getJSON<any>(METRO + "justice.json").catch(() => null), getJSON<any>(METRO + "feed.json").catch(() => null)]);
+    const [J, F, N] = await Promise.all([getJSON<any>(METRO + "justice.json").catch(() => null), getJSON<any>(METRO + "feed.json").catch(() => null), getJSON<any>(METRO + "notices.json").catch(() => null)]);
     const hit = (it: any) => it.erfs?.includes(erf) && it.places?.some((p: any) => p[0] === sub);
-    const items = [...(J?.items || []).filter(hit).map((c: any) => `<div class="row"><a class="t" href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.parties)}</a><small>Competition Tribunal ${esc(c.case)} · ${esc(c.date)}</small></div>`),
+    const alt = String(v("ALT_NAME") || "").toUpperCase();
+    const nhit = (n: any) => n.erf_suburbs?.some(([e, s]: [string, string]) => e === erf && (s.startsWith(sub) || sub.startsWith(s) || (alt && (s.startsWith(alt) || alt.startsWith(s)))));
+    const items = [...(N?.notices || []).filter(nhit).map((n: any) => `<div class="row"><a class="t" href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.kind)}: ${esc(n.title)}</a><small>${esc(n.gazette)}</small></div>`),...(J?.items || []).filter(hit).map((c: any) => `<div class="row"><a class="t" href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.parties)}</a><small>Competition Tribunal ${esc(c.case)} · ${esc(c.date)}</small></div>`),
       ...(F?.items || []).filter(hit).map((n: any) => `<div class="row"><a class="t" href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a><small>${esc(n.feed)} · ${esc(String(n.date).slice(0, 10))}</small></div>`)];
     return items.join("");
   };
@@ -105,7 +107,7 @@ async function showPlot(i: number, f: any, s: number, hits: { layer: string; i: 
     ${v("ZONING") ? `<span class="pill">${esc(v("ZONING"))}</span>` : ""}${v("LU_LGL_STS_DSCR") ? `<span class="pill">${esc(v("LU_LGL_STS_DSCR"))}</span>` : ""}
     <div class="links"><a href="${P.url}/query?where=SL_LAND_PRCL_KEY%3D${encodeURIComponent(key)}&outFields=*&returnGeometry=false&f=html" target="_blank" rel="noopener">${t("cityrec")} ↗</a><button class="mini" data-share="p=${esc(key)}">${t("share")}</button>
       ${watchButton("plot", `${DISTRICT}|${key}`, `Erf ${v("PRTY_NMBR")} ${v("OFC_SBRB_NAME") || ""}`, (D.plans?.length || 0) + (D.requests?.length || 0) + (D.sales?.length || 0), DISTRICT)}<button class="mini" data-dl="1">Export dossier (JSON)</button></div></div>
-    ${nm ? `<h3>Court records and news naming this erf</h3>${nm}<div class="note">Matched by erf number and suburb name in the published title or summary.</div>` : ""}
+    ${nm ? `<h3>Gazette notices, court records and news naming this erf</h3>${nm}<div class="note">Matched by erf number and suburb (or allotment) name as published in the notice, title or summary.</div>` : ""}
     ${pl ? `<h3>${t("plans")}<span class="c">${new Set(D.plans).size}</span></h3>${pl}` : `<h3>${t("plans")}<span class="c">0</span></h3><div class="empty">${t("none")} (2014 onward)</div>`}
     ${rq ? `<h3>${t("requests")}<span class="c">${fmt(D.requests!.length)}</span></h3>${rq}` : ""}
     ${sa ? `<h3>${t("sales")}</h3>${sa}` : ""}

@@ -70,7 +70,7 @@ export async function initMap(container: string, outlines: { slug: string; label
         "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"], 0, "rgba(0,0,0,0)", .2, "#3b1f5c", .45, "#a1245b", .7, "#ff5d5d", 1, "#ffe08a"] } });
   }
   // live and metro point overlays (news, court records, fires, ships): GeoJSON filled in by live.ts
-  for (const [id, colour] of [["live-news", "#ffb020"], ["live-courts", "#ff7ac6"], ["live-fires", "#ff3d00"], ["live-ships", "#7be0ff"]] as const) {
+  for (const [id, colour] of [["live-news", "#ffb020"], ["live-courts", "#ff7ac6"], ["live-notices", "#b98cff"], ["live-fires", "#ff3d00"], ["live-ships", "#7be0ff"]] as const) {
     map.addSource(id, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
     map.addLayer({ id: id + "~p", type: "circle", source: id, layout: { visibility: "none" }, paint: { "circle-color": colour, "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 4, 15, 8], "circle-stroke-color": "#0b0f12", "circle-stroke-width": 1.2, "circle-opacity": .9 } });
   }

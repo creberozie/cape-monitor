@@ -38,7 +38,7 @@ function renderLeft(filter = "") {
     const ls = M.layers.filter((l) => l.theme === id && (l.tilesets?.length || l.tileset) && (!f || l.name.toLowerCase().includes(f))).sort((a, b) => a.name.localeCompare(b.name));
     const ovs = OVERLAYS.filter((o) => o.theme === id && (!f || o.name.toLowerCase().includes(f))).map((o) => o.id);
     const extra = id === "money" ? `<div class="note" style="padding-left:14px">City awards, bids, quotations, eTenders, land sales, supplier profiles and pattern flags are city-wide: <button class="mini" data-tab="money">open Money</button></div>`
-      : id === "notices" ? `<div class="note" style="padding-left:14px">Gazette and planning notices are not in this build yet; see Sources for why.</div>` : "";
+      : id === "notices" ? `<div class="note" style="padding-left:14px">Every Western Cape Provincial Gazette notice naming Cape Town: <button class="mini" data-tab="notices">open Notices</button></div>` : "";
     if (!ls.length && !ovs.length && !extra) return "";
     const on = ls.filter((l) => visible.has(l.id)).length + ovs.filter((o) => overlayOn.has(o)).length;
     let inner = ovs.map(overlayRow).join("");

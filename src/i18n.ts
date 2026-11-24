@@ -6,14 +6,14 @@ const W = {
     allfields: "All fields, as recorded", showempty: "Show empty fields", zones: "Zones, overlays and areas covering this plot", recs: "Records on this plot",
     plans: "Building plans", requests: "Service requests on this plot", sales: "Sold by the City", near: "Nearest services", share: "Share link", copied: "Link copied",
     cityrec: "City record", fresh: "Data", install: "Install", offline: "Offline: showing saved data", loading: "Loading…", district: "District", suburb: "Suburb",
-    ward: "Ward", total: "Total", latest: "Latest", none: "None recorded", left: "left out", why: "why", money: "Money", justice: "Justice", watchlist: "Watchlist" },
+    ward: "Ward", total: "Total", latest: "Latest", none: "None recorded", left: "left out", why: "why", money: "Money", justice: "Justice", watchlist: "Watchlist", notices: "Notices" },
   af: { search: "Soek erf, adres, voorstad, verskaffer, tendernr., laag…", layers: "Lae", findlayer: "Soek 'n laag…", presets: "Vinnige aansigte", brief: "Opsomming", activity: "Aktiwiteit",
     feed: "Nuus", spending: "Stadsbesteding", records: "Rekords", sources: "Bronne", heritage: "Erfenis", plot: "Erf", alsohere: "Ook op hierdie punt",
     nothing: "Niks gekarteer op hierdie punt in die sigbare lae nie. Skakel meer lae aan, of zoem in om 'n erf te kies.", zoomplot: "Zoem in om 'n erf te kies.",
     allfields: "Alle velde, soos aangeteken", showempty: "Wys leë velde", zones: "Sones, oorlegte en gebiede oor hierdie erf", recs: "Rekords op hierdie erf",
     plans: "Bouplanne", requests: "Diensversoeke op hierdie erf", sales: "Deur die Stad verkoop", near: "Naaste dienste", share: "Deel skakel", copied: "Skakel gekopieer",
     cityrec: "Stadsrekord", fresh: "Data", install: "Installeer", offline: "Vanlyn: gestoorde data", loading: "Laai…", district: "Distrik", suburb: "Voorstad",
-    ward: "Wyk", total: "Totaal", latest: "Nuutste", none: "Niks aangeteken nie", left: "uitgelaat", why: "hoekom", money: "Geld", justice: "Justisie", watchlist: "Dophou" },
+    ward: "Wyk", total: "Totaal", latest: "Nuutste", none: "Niks aangeteken nie", left: "uitgelaat", why: "hoekom", money: "Geld", justice: "Justisie", watchlist: "Dophou", notices: "Kennisgewings" },
 };
 export type Key = keyof typeof W.en;
 export let LANG: "en" | "af" = (localStorage.getItem("cm-lang") as any) || "en";

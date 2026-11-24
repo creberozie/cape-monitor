@@ -59,6 +59,8 @@ EXCLUDE = [
 
 
 def theme_for(service, name):
+    if re.search(r"police|saps|court|magistrat|prison|correctional", name, re.I):
+        return "justice"
     t = BY_SERVICE.get(service)
     if not t:
         n = name.lower()

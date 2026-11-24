@@ -137,6 +137,27 @@ async function justice() {
     items.map((c: any) => [c.date, c.case, c.type, c.parties, c.status, c.suppliers, c.places.map((p: any) => p[0]), c.erfs, c.url, c.docs.map((d: any) => d.url)]), "Competition Tribunal decided cases, " + J.sources[0].url);
 }
 
+async function notices() {
+  const N = await getJSON<any>(METRO + "notices.json").catch(() => null);
+  if (!N) { $("#dockbody").innerHTML = `<div class="empty">Gazette notices are not in this build yet.</div>`; return; }
+  const q = ((document.getElementById("n-q") as HTMLInputElement | null)?.value || "").toLowerCase();
+  const kind = (document.getElementById("n-k") as HTMLSelectElement | null)?.value || "";
+  const mine = (document.getElementById("n-d") as HTMLInputElement | null)?.checked ?? !!DISTRICT;
+  const kinds = [...new Set(N.notices.map((n: any) => n.kind))].sort() as string[];
+  const list = N.notices.filter((n: any) => (!kind || n.kind === kind) && (!q || `${n.title} ${n.text} ${n.gazette}`.toLowerCase().includes(q)) && (!mine || !DISTRICT || n.places.some((p: any) => p[1] === DISTRICT)));
+  $("#dockbody").innerHTML = `<div class="toolbar"><input id="n-q" placeholder="Filter: erf, suburb, applicant, word…" value="${esc(q)}"><select id="n-k" aria-label="Kind"><option value="">All kinds (${N.notices.length})</option>${kinds.map((k) => `<option ${k === kind ? "selected" : ""}>${esc(k)}</option>`).join("")}</select>
+      ${DISTRICT ? `<label><input type="checkbox" id="n-d" ${mine ? "checked" : ""}> Only naming a suburb in ${esc(M.district.label)}</label>` : ""}<button class="tb" id="n-x">Export CSV</button>
+      <span class="note"><a href="${esc(N.source.url)}" target="_blank" rel="noopener">${esc(N.source.name)}</a> · ${N.source.gazettes} gazettes (${esc(N.source.years.join(", "))}) · built ${esc(N.built.slice(0, 10))}</span></div>
+    ${list.slice(0, 200).map((n: any) => `<div class="feeditem"><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.kind)}: ${esc(n.title)}</a><div class="meta">${esc(n.gazette)} · ${esc(n.issuer)}${n.ref ? " · " + esc(n.ref) : ""}${n.places.length ? " · " + n.places.map((p: any) => `<span class="pill">${esc(p[0])}</span>`).join("") : ""}${n.erf_suburbs.length ? " · " + n.erf_suburbs.map((e: any) => esc(`Erf ${e[0]} ${e[1]}`)).join("; ") : ""}</div>
+      <details class="raw"><summary>Notice text</summary><div class="sm" style="white-space:pre-wrap">${esc(n.text)}</div></details></div>`).join("") || `<div class="empty">No notices match.</div>`}
+    ${list.length > 200 ? `<div class="note">First 200 of ${list.length}; export has all.</div>` : ""}`;
+  let tm: any; (document.getElementById("n-q") as HTMLInputElement).oninput = () => { clearTimeout(tm); tm = setTimeout(() => notices().then(() => { const i = document.getElementById("n-q") as HTMLInputElement; i.focus(); i.setSelectionRange(i.value.length, i.value.length); }), 250); };
+  (document.getElementById("n-k") as HTMLSelectElement).onchange = () => notices();
+  const nd = document.getElementById("n-d"); if (nd) nd.onchange = () => notices();
+  (document.getElementById("n-x") as HTMLElement).onclick = () => exportCSV("gazette-notices", ["date", "gazette", "issuer", "kind", "title", "reference", "erven", "suburbs", "url", "text"],
+    list.map((n: any) => [n.date_iso, n.gazette, n.issuer, n.kind, n.title, n.ref, n.erf_suburbs.map((e: any) => `Erf ${e[0]} ${e[1]}`), n.places.map((p: any) => p[0]), n.url, n.text]), N.source.name + " " + N.source.url);
+}
+
 async function watchlist() {
   const W = watches();
   // suppliers can be re-counted from the index without opening each profile
@@ -181,11 +202,11 @@ async function heritage() {
     <h3>Stories</h3><div class="grid">${H.stories.map((s: any) => `<div class="tile"><div class="caps">${esc(s.date)}</div><b>${esc(s.title)}</b><div class="sm" style="white-space:pre-wrap;margin-top:4px">${esc(s.text)}</div><div class="links">${s.sources.map((x: any) => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title.slice(0, 50))}</a>`).join("")}</div></div>`).join("")}</div>`;
 }
 
-const TABS: [string, () => any][] = [["brief", brief], ["money", () => moneyTab($("#dockbody"))], ["justice", justice], ["feed", feed],
+const TABS: [string, () => any][] = [["brief", brief], ["money", () => moneyTab($("#dockbody"))], ["justice", justice], ["notices", notices], ["feed", feed],
   ...(DISTRICT ? [["activity", activity], ["records", () => records()]] as [string, () => any][] : []), ["watchlist", watchlist],
   ...(DISTRICT === "blaauwberg" ? [["heritage", heritage]] as [string, () => any][] : []), ["sources", sources]];
 const NOT_ADDED: [string, string, string][] = [
-  ["Government Gazette and Western Cape Provincial Gazette (gazettes.africa)", "https://gazettes.africa/", "gazettes.africa now asks for a login (HTTP 401) for every page. The provincial gazette page on westerncape.gov.za loads its list by script; the national gazette archive on gov.za did not answer from the build machine. Planned next: read the Western Cape gazette PDFs directly."],
+  ["Government Gazette (national) and gazettes.africa", "https://gazettes.africa/", "gazettes.africa now asks for a login (HTTP 401) for every page; the national gazette archive on gov.za did not answer from the build machine. The Western Cape Provincial Gazette is read directly from the Province (Notices panel)."],
   ["City land-use applications and public participation notices", "https://www.capetown.gov.za/", "Published through the City's e-services and notice pages, not as data; not yet read."],
   ["Council and committee agendas and minutes", "https://www.capetown.gov.za/", "Published as PDFs per meeting; not yet read."],
   ["CIPC company register: directors, registration dates, addresses", "https://www.bizportal.gov.za/", "No free bulk or API access; searches need a login. Director networks and 'award soon after registration' flags therefore cannot be computed from public data here. Each supplier profile links to the register."],

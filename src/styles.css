@@ -86,8 +86,9 @@ table.t { width: 100%; border-collapse: collapse; font-size: 12px; } table.t th 
 /* overflow: long names, URLs and numbers never break out of cards, tabs or tables */
 .card, .tile, .kpi, .fact, .row, .feeditem, table.kv td, .note, h2, h3, .pill { overflow-wrap: anywhere; }
 .pill { white-space: normal; max-width: 100%; }
-.tscroll { overflow-x: auto; max-width: 100%; } .tscroll table.t th { white-space: nowrap; } table.t td { max-width: 420px; overflow-wrap: anywhere; }
-#right table.t td { max-width: 220px; } #right .tscroll { margin: 0 -2px; }
+.tscroll { overflow-x: auto; max-width: 100%; } .tscroll table.t th { white-space: nowrap; } table.t td { max-width: 420px; overflow-wrap: break-word; word-break: normal; }
+table.t td.mono, table.t td:first-child { white-space: nowrap; } h3 .c { white-space: nowrap; padding-left: 8px; }
+#right table.t td { max-width: 220px; min-width: 60px; } #right .tscroll { margin: 0 -2px; }
 .subnav { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; } .subnav button { border: 1px solid var(--ln); background: var(--pn2); border-radius: 12px; padding: 2px 10px; font-size: 12px; cursor: pointer; }
 .subnav button.on { background: var(--ac); color: #04110c; border-color: var(--ac); }
 .cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; } .cmpcol > h3 { margin-top: 2px; }
