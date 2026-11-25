@@ -34,7 +34,7 @@ test("start page: flags, suppliers, finances and latest awards, with sources, fa
   await noOverflow(page, "#dockbody");
   await expect(page.locator("link[rel=manifest]")).toHaveAttribute("href", "manifest.webmanifest");
   const man = await (await page.request.get("./watch/manifest.webmanifest")).json();
-  expect(man.name).toBe("ZopStopper: Winelands Municipality"); expect(man.scope).toBe("/watch/");
+  expect(man.name).toBe("ZopStopper Stellenbosch"); expect(man.scope).toBe("/watch/");
   expect(e).toEqual([]);
 });
 

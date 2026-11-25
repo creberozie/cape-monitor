@@ -83,7 +83,7 @@ async function overview(el: HTMLElement) {
         <div class="note">Stellenbosch's award registers and deviation reports do not name the directorate. Departments here are those the eTender portal names.</div></div>
       <div class="tile" style="grid-column:1/-1"><div class="caps">Latest awards</div><div class="tscroll"><table class="t"><thead><tr><th>Date</th><th>Number</th><th>Kind</th><th>Description</th><th>Awarded to</th><th>Amount as published</th></tr></thead><tbody>
         ${O.latest.map((r: any) => `<tr><td class="mono">${esc(r.d || "")}</td><td><a href="#t=${esc(r.ref)}" data-tender="${esc(r.ref)}">${esc(r.ref)}</a></td><td>${r.kind}</td><td>${esc(r.desc)}</td><td>${r.sup ? `<a href="#s=${esc(r.sup)}" data-sup="${esc(r.sup)}">${esc(r.sup_name || r.name)}</a>` : esc(r.name)}</td><td class="mono">${esc(r.v || "")}</td></tr>`).join("")}</tbody></table></div></div>
-    </div><div class="note credit-line">ZopStopper: Winelands Municipality. Records of Stellenbosch Municipality (WC024), Cape Winelands. Created by Crehan de Jager.</div>`;
+    </div><div class="note credit-line">ZopStopper Stellenbosch. Records of Stellenbosch Municipality (WC024). Created by Crehan de Jager.</div>`;
   el.querySelectorAll("[data-supname]").forEach((b) => (b as HTMLElement).onclick = () => { const r = O.top.find((x: any[]) => x[1] === (b as HTMLElement).dataset.supname); if (r) openSupplier(r[0]); });
 }
 
@@ -204,7 +204,7 @@ function openHash() {
 }
 
 async function boot() {
-  await accessGate("ZOPSTOPPER", "Winelands Municipality. Public records of Stellenbosch Municipality (WC024), joined and sourced. Created by Crehan de Jager.");
+  await accessGate("ZOPSTOPPER STELLENBOSCH", "Public records of Stellenbosch Municipality (WC024), joined and sourced. Created by Crehan de Jager.");
   let m;
   try { m = await moneyMeta(); } catch { $("#bootmsg").textContent = "The Stellenbosch data is not in this build yet."; return; }
   $("#fresh").innerHTML = `Data <b>${esc(m.built.slice(0, 10))}</b>`;

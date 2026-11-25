@@ -13,6 +13,7 @@ body.watch #toast { bottom: 14px; }
 .wgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 10px; } .wgrid .wide { grid-column: span 2; }
 .sev { display: inline-block; min-width: 54px; text-align: center; font: 600 10px var(--mono); letter-spacing: .06em; border-radius: 3px; padding: 1px 4px; margin-right: 6px; border: 1px solid var(--ln); }
 .sev.s1 { color: #ff8a8a; border-color: #ff5d5d; } .sev.s2 { color: var(--warn); border-color: var(--warn); } .sev.s3 { color: var(--mu); }
+#boot .credit .dedication { display: block; margin-top: 6px; font-size: 10px; color: var(--dim); opacity: .7; letter-spacing: .02em; }
 .ocr { font: 600 10px var(--mono); color: var(--warn); border: 1px solid var(--warn); border-radius: 3px; padding: 0 4px; }
 table.t td.num, table.t th.num { text-align: right; }
 .opinion { font-weight: 600; } .opinion.clean { color: var(--ac); }
