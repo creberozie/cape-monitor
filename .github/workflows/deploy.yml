@@ -38,6 +38,10 @@ jobs:
       - { uses: actions/cache/restore@v4, with: { path: public/data/d/helderberg, key: "good-helderberg-x", restore-keys: "good-helderberg-" } }
       - { uses: actions/cache/restore@v4, with: { path: public/data/metro, key: "good-metro-x", restore-keys: "good-metro-" } }
       - name: Index, build and check (file size, file count) before deploying
+        env:   # accounts (optional): repository variables; REQUIRE_ACCOUNT_ACCESS=false opens the app to everyone
+          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          VITE_REQUIRE_ACCOUNT_ACCESS: ${{ vars.REQUIRE_ACCOUNT_ACCESS }}
         run: |
           set -o pipefail; mkdir -p logs
           ( python3 -I pipeline/index.py && npm run build && python3 -I pipeline/tiles_out.py && python3 -I pipeline/check.py dist ) 2>&1 | tee logs/build.log
@@ -67,7 +71,10 @@ jobs:
         env: { BASE_URL: "${{ steps.pages.outputs.url }}" }
         run: |
           npx playwright install --with-deps chromium >/dev/null
-          npx playwright test --reporter=line --trace off 2>&1 | tee logs/playwright.log || true
+          npm run test:unit 2>&1 | tee logs/unit.log || true
+          # a second build with the wall on (fake Supabase address; the tests stand in for Supabase) served locally for the account tests
+          npm run build:gated >/dev/null 2>&1 && (npx wrangler pages dev dist-gated --port 8789 --inspector-port 9231 >/dev/null 2>&1 &) && sleep 15
+          GATED_URL=http://localhost:8789/ npx playwright test --reporter=line --trace off 2>&1 | tee logs/playwright.log || true
           npx --yes lighthouse@12 "${{ steps.pages.outputs.url }}" --only-categories=performance,accessibility,best-practices --form-factor=mobile \
             --chrome-flags="--headless=new --no-sandbox" --output=json --output-path=logs/lighthouse.json --quiet || true
           python3 -c "import json;j=json.load(open('logs/lighthouse.json'));print({k:round(v['score']*100) for k,v in j['categories'].items()});a=j['audits'];print({k:a[k]['displayValue'] for k in ('first-contentful-paint','largest-contentful-paint','total-blocking-time','cumulative-layout-shift','speed-index')})" | tee logs/lighthouse-summary.txt || true

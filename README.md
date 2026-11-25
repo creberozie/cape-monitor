@@ -70,3 +70,19 @@ Local: `npm ci && pip install shapely pmtiles`, then `CM_DISTRICT=blaauwberg npm
   Supabase) and PayFast billing plug in through `setSession()` once the server verifies payment.
 - **Actions minutes.** In a private repository GitHub allows 2 000 free minutes a month; the metro refresh therefore runs daily, not
   three-hourly. A public repository has no minute limit.
+
+## Accounts (optional)
+
+The app can require a free account, show a live count of people online and log key actions for the owner. It is off until a
+Supabase project is configured, and it never touches the data, tiles or pipelines.
+
+- **Switch:** GitHub repository variable `REQUIRE_ACCOUNT_ACCESS` (`true` or `false`; empty means `true` once Supabase is set).
+  Set it to `false` and re-run the Deploy workflow to open the app to everyone. Without Supabase the app is always open.
+- **Supabase:** repository variables `SUPABASE_URL` and `SUPABASE_ANON_KEY` (the anon key is public by design; the table rules in
+  `supabase/schema.sql` protect the data). Run that file once in the Supabase SQL editor; add your e-mail to the `owners` table.
+  Turn off "Confirm email" (Authentication > Providers > Email) so sign-up signs the user straight in.
+- **What is logged:** sign-up, sign-in, opening the app, district, tabs, plot dossiers, supplier/tender/flag profiles, exports.
+  Only signed-in users are logged; only owners can read the log (owner-only "Users" tab). The online count is anonymous.
+- **Wall type:** the wall hides the app, not the public data files, which stay at their addresses.
+- **Code:** `src/access/` (config, backend, auth, gate, presence, activity, owner). Tests: `tests/access.spec.ts` (gated and
+  open modes, with Supabase stood in by `tests/mock-supabase.ts`), `unit/access-config.test.mjs`.
