@@ -1,0 +1,27 @@
+page 200 2830
+districts with data: ['blaauwberg', 'table-bay', 'tygerberg', 'northern', 'southern', 'cape-flats', 'mitchells-plain-khayelitsha', 'helderberg']
+  blaauwberg: manifest ok (253 layers); tiles community range request -> HTTP 206, 127 bytes
+  table-bay: manifest ok (255 layers); tiles community range request -> HTTP 206, 127 bytes
+  tygerberg: manifest ok (246 layers); tiles community range request -> HTTP 206, 127 bytes
+  northern: manifest ok (238 layers); tiles community range request -> HTTP 206, 127 bytes
+  southern: manifest ok (250 layers); tiles community range request -> HTTP 206, 127 bytes
+  cape-flats: manifest ok (231 layers); tiles community range request -> HTTP 206, 127 bytes
+  mitchells-plain-khayelitsha: manifest ok (232 layers); tiles community range request -> HTTP 206, 127 bytes
+  helderberg: manifest ok (243 layers); tiles community range request -> HTTP 206, 127 bytes
+  basemap range request -> HTTP 206 127
+  data/metro/money/money.json 200 5417
+  live/news 200 17300
+  watch page 200 2306
+Traceback (most recent call last):
+  File "/home/runner/work/cape-monitor/cape-monitor/pipeline/smoke.py", line 31, in <module>
+    s, h, b = get("data/muni/stellenbosch/money/money.json"); print("  watch data", s, json.loads(b)["counts"])
+                                                                                       ~~~~~~~~~~^^^
+  File "/usr/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/usr/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/json/decoder.py", line 363, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
