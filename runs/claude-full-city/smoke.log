@@ -1,4 +1,4 @@
-page 200 2574
+page 200 2777
 districts with data: ['blaauwberg', 'table-bay', 'tygerberg', 'northern', 'southern', 'cape-flats', 'mitchells-plain-khayelitsha', 'helderberg']
   blaauwberg: manifest ok (253 layers); tiles community range request -> HTTP 206, 127 bytes
   table-bay: manifest ok (255 layers); tiles community range request -> HTTP 206, 127 bytes
@@ -10,5 +10,5 @@ districts with data: ['blaauwberg', 'table-bay', 'tygerberg', 'northern', 'south
   helderberg: manifest ok (243 layers); tiles community range request -> HTTP 206, 127 bytes
   basemap range request -> HTTP 206 127
   data/metro/money/money.json 200 5297
-  live/news 200 17667
+  live/news 200 17276
 SMOKE OK
