@@ -32,4 +32,7 @@ test("open: no wall, straight into the app, nothing overflows", async ({ page })
   await expect(page.locator("#gate")).toHaveCount(0);
   const over = await page.evaluate(() => [...document.querySelectorAll("#top *, #tabs *")].filter((el) => { const r = el.getBoundingClientRect(); return r.width && r.right > innerWidth + 1; }).length);
   expect(over).toBe(0);
+  // no label is squeezed narrower than its text (the tab bar scrolls instead)
+  const squeezed = await page.$$eval("#tabs button", (bs) => bs.filter((b) => b.scrollWidth > b.clientWidth + 1).map((b) => b.textContent));
+  expect(squeezed).toEqual([]);
 });
