@@ -150,7 +150,8 @@ def ocr_pages(url):
             # parsed later only when both readings have the same digits.
             im = Image.open(p); W = im.width
             for w in words:
-                if re.fullmatch(r"-?R\S*\d\S*", w["text"]) and w["x"] > W * 0.35:
+                nxt = min((x for x in words if x["line"] == w["line"] and x["x"] > w["x"]), key=lambda x: x["x"], default=None)
+                if w["x"] > W * 0.35 and (re.fullmatch(r"-?R\S*\d\S*", w["text"]) or (w["text"] in ("R", "-R") and nxt is not None and re.match(r"\d", nxt["text"]))):
                     line = [x for x in words if x["line"] == w["line"] and x["x"] >= w["x"] and x["x"] < w["x"] + int(W * 0.22) and (x is w or re.fullmatch(r"-?R?[\d.,]*\d[\d.,]*\.?", x["text"]))]
                     x1 = max(x["x"] + x["w"] for x in line); y0 = min(x["y"] for x in line); y1 = max(x["y"] + x["h"] for x in line)
                     pad = int(12 * DPI / 300); crop = os.path.join(tmp, "c.png")
@@ -410,14 +411,26 @@ def parse_register(pages):
                     if re.match(r"B-?BBEE|LEVEL|STATUS", w["text"].upper()) and level_x is None and (price_x is None or w["x"] > price_x + 100 * px): level_x = w["x"] - 40 * px
                     if w["text"].upper() == "NAME" and name_x is None: name_x = w["x"] - 60 * px
         if price_x is None: continue
-        for ws in L:
-            ws = sorted(ws, key=lambda w: w["x"])
-            ws = [w for w in ws if not re.fullmatch(r"[|\[\](){}_\-—=~:;.,'\"‘’“”]+", w["text"])]   # table rules read as punctuation
-            if not ws or not re.fullmatch(r"[\[\(|/'\"‘]*\d{1,3}[\.|)\]]*", ws[0]["text"]) or ws[0]["x"] > (name_x or 400 * px): continue
-            n = int(re.sub(r"\D", "", ws[0]["text"]))
+        # rows: each serial number at the left starts a row; every other word below the header and above the signature block joins the
+        # row whose middle is nearest its own (OCR sometimes puts a row's price on a separate text line)
+        head_y = max(w["y"] + w["h"] for ws in L for w in ws if "BIDDER" in " ".join(x["text"] for x in ws).upper() and ("PRICE" in " ".join(x["text"] for x in ws).upper() or "AMOUNT" in " ".join(x["text"] for x in ws).upper()))
+        foot = [min(w["y"] for w in ws) for ws in L if min(w["y"] for w in ws) > head_y and re.search(r"\bNB\b|information read out|Names? and Signatures?|SCM Official|SCM PRA|opened and announced|evaluation process", " ".join(w["text"] for w in ws), re.I)]
+        foot_y = min(foot) if foot else 10 ** 9
+        body = [w for w in words if head_y < w["y"] + w["h"] / 2 < foot_y and not re.fullmatch(r"[|\[\](){}_\-—=~:;.,'\"‘’“”]+", w["text"])]
+        anchors = sorted([w for w in body if re.fullmatch(r"[\[\(|/'\"‘]*\d{1,3}[\.|)\]]*", w["text"]) and w["x"] < (name_x if name_x is not None else 400 * px) + 40 * px], key=lambda w: w["y"])
+        hgt = sorted(w["h"] for w in body)[len(body) // 2] if body else 40
+        rows = {id(a): [] for a in anchors}
+        for w in body:
+            if any(w is a for a in anchors): continue
+            cy = w["y"] + w["h"] / 2
+            near = min(anchors, key=lambda a: abs(a["y"] + a["h"] / 2 - cy), default=None)
+            if near is not None and abs(near["y"] + near["h"] / 2 - cy) < 2 * hgt and w["x"] > near["x"]: rows[id(near)].append(w)
+        for a in anchors:
+            ws = sorted(rows[id(a)], key=lambda w: (w["x"]))
+            n = int(re.sub(r"\D", "", a["text"]))
             last = out["bids"][-1]["n"] if out["bids"] else 0
             if n != last + 1 and str(n).endswith(str(last + 1)[-1]) and n > last + 1: n = last + 1   # '15' read for '5' (a table rule before the digit)
-            name_w = [w for w in ws[1:] if w["x"] < price_x and re.search(r"[A-Za-z0-9&]", w["text"])]
+            name_w = [w for w in ws if w["x"] < price_x and re.search(r"[A-Za-z0-9&]", w["text"])]
             # trailing OCR noise after a name ('oe', '7', 'Oe'); a rand amount that strayed left belongs to the price
             spill = []
             while name_w and (re.fullmatch(r"R\d[\d ,.]*", name_w[-1]["text"]) or (re.fullmatch(r"[a-z]{1,2}|[A-Z][a-z]|\d{1,2}|[^A-Za-z0-9&()]+", name_w[-1]["text"]) and name_w[-1]["text"].upper() not in ("CC", "JV", "SA"))):
@@ -434,14 +447,18 @@ def parse_register(pages):
             price = None
             # 'R44 117 759,23', 'R57 849.479,20', 'R61 088 367.22', 'R53 180000,00'. Parsed only when the second (digits-only) reading has
             # exactly the same digits; the decimal comma is taken from whichever reading shows one. Otherwise the text is kept, unparsed.
-            dig = re.sub(r"\D", "", pt); adig = re.sub(r"\D", "", alt)
-            if dig and dig == adig and len(dig) >= 4:
-                pm = next((m for m in (re.fullmatch(r"-?R?\s?(\d[\d .]*?)[,.](\d\d)\.?", x.strip()) for x in (pt, alt)) if m), None)
-                if pm: price = float(re.sub(r"\D", "", pm.group(1)) + "." + pm.group(2))
+            AM = r"-?R\s?(\d[\d .]*?)[,.](\d\d)(?!\d)"
+            m1 = re.search(AM, pt); m2 = re.search(AM, alt)
+            lead = re.match(r"-?R\s?([\d .,]+)", pt)   # first reading without its decimal comma ('R5475070788')
+            d1 = re.sub(r"\D", "", m1.group(1) + m1.group(2)) if m1 else re.sub(r"\D", "", lead.group(1)) if lead else ""
+            d2 = re.sub(r"\D", "", m2.group(1) + m2.group(2)) if m2 else ""
+            if d2 and d1 == d2 and len(d2) >= 4:
+                m = m2 or m1; price = float(re.sub(r"\D", "", m.group(1)) + "." + m.group(2))
             lv = [x for x in " ".join(w["text"] for w in level_w).split() if re.fullmatch(r"(?i)L\d|[1-8]|N/?A|NC|NIA", x)]
-            if conf < MIN_CONF or len(re.sub(r"[^A-Za-z]", "", name)) < 3:
+            if conf < MIN_CONF or len(re.sub(r"[^A-Za-z]", "", name)) < 3 or re.search(r"NAME OF BIDDER", name, re.I):
                 out["unreadable"] += 1; continue
-            out["bids"].append({"n": n, "bidder": name, "price_text": pt or "", "price": price, "hdi": [lv[0].replace("NIA", "N/A")] if lv else [], "conf": conf})
+            out["bids"].append({"n": n, "bidder": name, "price_text": pt or "", "price": price, "hdi": [lv[0].replace("NIA", "N/A")] if lv else [], "conf": conf,
+                                **({"price_alt": alt} if alt and alt != pt else {})})
     return out
 
 
