@@ -1,10 +1,10 @@
 {
- "run": "45682760863",
+ "run": "45721457296",
  "branch": "claude/stellenbosch-watch",
- "sha": "d4273b6c77cf8bd63620f0b2ef93a23ca53e9503",
- "at": "2026-11-25T21:07:06Z",
+ "sha": "fbd0049cac3a18c4a4185ab3a4b5ecb05f66a0cb",
+ "at": "2026-11-25T23:33:39Z",
  "url": "https://claude-stellenbosch-watch.cape-monitor.pages.dev",
  "deploy_job": "success",
- "district_jobs": "skipped",
- "metro_job": "success"
+ "district_jobs": "",
+ "metro_job": ""
 }
