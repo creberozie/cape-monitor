@@ -1,0 +1,49 @@
+8 districts, 778 suburbs
+== districts: ok (59s)
+odp-tender-awards     1000/17967
+odp-tender-awards     11000/17967
+odp-rfq-awards     1000/91748
+odp-rfq-awards     11000/91748
+odp-rfq-awards     21000/91748
+odp-rfq-awards     31000/91748
+odp-rfq-awards     41000/91748
+odp-rfq-awards     51000/91748
+odp-rfq-awards     61000/91748
+odp-rfq-awards     71000/91748
+odp-rfq-awards     81000/91748
+odp-rfq-awards     91000/91748
+odp → [('odp-tender-awards', '17967 rows'), ('odp-rfq-awards', '91748 rows'), ('odp-property-disposals', '130 rows')] (29s)
+WARNING city-bids: 1 of 118 bid registers gave no bids (new layout or scanned image?): receiving_and_opening_of_tenders_january-2016.pdf
+docs+registers → 3386 tenders, 32048 bids; 14 increase registers; 0 PDFs failed (84s)
+etenders Open {'portal_total': 2175, 'read': 2175} kept so far 388
+etenders Awarded {'portal_total': 37496, 'read': 37496} kept so far 7959
+etenders Closed {'portal_total': 112492, 'read': 11900} kept so far 9723
+etenders Cancelled {'portal_total': 23296, 'read': 25956} kept so far 12916
+etenders → 12916 Western Cape tenders kept; 28 unreadable 100-record pages (2671s)
+== money-fetch: ok (2784s)
+money: {'awards': 3818, 'rfq': 91748, 'bids': 32048, 'etenders': 12916, 'land': 130, 'docs': 750} suppliers 27182 flags Counter({'split': 1247, 'official': 237, 'cobid': 180, 'phone': 169, 'notlowest': 49, 'repeat': 36, 'growth': 26, 'deviation': 18, 'single': 15, 'near': 2}) tenders 3881
+== money-build: ok (8s)
+registry: 2 suppliers with register details (2 with a number printed in published records); provider not configured; 0 looked up this run
+== registry: ok (0s)
+news24 20 
+iol-wc 30 
+capetownetc 10 
+citizen 75 
+dailymaverick 49 
+gitoc 12 
+gitoc-assassination 12 
+208 items kept, 7 name a Cape Town suburb
+== feeds: ok (1s)
+171 pages; 3414 Competition Tribunal cases; 343 name a City supplier; 26 name a Cape Town suburb
+== justice: ok (520s)
+meibc 34 documents from 21 pages (0 page errors)
+mibco 485 documents from 15 pages (0 page errors)
+nbcrfli 61 documents from 13 pages (0 page errors)
+salgbc 2 documents from 3 pages (0 page errors)
+lrs 133 posts
+582 documents; 0 employers matched to supplier profiles
+== labour: ok (78s)
+620 gazettes; 1179 notices kept; 605 City of Cape Town; 736 name an erf; 3 failed
+== gazettes: ok (407s)
+metro money: {'suppliers': 27182, 'flags': 1979, 'tenders': 3881, 'awards': 3818, 'rfq': 91748, 'bids': 32048, 'etenders': 12916, 'land': 130, 'docs': 750}
+check ok
