@@ -14,6 +14,7 @@ import { OVERLAYS, showOverlay, overlayStatus } from "./live";
 import { openSupplier, openTender, openFlag, openDepartment, suppliers, bindMoney, hidePersons } from "./money";
 import { bindWatch } from "./util";
 import { t, esc, fmt, setLang, LANG } from "./i18n";
+import { initPanels } from "./panels";
 import { canonical, THEME_ORDER, THEME_HINT, themeName, themeLayers, quickViews, basics, buildCatalog, nameOf, alsoFrom, clientTheme, isBase, fieldLabel, legendValue } from "./catalog";
 
 const $ = (s: string) => document.querySelector(s) as HTMLElement;
@@ -227,6 +228,7 @@ async function boot() {
   buildCatalog();
   const saved = savedView();   // key bumped to v2: earlier saved states do not override the new defaults
   for (const id of (saved || (DISTRICT ? basics() : ["live-news"]))) { if (layerById.has(id)) setVisible(id, true); else if (OVERLAYS.some((o) => o.id === id)) { overlayOn.add(id); showOverlay(id, true); } }
+  initPanels(!!DISTRICT);
   renderLeft(); bindInspector(); bindDock(); bindSearch(); bindMoney($("#right"), $("#dockbody")); bindWatch($("#right")); bindWatch($("#dockbody"));
   document.addEventListener("overlay-status", () => renderLeft(($("#lfind") as HTMLInputElement)?.value || ""));
   $("#left").addEventListener("change", (e) => { const c = e.target as HTMLInputElement;

@@ -1,5 +1,6 @@
 name: Promote preview data to production
 # run: search rebuild
+# run: panels
 # One-off: the preview branch's saved data (all eight districts and the metro set) is built and deployed to
 # production, so the main site does not wait for its own first data run. The code on this branch equals main.
 on:

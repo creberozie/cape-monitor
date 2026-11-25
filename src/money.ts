@@ -98,7 +98,7 @@ const SUBS: [string, string][] = [["overview", "Overview"], ["suppliers", "Suppl
   ["rfq", "Quotations"], ["etenders", "eTenders (WC)"], ["departments", "Departments"], ["land", "City land sales"], ["docs", "Documents"]];
 export async function moneyTab(host: HTMLElement, k?: string) {
   if (k) sub = k;
-  host.innerHTML = `<div class="note warnbox personal">${esc(PERSONAL_NOTE)} <label><input type="checkbox" class="hidep" ${hidePersons() ? "checked" : ""}> Hide them</label></div><nav class="subnav">${SUBS.map(([id, l]) => `<button data-sub="${id}" class="${id === sub ? "on" : ""}">${l}</button>`).join("")}</nav><div id="msub"></div>`;
+  host.innerHTML = `<nav class="subnav">${SUBS.map(([id, l]) => `<button data-sub="${id}" class="${id === sub ? "on" : ""}">${l}</button>`).join("")}<label class="sm mu personal" style="margin-left:auto" title="${esc(PERSONAL_NOTE)}"><input type="checkbox" class="hidep" ${hidePersons() ? "checked" : ""}> Hide private individuals</label></nav><div id="msub"></div>`;
   host.querySelectorAll("[data-sub]").forEach((b) => (b as HTMLElement).onclick = () => moneyTab(host, (b as HTMLElement).dataset.sub));
   (host.querySelector(".hidep") as HTMLInputElement).onchange = (e) => { try { localStorage.setItem("cm-hide-persons", (e.target as HTMLInputElement).checked ? "1" : "0"); } catch { /* blocked */ } moneyTab(host); };
   const el = host.querySelector("#msub") as HTMLElement;
