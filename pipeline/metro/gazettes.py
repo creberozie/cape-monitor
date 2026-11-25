@@ -10,6 +10,9 @@ import json, os, re, sys, time, html, datetime, subprocess, urllib.request, urll
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))); sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import ROOT, HERE, now, dump
 from places import tag
+from muni import MUNIS
+# other municipalities (Stellenbosch Watch): a notice naming one of their places, or issued by them, is also written to public/data/muni/<slug>/notices.json
+MUNI_RX = {k: re.compile(r"\b(" + "|".join(re.escape(p) for p in v["places"]) + r")\b", re.I) for k, v in MUNIS.items() if v.get("places")}
 
 LIST = "https://www.westerncape.gov.za/department-premier/documents?media_category=9651"
 UA = {"User-Agent": "Mozilla/5.0 (compatible; cape-monitor/2.0; public-records index)"}
@@ -102,6 +105,7 @@ def run():
     for y in want:
         if y in years: gaz += month_links(years[y])
     notices, failed = [], []
+    others = {k: [] for k in MUNI_RX}
     def one(g):
         try: return g, read_pdf(g), None
         except Exception as e: return g, None, str(e)[:150]
@@ -114,6 +118,14 @@ def run():
                 pairs = sorted({(e, re.sub(r"\s+", " ", sub).strip().upper()) for e, sub in re.findall(r"\bErf\s+(\d{1,6})(?:\s*-\s*RE)?,?\s+([A-Z][A-Za-z’'-]+(?:\s[A-Z][A-Za-z’'-]+){0,2})", n["text"])
                                 if not re.match(r"(Is|Has|And|In|The|Which|Was|Removed|Situated|Being|Held)$", sub.split()[0])})
                 ct = "CITY OF CAPE TOWN" in n["issuer"].upper() or "Stad Kaapstad" in n["text"] or "City of Cape Town" in n["text"][:400]
+                hits = {k: sorted({m.group(1).title() for m in rx.finditer(n["issuer"] + " " + n["text"])}) for k, rx in MUNI_RX.items()}
+                for k, h in hits.items():
+                    if h:
+                        first = next((l.strip() for l in n["text"].splitlines() if l.strip()), "")
+                        kind = next((kk for pat, kk in KINDS if re.search(pat, n["text"].split("\n", 1)[-1][:900], re.I)), "Other notice")
+                        others[k].append({"gazette": g["title"], "number": no.group(1) if no else None, "date": dt.group(1) if dt else g["month"], "url": g["url"], "issuer": n["issuer"],
+                                          "kind": kind, "title": first[:200], "places": h, "text": n["text"][:4000],
+                                          "erfs": sorted(set(re.findall(r"\b(?:erf|erven)\s+(?:no\.?\s*)?(\d{1,6})\b", n["text"], re.I)))})
                 if not ct and not places: continue
                 first = next((l.strip() for l in n["text"].splitlines() if l.strip()), "")
                 body = re.sub(r"municipal planning by-law", "", n["text"].split("\n", 1)[-1][:900], flags=re.I)   # the heading line names the planning by-law on every planning notice
@@ -142,6 +154,12 @@ def run():
     for w in warnings: print("WARNING gazettes:", w)
     dump({"built": now(), "source": {"name": "Western Cape Provincial Gazette (Department of the Premier)", "url": LIST, "years": want, "gazettes": len(gaz)},
           "failed": failed, "warnings": warnings, "notices": notices}, os.path.join(ROOT, "public", "data", "metro", "notices.json"))
+    for k, items in others.items():
+        for n in items: n["date_iso"] = iso(n["date"])
+        items.sort(key=lambda n: (n["date_iso"] or "", n["number"] or ""), reverse=True)
+        dump({"built": now(), "url": LIST, "source": {"name": "Western Cape Provincial Gazette (Department of the Premier)", "url": LIST, "years": want, "gazettes": len(gaz)},
+              "places": MUNIS[k]["places"], "notices": items}, os.path.join(ROOT, "public", "data", "muni", k, "notices.json"))
+        print(k, len(items), "gazette notices name one of its places")
     print(len(gaz), "gazettes;", len(notices), "notices kept;", sum(1 for n in notices if n["city"]), "City of Cape Town;", sum(1 for n in notices if n["erfs"]), "name an erf;", len(failed), "failed")
 
 

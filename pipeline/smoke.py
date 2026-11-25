@@ -25,4 +25,9 @@ for d in [d for d in idx["districts"] if d["built"]][:8]:
 s, h, b = get("t/basemap/capetown.pmtiles?v=smoke", {"Range": "bytes=0-126"}); print("  basemap range request -> HTTP", s, len(b)); ok &= s == 206 and len(b) == 127
 for p in ("data/metro/money/money.json", "live/news"):
     s, h, b = get(p); print(" ", p, s, len(b))
+# Stellenbosch Watch: the page and its data (a missing data set is reported, not fatal: the watch has its own last good data)
+s, h, b = get("watch/"); print("  watch page", s, len(b)); ok &= s == 200 and b"Stellenbosch Watch" in b
+try:
+    s, h, b = get("data/muni/stellenbosch/money/money.json"); print("  watch data", s, json.loads(b)["counts"])
+except SystemExit as e: print("  watch data missing:", e)
 print("SMOKE OK" if ok else "SMOKE: range requests not honoured"); sys.exit(0 if ok else 1)

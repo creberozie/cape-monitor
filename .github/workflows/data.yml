@@ -65,7 +65,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: sudo apt-get install -y poppler-utils >/dev/null && pip install shapely
+      # tesseract: Stellenbosch publishes its bid-opening registers as scanned images, read by OCR (fetch_muni.py)
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils tesseract-ocr >/dev/null && pip install shapely pillow
       # the raw downloads (PDF text, the eTender archive) are kept between runs: published PDFs do not change,
       # and the eTender portal drops old records that earlier runs kept
       - uses: actions/cache/restore@v4
@@ -80,11 +81,18 @@ jobs:
           mkdir -p logs
           python3 -I pipeline/metro/run.py ${{ env.FULL == 'true' && 'full' || 'quick' }} 2>&1 | tee logs/metro.log
           python3 -I pipeline/check.py metro | tee -a logs/metro.log
+          python3 -I pipeline/check.py muni stellenbosch | tee -a logs/metro.log || echo "::warning::Stellenbosch Watch data did not pass its checks; its last good data stays live"
       - uses: actions/cache/save@v4
         if: always()
         with: { path: pipeline/cache/metro, key: "metro-raw-${{ github.run_id }}" }
       - uses: actions/cache/save@v4
         with: { path: public/data/metro, key: "good-metro-${{ github.run_id }}" }
+      - name: Save Stellenbosch Watch data only when it passed its checks
+        id: municheck
+        run: python3 -I pipeline/check.py muni stellenbosch >/dev/null && echo "ok=true" >> "$GITHUB_OUTPUT" || echo "ok=false" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache/save@v4
+        if: ${{ steps.municheck.outputs.ok == 'true' }}
+        with: { path: public/data/muni, key: "good-muni-${{ github.run_id }}" }
       - if: always()
         uses: actions/upload-artifact@v4
         with: { name: log-metro, path: logs, retention-days: 14 }

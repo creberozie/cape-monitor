@@ -6,7 +6,25 @@ import { esc, fmt, money as rand } from "./i18n";
 import { exportCSV, exportTable, exportJSON, watchButton, markSeen, updateCount, bars, columns, short } from "./util";
 
 const $ = (s: string) => document.querySelector(s) as HTMLElement;
-const MP = METRO + "money/";
+let MP = METRO + "money/";
+let ROOTP = METRO;
+/** wording and columns that differ per municipality; the defaults are Cape Monitor's (City of Cape Town) */
+export const L = {
+  scope: "published City and eTender records", awards: "City award decisions", bids: "Bids at City tender openings", et: "eTender portal (Western Cape buyers)",
+  rfq: "City quotation orders", land: "City land bought", tender: "City tender", notender: "No City record with this reference in this build.",
+  factAwards: "award decisions", refCols: ["ref", "number"], factRfq: "quotation orders", bidsRead: "bids read out",
+  awardCols: ["date", "ref", "decision", "reason", "code", "desc", "value_text", "budget_text", "sup"], bidCols: ["closing", "ref", "desc", "price_text", "rank", "n_bids", "doc"],
+  rfqCols: ["date", "tracking", "directorate", "group", "value", "bbbee", "dq"], tenderAwardCols: ["date", "decision", "reason", "code", "vendor", "value_text", "budget_text", "sup"],
+  tenderBidCols: ["n", "bidder", "price_text", "rank", "hdi", "closing", "doc"],
+  flagCols: { rfq: ["date", "tracking", "directorate", "group", "supplier", "value"], awards: ["date", "ref", "decision", "reason", "code", "vendor", "value_text", "budget_text"],
+    bids: ["closing", "ref", "bidder", "price_text", "rank", "n_bids", "doc"], etenders: ["published", "number", "buyer", "desc", "awards", "official"] } as Record<string, string[]>,
+  /** the municipality's own reference in an eTender record, to open its tender dossier; null when it has none */
+  tenderRef: (e: any): string | null => { const m = String(e.tender_No || "").replace(/\s/g, "").toUpperCase().match(/\d{1,3}[A-Z]\/20\d\d\/\d\d/); return m && /cape town/i.test(e.organ_of_State || "") ? m[0] : null; },
+  /** the dossier key of a reference, as build_money.py writes it */
+  refKey: (ref: string) => ref.replace(/\s/g, "").toUpperCase().replace(/^0+/, ""),
+};
+/** point the money views at another municipality's data folder (e.g. "../data/muni/stellenbosch/") and wording */
+export function configureMoney(root: string, labels: Partial<typeof L> = {}) { ROOTP = root; MP = root + "money/"; meta = null; view = null; Object.assign(L, labels); }
 type TableMeta = { id: string; name: string; fields: [string, string][]; n: number; shards: number; source: string; url: string; retrieved: string; note?: string };
 export interface MoneyMeta { built: string; tables: Record<string, TableMeta>; counts: Record<string, number>; buckets: number; shard: number; et_shard: number; registers: Record<string, string> }
 export interface Flag { id: string; kind: string; title: string; text: string; records: [string, number][]; subjects: [string, string][]; value?: number; basis?: { text: string; url: string } }
@@ -26,8 +44,8 @@ export async function allRows(tid: string): Promise<any[][]> {
 type SupIndex = { fields: string[]; rows: any[][] };
 export const suppliers = () => getJSON<SupIndex>(MP + "suppliers.json");
 export const flagsData = () => getJSON<{ kinds: Record<string, string>; note: string; thresholds: any[]; flags: Flag[] }>(MP + "flags.json");
-const supName = async (id: string) => (await suppliers()).rows.find((r) => r[0] === id)?.[1] ?? id;
-const supNames = async () => { const S = await suppliers(); return new Map(S.rows.map((r) => [r[0] as string, r[1] as string])); };
+export const supName = async (id: string) => (await suppliers()).rows.find((r) => r[0] === id)?.[1] ?? id;
+export const supNames = async () => { const S = await suppliers(); return new Map(S.rows.map((r) => [r[0] as string, r[1] as string])); };
 
 /** Some published records name private individuals (land buyers, sole proprietors, contact people). They stay in, as published;
  * the owner decides on any redaction. Entries marked as possible private individuals can be hidden in this browser. */
@@ -46,7 +64,7 @@ function cell(t: TableMeta, k: number, v: any, names: Map<string, string>) {
   if (v == null || v === "") return "";
   if (key === "sup" || key === "bidders") return (Array.isArray(v) ? v : [v]).map((s: string) => `<a href="#s=${esc(s)}" data-sup="${esc(s)}">${esc(names.get(s) || s)}</a>`).join(", ");
   if (linkCols[key]) return `<a href="${esc(v)}" target="_blank" rel="noopener">${linkCols[key]} ↗</a>`;
-  if (key === "ref" || key === "number") return `<a href="#t=${esc(String(v).replace(/\s/g, ""))}" data-tender="${esc(v)}">${esc(v)}</a>`;
+  if (L.refCols.includes(key)) return `<a href="#t=${esc(String(v).replace(/\s/g, ""))}" data-tender="${esc(v)}">${esc(v)}</a>`;
   if (typeof v === "number" && /value|price|total|budget/.test(key)) return `<span class="mono">${rand(v)}</span>`;
   if (key === "dq") return `<span class="warn" title="${esc(v)}">⚠ suspect value</span>`;
   return esc(v);
@@ -130,14 +148,14 @@ async function overview(el: HTMLElement) {
 }
 
 let supQ = "", supSort = 3;
-async function supplierList(el: HTMLElement) {
+export async function supplierList(el: HTMLElement) {
   const S = await suppliers(); const q = supQ.toLowerCase();
   let rows = q ? S.rows.filter((r) => String(r[1]).toLowerCase().includes(q) || String(r[0]).includes(q.replace(/\s+/g, "-"))) : S.rows;
   if (hidePersons()) rows = rows.filter((r) => !r[13]);
   rows = [...rows].sort((a, b) => supSort === 3 ? (b[3] + b[5]) - (a[3] + a[5]) : (Number(b[supSort]) || 0) - (Number(a[supSort]) || 0));
   const H: [number, string][] = [[1, "Supplier"], [2, "Award decisions"], [3, "Fixed value of decisions"], [12, "Rates-based budgets"], [4, "Quotation orders"], [5, "Quotation value"], [6, "Bids"], [7, "eTenders"], [8, "Land bought"], [11, "Flags"]];
   el.innerHTML = `<div class="toolbar"><input class="sq" placeholder="Find a supplier…" value="${esc(supQ)}" aria-label="Find a supplier"><button class="tb sx">Export CSV</button>
-    <span class="note">${fmt(rows.length)} of ${fmt(S.rows.length)} suppliers named in published City and eTender records.</span></div><div class="note">${esc(IDENTITY_NOTE)}</div>
+    <span class="note">${fmt(rows.length)} of ${fmt(S.rows.length)} suppliers named in ${esc(L.scope)}.</span></div><div class="note">${esc(IDENTITY_NOTE)}</div>
     <div class="tscroll"><table class="t"><thead><tr>${H.map(([k, l]) => `<th data-ss="${k}">${l}${supSort === k ? " ▼" : ""}</th>`).join("")}<th>Years</th></tr></thead><tbody>
     ${rows.slice(0, 300).map((r) => `<tr class="click" data-sup="${esc(r[0])}"><td>${esc(r[1])}${r[13] ? ' <span class="pill person" title="Possibly a private individual">person?</span>' : ""}</td><td class="mono">${fmt(r[2])}</td><td class="mono">${r[3] ? short(r[3]) : ""}</td><td class="mono dim">${r[12] ? short(r[12]) : ""}</td><td class="mono">${fmt(r[4])}</td><td class="mono">${r[5] ? short(r[5]) : ""}</td><td class="mono">${fmt(r[6])}</td><td class="mono">${fmt(r[7])}</td><td class="mono">${r[8] || ""}</td><td class="mono">${r[11] ? `<span class="flagc">${r[11]}</span>` : ""}</td><td class="mono dim">${esc(r[9] || "")}${r[10] && r[10] !== r[9] ? "–" + esc(r[10]) : ""}</td></tr>`).join("")}</tbody></table></div>`;
   let tm: any; (el.querySelector(".sq") as HTMLInputElement).oninput = (e) => { clearTimeout(tm); tm = setTimeout(() => { supQ = (e.target as HTMLInputElement).value; supplierList(el).then(() => { const i = el.querySelector(".sq") as HTMLInputElement; i.focus(); i.setSelectionRange(i.value.length, i.value.length); }); }, 200); };
@@ -146,7 +164,7 @@ async function supplierList(el: HTMLElement) {
 }
 
 let flagFilter = "";
-async function flagList(el: HTMLElement) {
+export async function flagList(el: HTMLElement) {
   const F = await flagsData(); const names = await supNames();
   const list = F.flags.filter((f) => !flagFilter || f.kind === flagFilter);
   el.innerHTML = `<div class="toolbar"><select class="fk" aria-label="Kind of pattern"><option value="">All patterns (${fmt(F.flags.length)})</option>${Object.entries(F.kinds).map(([k, l]) => `<option value="${k}" ${k === flagFilter ? "selected" : ""}>${esc(l)} (${F.flags.filter((f) => f.kind === k).length})</option>`).join("")}</select>
@@ -158,7 +176,7 @@ async function flagList(el: HTMLElement) {
     list.map((f) => [f.id, F.kinds[f.kind], f.title, f.text, f.value ?? "", f.subjects.filter((s) => s[0] === "supplier").map((s) => names.get(s[1]) || s[1]), f.records.map((r) => r.join(":"))]), F.note);
 }
 
-async function deptList(el: HTMLElement) {
+export async function deptList(el: HTMLElement) {
   const D = await getJSON<any[]>(MP + "departments.json"); const names = await supNames();
   el.innerHTML = `<div class="note">City directorates (from quotation orders) and every Western Cape organ of state on the eTender portal. Click one for its profile.</div>
     <div class="tscroll"><table class="t"><thead><tr><th>Department or organ of state</th><th>Records</th><th>Quotation value</th><th>Largest supplier</th></tr></thead><tbody>
@@ -193,8 +211,8 @@ export async function openSupplier(id: string) {
   const S = await suppliers(); const ix = S.rows.find((r) => r[0] === id);
   if (!P || !ix) { R().innerHTML = `<div class="card"><div class="empty">No supplier profile "${esc(id)}" in this build.</div></div>`; return; }
   const F = await flagsData(); const flags = F.flags.filter((f) => P.flags.includes(f.id));
-  const J = await getJSON<any>(METRO + "justice.json").catch(() => null);
-  const REG = await getJSON<any>(METRO + "registry.json").catch(() => null); const reg = REG?.records?.[id];
+  const J = await getJSON<any>(ROOTP + "justice.json").catch(() => null);
+  const REG = await getJSON<any>(ROOTP + "registry.json").catch(() => null); const reg = REG?.records?.[id];
   const cases = (J?.items || []).filter((c: any) => c.suppliers?.includes(id));
   const name = ix[1]; const n = Object.values(P.refs as Record<string, number[]>).reduce((s, v) => s + v.length, 0);
   updateCount("supplier", id, n); markSeen("supplier", id, n);
@@ -209,7 +227,7 @@ export async function openSupplier(id: string) {
   open(`<div class="card primary"><div class="kicker">Supplier profile${ix[13] ? " · possibly a private individual" : ""}</div><h2>${esc(name)}</h2>
       ${ix[13] ? `<div class="note warnbox">This profile looks like a private individual. The records are shown exactly as the state published them.</div>` : ""}
       ${P.names.length > 1 ? `<div class="sm mu">Published as: ${P.names.map(([n, c]: [string, number]) => `${esc(n)} <span class="dim">(${c})</span>`).join("; ")}</div>` : ""}
-      <div class="facts"><div class="fact"><b>${fmt(ix[2])}</b><span>award decisions</span></div><div class="fact"><b>${ix[3] ? short(ix[3]) : "—"}</b><span>fixed values of decisions naming it</span></div><div class="fact"><b>${ix[12] ? short(ix[12]) : "—"}</b><span>rates-based budgets (estimates)</span></div><div class="fact"><b>${fmt(ix[4])}</b><span>quotation orders</span></div>
+      <div class="facts"><div class="fact"><b>${fmt(ix[2])}</b><span>${esc(L.factAwards)}</span></div><div class="fact"><b>${ix[3] ? short(ix[3]) : "—"}</b><span>fixed values of decisions naming it</span></div><div class="fact"><b>${ix[12] ? short(ix[12]) : "—"}</b><span>rates-based budgets (estimates)</span></div><div class="fact"><b>${fmt(ix[4])}</b><span>${esc(L.factRfq)}</span></div>
         <div class="fact"><b>${ix[5] ? short(ix[5]) : "—"}</b><span>quotation value</span></div><div class="fact"><b>${fmt(ix[6])}</b><span>bids</span></div><div class="fact"><b>${esc(yearsRow)}</b><span>years active in records</span></div></div>
       ${phones.length || P.contacts?.length ? `<div class="sm">Contact details published on eTender awards: ${P.contacts.map(esc).join(", ")}${phones.length ? ` · numbers ending ${phones.map((p) => esc(p.slice(-4))).join(", ")}` : ""}</div>` : ""}
       <div class="links">${watchButton("supplier", id, name, n)}<button class="mini" data-share="s=${esc(id)}">Share link</button><button class="mini" data-expjson="1">Export profile (JSON)</button></div>
@@ -224,14 +242,27 @@ export async function openSupplier(id: string) {
         <div class="note">A CIPC number has the form YYYY/NNNNNN/NN; the first part is the year of registration.</div>`
       : `<div class="note">Not in Cape Monitor's register cache yet. Search the register yourself: <a href="https://www.bizportal.gov.za/" target="_blank" rel="noopener">CIPC BizPortal ↗</a> (login required, about 20 searches a day) or <a href="https://b2bhint.com/en/country/search-south-africa-company--16" target="_blank" rel="noopener">B2BHint ↗</a>.</div>`}
     ${flags.length ? `<h3>Pattern flags<span class="c">${flags.length}</span></h3>${flags.map((f) => `<div class="row" data-flag="${esc(f.id)}"><span class="t">${esc(f.title)}</span><small>${esc(F.kinds[f.kind])}</small></div>`).join("")}<div class="note">${esc(F.note)}</div>` : ""}
+    ${elsewhere(P.elsewhere)}
     ${network(id, name, P.cobid || [], [...co], sharePhone as string[], names)}
-    ${P.refs.awards ? `<h3>City award decisions<span class="c">${P.refs.awards.length}</span></h3>${await rowsTable("awards", P.refs.awards, ["date", "ref", "decision", "reason", "code", "desc", "value_text", "budget_text", "sup"])}` : ""}
-    ${P.refs.bids ? `<h3>Bids at City tender openings<span class="c">${P.refs.bids.length}</span></h3>${await rowsTable("bids", P.refs.bids, ["closing", "ref", "desc", "price_text", "rank", "n_bids", "doc"])}` : ""}
-    ${P.refs.et ? `<h3>eTender portal (Western Cape buyers)<span class="c">${P.refs.et.length}</span></h3>${await rowsTable("etenders", P.refs.et, ["published", "number", "buyer", "desc", "status", "awards", "official"])}` : ""}
-    ${P.refs.rfq ? `<h3>City quotation orders<span class="c">${P.refs.rfq.length}</span></h3>${await rowsTable("rfq", P.refs.rfq, ["date", "tracking", "directorate", "group", "value", "bbbee", "dq"])}` : ""}
-    ${P.refs.land ? `<h3>City land bought<span class="c">${P.refs.land.length}</span></h3>${await rowsTable("land", P.refs.land, ["approved", "erf", "area", "extent", "price", "method"])}` : ""}
+    ${P.refs.awards ? `<h3>${esc(L.awards)}<span class="c">${P.refs.awards.length}</span></h3>${await rowsTable("awards", P.refs.awards, L.awardCols)}` : ""}
+    ${P.refs.bids ? `<h3>${esc(L.bids)}<span class="c">${P.refs.bids.length}</span></h3>${await rowsTable("bids", P.refs.bids, L.bidCols)}` : ""}
+    ${P.refs.et ? `<h3>${esc(L.et)}<span class="c">${P.refs.et.length}</span></h3>${await rowsTable("etenders", P.refs.et, ["published", "number", "buyer", "desc", "status", "awards", "official"])}` : ""}
+    ${P.refs.rfq ? `<h3>${esc(L.rfq)}<span class="c">${P.refs.rfq.length}</span></h3>${await rowsTable("rfq", P.refs.rfq, L.rfqCols)}` : ""}
+    ${P.refs.land ? `<h3>${esc(L.land)}<span class="c">${P.refs.land.length}</span></h3>${await rowsTable("land", P.refs.land, ["approved", "erf", "area", "extent", "price", "method"])}` : ""}
     ${cases.length ? `<h3>Competition Tribunal cases naming it<span class="c">${cases.length}</span></h3>${cases.slice(0, 20).map((c: any) => `<div class="row"><a class="t" href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.parties)}</a><small>${esc(c.case)} · ${esc(c.type)} · ${esc(c.date)}</small></div>`).join("")}` : ""}`, `s=${id}`);
   (R().querySelector("[data-expjson]") as HTMLElement).onclick = () => exportJSON(`supplier-${id}`, { supplier: name, id, profile: P, index: Object.fromEntries(S.fields.map((f, k) => [f, ix[k]])), flags, tribunal: cases, exported: new Date().toISOString() });
+}
+
+/** the same normalised name in another municipality's records (Stellenbosch Watch: Cape Town) */
+function elsewhere(E: Record<string, any> | undefined) {
+  if (!E) return "";
+  const lab: Record<string, string> = { "cape-town": "City of Cape Town (Cape Monitor)" };
+  return `<h3>Also in other municipalities' records</h3>${Object.entries(E).map(([k, c]) => `<div class="card"><div class="kicker">${esc(lab[k] || k)}</div>
+    <div class="facts"><div class="fact"><b>${fmt(c.awards)}</b><span>award decisions</span></div><div class="fact"><b>${c.award_value ? short(c.award_value) : "—"}</b><span>fixed value of decisions</span></div>
+    <div class="fact"><b>${fmt(c.rfq)}</b><span>quotation orders</span></div><div class="fact"><b>${c.rfq_value ? short(c.rfq_value) : "—"}</b><span>quotation value</span></div>
+    <div class="fact"><b>${fmt(c.bids)}</b><span>bids</span></div><div class="fact"><b>${esc(c.first || "—")}${c.last && c.last !== c.first ? "–" + esc(c.last) : ""}</b><span>years</span></div></div>
+    <div class="links"><a href="${esc(c.url)}" target="_blank" rel="noopener">Open the ${esc(lab[k] || k)} profile ↗</a>${c.flags ? `<span class="flagc">${c.flags} flag${c.flags === 1 ? "" : "s"} there</span>` : ""}</div>
+    <div class="note">Matched by the same normalised name (${esc(c.name)}), not by registration number. It may be a different company with the same name.</div></div>`).join("")}`;
 }
 
 /** a small network: co-bidders (shared bid registers), co-named in award decisions, shared contact numbers */
@@ -252,25 +283,27 @@ function network(id: string, name: string, cobid: [string, number][], co: [strin
 }
 
 export async function openTender(ref: string) {
-  track("tender", { ref }); loading("tender"); const m = await moneyMeta(); const k = ref.replace(/\s/g, "").toUpperCase().replace(/^0+/, "");
+  track("tender", { ref }); loading("tender"); const m = await moneyMeta(); const k = L.refKey(ref);
   const T = (await getJSON<Record<string, any>>(`${MP}tender/${bucket(k, m.buckets)}.json`))[k];
-  if (!T) { R().innerHTML = `<div class="card"><div class="kicker">Tender ${esc(ref)}</div><div class="empty">No City record with this reference in this build.</div></div>`; return; }
+  if (!T) { R().innerHTML = `<div class="card"><div class="kicker">Tender ${esc(ref)}</div><div class="empty">${esc(L.notender)}</div></div>`; return; }
   const first = T.bids?.length ? await row("bids", T.bids[0]) : T.awards?.length ? await row("awards", T.awards[0]) : null;
-  const desc = first ? (T.bids?.length ? first[2] : first[5]) : "";
+  const fq = !first && T.rfq?.length ? await row("rfq", T.rfq[0]) : null;
+  const desc = first ? (T.bids?.length ? first[2] : first[5]) : fq ? fq[4] : "";
   const docs = T.docs?.length ? await Promise.all(T.docs.map((i: number) => row("docs", i))) : [];
   const ets = T.et?.length ? await Promise.all(T.et.map((i: number) => row("etenders", i))) : [];
   const etd = ets.length ? await Promise.all(ets.map(async (r) => { const pid = r![fi(m.tables.etenders, "portal_id")]; const idx = (T.et as number[])[ets.indexOf(r)];
     return (await getJSON<Record<string, any>>(`${MP}etd/${Math.floor(idx / m.et_shard)}.json`))[String(idx)] || { id: pid }; })) : [];
-  open(`<div class="card primary"><div class="kicker">City tender</div><h2>${esc(ref)}</h2><div class="mu">${esc(desc)}</div>
-      <div class="facts"><div class="fact"><b>${T.bids?.length || 0}</b><span>bids read out</span></div><div class="fact"><b>${T.awards?.length || 0}</b><span>decisions</span></div><div class="fact"><b>${(T.docs?.length || 0) + etd.reduce((s: number, e: any) => s + (e.documents?.length || 0), 0)}</b><span>documents</span></div></div>
+  open(`<div class="card primary"><div class="kicker">${esc(L.tender)}</div><h2>${esc(ref)}</h2><div class="mu">${esc(desc)}</div>
+      <div class="facts"><div class="fact"><b>${T.bids?.length || 0}</b><span>${esc(L.bidsRead)}</span></div><div class="fact"><b>${T.awards?.length || 0}</b><span>decisions</span></div><div class="fact"><b>${(T.docs?.length || 0) + etd.reduce((s: number, e: any) => s + (e.documents?.length || 0), 0)}</b><span>documents</span></div></div>
       <div class="links">${watchButton("tender", k, `Tender ${ref}`, (T.bids?.length || 0) + (T.awards?.length || 0))}<button class="mini" data-share="t=${esc(k)}">Share link</button></div></div>
     ${etd.map((e: any) => `<h3>Advertised on the eTender portal</h3><table class="kv">${[["Buyer", e.organ_of_State], ["Type", e.type], ["Category", e.category], ["Published", e.date_Published?.slice(0, 10)], ["Closing", e.closing_Date?.replace("T", " ").slice(0, 16)],
       ["Briefing session", e.briefingSession ? `${e.briefingCompulsory ? "Compulsory" : "Not compulsory"}: ${e.compulsory_briefing_session || ""} ${e.briefingVenue || ""}` : "None"], ["Responsible official", [e.contactPerson, e.email, e.telephone].filter(Boolean).join(" · ")],
       ["Delivery", e.delivery], ["Conditions", e.conditions], ["Status on portal", e.portal_status]].filter(([, v]) => v).map(([l, v]) => `<tr><td>${esc(l)}</td><td>${esc(v)}</td></tr>`).join("")}</table>
       ${e.documents?.length ? `<div class="links">${e.documents.map((d: any) => `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.name)} ↗</a>`).join("")}</div>` : ""}`).join("")}
-    ${T.bids?.length ? `<h3>Bids read out at the opening<span class="c">${T.bids.length}</span></h3>${await rowsTable("bids", T.bids, ["n", "bidder", "price_text", "rank", "hdi", "closing", "doc"], 100)}` : ""}
-    ${T.awards?.length ? `<h3>Award decisions<span class="c">${T.awards.length}</span></h3>${await rowsTable("awards", T.awards, ["date", "decision", "reason", "code", "vendor", "value_text", "budget_text", "sup"], 100)}` : ""}
-    ${docs.length ? `<h3>City documents naming it</h3>${docs.map((d) => `<div class="row"><a class="t" href="${esc(d![4])}" target="_blank" rel="noopener">${esc(d![2])}</a><small>${esc(d![1])} · ${esc(d![0] || "")}</small></div>`).join("")}` : ""}`, `t=${k}`);
+    ${T.bids?.length ? `<h3>Bids read out at the opening<span class="c">${T.bids.length}</span></h3>${await rowsTable("bids", T.bids, L.tenderBidCols, 100)}` : ""}
+    ${T.awards?.length ? `<h3>Award decisions<span class="c">${T.awards.length}</span></h3>${await rowsTable("awards", T.awards, L.tenderAwardCols, 100)}` : ""}
+    ${T.rfq?.length ? `<h3>${esc(L.rfq)}<span class="c">${T.rfq.length}</span></h3>${await rowsTable("rfq", T.rfq, L.rfqCols, 100)}` : ""}
+    ${docs.length ? `<h3>Documents naming it</h3>${docs.map((d) => `<div class="row"><a class="t" href="${esc(d![4])}" target="_blank" rel="noopener">${esc(d![2])}</a><small>${esc(d![1])} · ${esc(d![0] || "")}</small></div>`).join("")}` : ""}`, `t=${k}`);
 }
 
 export async function openDepartment(k: number) {
@@ -288,8 +321,7 @@ export async function openFlag(id: string) {
   track("flag", { id }); loading("flag"); const F = await flagsData(); const f = F.flags.find((x) => x.id === id);
   if (!f) { R().innerHTML = `<div class="card"><div class="empty">Flag not in this build (flags are recomputed with every data refresh).</div></div>`; return; }
   const by = new Map<string, number[]>(); for (const [t, i] of f.records) by.set(t, [...(by.get(t) || []), i]);
-  const COLS: Record<string, string[]> = { rfq: ["date", "tracking", "directorate", "group", "supplier", "value"], awards: ["date", "ref", "decision", "reason", "code", "vendor", "value_text", "budget_text"],
-    bids: ["closing", "ref", "bidder", "price_text", "rank", "n_bids", "doc"], etenders: ["published", "number", "buyer", "desc", "awards", "official"] };
+  const COLS = L.flagCols;
   const names = await supNames();
   open(`<div class="card primary flagcard"><div class="kicker">Pattern in published data · ${esc(F.kinds[f.kind])}</div><h2>${esc(f.title)}</h2><p>${esc(f.text)}</p>
       ${f.basis ? `<div class="sm">Rule: <a href="${esc(f.basis.url)}" target="_blank" rel="noopener">${esc(f.basis.text)}</a></div>` : ""}
@@ -314,8 +346,8 @@ export function bindMoney(...roots: HTMLElement[]) {
 async function openEtender(portalId: number) {
   const m = await moneyMeta(); const rows = await allRows("etenders"); const T = m.tables.etenders; const i = rows.findIndex((r) => r[fi(T, "portal_id")] === portalId); if (i < 0) return;
   const e = (await getJSON<Record<string, any>>(`${MP}etd/${Math.floor(i / m.et_shard)}.json`))[String(i)];
-  const m2 = String(e.tender_No || "").replace(/\s/g, "").toUpperCase().match(/\d{1,3}[A-Z]\/20\d\d\/\d\d/);
-  if (m2 && /cape town/i.test(e.organ_of_State || "")) return openTender(m2[0]);
+  const own = L.tenderRef(e);
+  if (own) return openTender(own);
   open(`<div class="card primary"><div class="kicker">eTender portal · ${esc(e.portal_status)}</div><h2>${esc(e.description)}</h2>
     <table class="kv">${[["Tender number", e.tender_No], ["Buyer", e.organ_of_State], ["Type", e.type], ["Category", e.category], ["Published", e.date_Published?.slice(0, 10)], ["Closing", e.closing_Date?.replace("T", " ").slice(0, 16)],
       ["Briefing session", e.briefingSession ? `${e.briefingCompulsory ? "Compulsory" : "Not compulsory"}: ${e.compulsory_briefing_session || ""} ${e.briefingVenue || ""}` : "None"], ["Responsible official", [e.contactPerson, e.email, e.telephone].filter(Boolean).join(" · ")],
