@@ -3,8 +3,13 @@ import "./styles.css";
 import { loadManifest, M, layerById, parcels, getJSON, DP, DISTRICT, METRO, districtUrl, DataIndex, Districts, Layer } from "./data";
 import { initMap, map, setVisible, visible, setBase, THEME_COLOUR, catColour, setMonthRange } from "./map";
 import { inspectPoint, bindInspector, openRecord, openPlot, showStart } from "./inspector";
-import { bindDock, renderTabs, openTab, setLabourFilter } from "./dock";
+import { bindDock, renderTabs, openTab, setLabourFilter, addOwnerTab } from "./dock";
 import { entitlements } from "./auth/entitlements";
+import { accessGate } from "./access/gate";
+import { joinPresence, onCount } from "./access/presence";
+import { track } from "./access/activity";
+import { user, signOut, isOwner } from "./access/auth";
+import { ACCESS } from "./access/config";
 import { OVERLAYS, showOverlay, overlayStatus } from "./live";
 import { openSupplier, openTender, openFlag, openDepartment, suppliers, bindMoney } from "./money";
 import { bindWatch } from "./util";
@@ -144,12 +149,17 @@ async function openHash() {
 function clock() { const el = $("#clock"); const tick = () => { el.textContent = new Date().toLocaleString("en-ZA", { timeZone: "Africa/Johannesburg", weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) + " SAST"; }; tick(); setInterval(tick, 30000); }
 
 async function boot() {
+  await accessGate();   // returns at once when the wall is off or Supabase is not configured
   try { [IDX, DIS] = await Promise.all([getJSON<DataIndex>("data/index.json").catch(() => null), getJSON<Districts>(METRO + "districts.json").catch(() => null)]); await loadManifest(); }
   catch (e) { $("#bootmsg").textContent = DISTRICT ? `The ${DISTRICT} district is not in this build yet. ` : "Could not load the data. "; $("#bootmsg").insertAdjacentHTML("beforeend", `<a href="${districtUrl("")}">Open the metro overview</a>`); return; }
   document.title = `Cape Monitor · ${DISTRICT ? M.district.label : "City of Cape Town"}`;
   ($("#district") as HTMLSelectElement).innerHTML = districtOptions();
   ($("#district") as HTMLSelectElement).onchange = (e) => goDistrict((e.target as HTMLSelectElement).value);
   if (entitlements().source === "preview") $("#fresh").insertAdjacentHTML("afterend", `<span class="chip" title="Pro preview (testing only)">PRO preview</span>`);
+  void joinPresence().then((on) => { if (!on) return; onCount((n) => { const el = $("#online"); el.hidden = n < 1; el.textContent = `● ${n} online`; }); });
+  if (user()) { $("#signout").hidden = false; $("#signout").onclick = async () => { await signOut(); if (ACCESS.requireAccount) location.reload(); else $("#signout").hidden = true; };
+    void isOwner().then((o) => { if (o) addOwnerTab(); }); }
+  track("open", { district: DISTRICT || "metro" });
   $("#fresh").innerHTML = `${t("fresh")} <b>${esc((M.built || "").slice(0, 10))}</b>`;
   clock();
   await initMap("map", DIS?.districts || []);

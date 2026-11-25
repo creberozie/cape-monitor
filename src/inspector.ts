@@ -3,6 +3,7 @@ import type * as maplibregl from "maplibre-gl";
 import { M, layerById, record, val, dossier, getJSON, tableRows, Field, DP, DISTRICT, METRO, districtUrl, DataIndex } from "./data";
 import { map, pick, highlight, catColour, THEME_COLOUR, tileSources } from "./map";
 import { overlayCard } from "./live";
+import { track } from "./access/activity";
 import { watchButton, exportJSON, markSeen, watches } from "./util";
 import { flagsData } from "./money";
 import { t, esc, fmt, money } from "./i18n";
@@ -126,7 +127,7 @@ async function showPlot(i: number, f: any, s: number, hits: { layer: string; i: 
     ${ne ? `<h3>${t("near")}</h3>${ne}` : ""}
     ${others.length ? `<h3>${t("alsohere")}<span class="c">${others.length}</span></h3>${(await Promise.all(others.slice(0, 12).map(async (h) => `<div class="row" data-go="${h.layer}:${h.i}">${swatch(h.layer)}<span class="t">${esc(labelOf(h.layer, await record(h.layer, h.i)))}</span><small>${esc(layerById.get(h.layer)?.name)}</small></div>`))).join("")}` : ""}
     <details class="raw"><summary>${t("allfields")}</summary>${rec ? kv(rec.fields.slice(0, -1), rec.values) : ""}</details>`;
-  $("#right").scrollTop = 0; setHash(`p=${key}`);
+  $("#right").scrollTop = 0; setHash(`p=${key}`); track("plot", { key, erf: v("PRTY_NMBR") });
   markSeen("plot", `${DISTRICT}|${key}`, (D.plans?.length || 0) + (D.requests?.length || 0) + (D.sales?.length || 0));
   const dl = $("#right").querySelector("[data-dl]") as HTMLElement | null;
   if (dl) dl.onclick = async () => {

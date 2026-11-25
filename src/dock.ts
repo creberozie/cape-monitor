@@ -7,6 +7,8 @@ import { map } from "./map";
 import { moneyTab, moneyMeta, suppliers, PERSONAL_NOTE, IDENTITY_NOTE } from "./money";
 import { watches, toggleWatch, updateCount, exportCSV, exportTable, exportJSON } from "./util";
 import { can, proNote } from "./auth/entitlements";
+import { track } from "./access/activity";
+import { ownerView } from "./access/owner";
 
 const $ = (s: string) => document.querySelector(s) as HTMLElement;
 type Area = { sr_total: number; sr_type: [string, number][]; sr_month: [string, number][]; plans_year: [string, number][]; plans_value: [string, number][];
@@ -259,6 +261,8 @@ async function heritage() {
 const TABS: [string, () => any][] = [["brief", brief], ["money", () => moneyTab($("#dockbody"))], ["justice", justice], ["labour", labour], ["notices", notices], ["feed", feed],
   ...(DISTRICT ? [["activity", activity], ["records", () => records()]] as [string, () => any][] : []), ["watchlist", watchlist],
   ...(DISTRICT === "blaauwberg" ? [["heritage", heritage]] as [string, () => any][] : []), ["sources", sources]];
+/** the owner-only "Users" tab (the database decides who is an owner) */
+export function addOwnerTab() { if (!TABS.some((t) => t[0] === "users")) { TABS.push(["users", () => ownerView($("#dockbody"), esc, exportCSV)]); renderTabs(); } }
 const NOT_ADDED: [string, string, string][] = [
   ["Government Gazette (national) and gazettes.africa", "https://gazettes.africa/", "gazettes.africa now asks for a login (HTTP 401) for every page; the national gazette archive on gov.za did not answer from the build machine. The Western Cape Provincial Gazette is read directly from the Province (Notices panel)."],
   ["City land-use applications and public participation notices", "https://www.capetown.gov.za/", "Published through the City's e-services and notice pages, not as data; not yet read."],
@@ -273,7 +277,7 @@ const NOT_ADDED: [string, string, string][] = [
 export function renderTabs() {
   $("#tabs").innerHTML = TABS.map(([k]) => `<button data-tab="${k}" class="${k === tab ? "on" : ""}">${t(k as any)}</button>`).join("") + `<span class="sp"></span><button data-size="1" title="Bigger or smaller">⇕</button>`;
 }
-export function openTab(k: string) { tab = k; renderTabs(); if (document.body.classList.contains("dockmin")) document.body.classList.remove("dockmin"); TABS.find((x) => x[0] === k)![1](); }
+export function openTab(k: string) { tab = k; track("tab", { tab: k }); renderTabs(); if (document.body.classList.contains("dockmin")) document.body.classList.remove("dockmin"); TABS.find((x) => x[0] === k)![1](); }
 export function bindDock() {
   renderTabs();
   $("#tabs").onclick = (e) => { const b = (e.target as HTMLElement).closest("button"); if (!b) return;

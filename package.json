@@ -15,7 +15,9 @@
     "predev": "npm run vendor",
     "prebuild": "npm run vendor",
     "metro": "python3 -I pipeline/metro/run.py full",
-    "test": "playwright test --trace off"
+    "test": "playwright test --trace off",
+    "test:unit": "node --experimental-strip-types --test unit/access-config.test.mjs && python3 -m unittest discover -s pipeline/tests",
+    "build:gated": "VITE_SUPABASE_URL=https://cm-test.supabase.co VITE_SUPABASE_ANON_KEY=test-anon-key-for-browser-tests-only-0000 VITE_REQUIRE_ACCOUNT_ACCESS=true vite build --outDir dist-gated && node -e \"require('fs').cpSync('dist/t','dist-gated/t',{recursive:true})\""
   },
   "keywords": [],
   "author": "",
@@ -29,6 +31,7 @@
     "wrangler": "^4.168.0"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.2",
     "geojson-vt": "^5.0.4",
     "maplibre-gl": "^6.19.0",
     "pmtiles": "^4.5.0",

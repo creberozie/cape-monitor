@@ -117,3 +117,11 @@ a.row { color: var(--ink); text-decoration: none; }
 
 .pill.person { border-color: var(--warn); color: var(--warn); } .personal label { white-space: nowrap; margin-left: 6px; }
 .tile.pro { border-color: var(--ac); margin-bottom: 8px; }
+
+/* access gate and presence */
+#gate { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: grid; place-items: center; padding: 16px; overflow: auto; }
+.gate { width: min(380px, 100%); display: grid; gap: 10px; } .gate .brand { justify-content: flex-start; }
+.gate label { display: grid; gap: 3px; font-size: 12px; color: var(--mu); } .gate input { height: 36px; border: 1px solid var(--ln); background: var(--pn); border-radius: 4px; padding: 0 10px; color: var(--ink); font-size: 16px; }
+.gate input:focus { border-color: var(--ac); outline: none; } .gate .seg button { flex: 1; } .gate button[type=submit] { height: 36px; } .gate .msg { min-height: 18px; color: var(--warn); font-size: 12px; }
+.online { font: 12px var(--mono); color: var(--ac); white-space: nowrap; }
+@media (max-width: 900px) { .online { font-size: 11px; } #signout { display: none; } }

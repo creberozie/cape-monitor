@@ -1,6 +1,7 @@
 // Money and tenders: who decided, who paid, who was paid. Every row is shown as published, with its source and a link.
 // Profiles (supplier, tender, department, flag) open in the right-hand panel; lists and tables in the bottom panel.
 import { getJSON, METRO } from "./data";
+import { track } from "./access/activity";
 import { esc, fmt, money as rand } from "./i18n";
 import { exportCSV, exportTable, exportJSON, watchButton, markSeen, updateCount, bars, columns, short } from "./util";
 
@@ -187,7 +188,7 @@ export async function exportRows(tid: string, idx: number[], name: string) {
 }
 
 export async function openSupplier(id: string) {
-  loading("supplier"); const m = await moneyMeta();
+  track("supplier", { id }); loading("supplier"); const m = await moneyMeta();
   const P = (await getJSON<Record<string, any>>(`${MP}sup/${bucket(id, m.buckets)}.json`))[id];
   const S = await suppliers(); const ix = S.rows.find((r) => r[0] === id);
   if (!P || !ix) { R().innerHTML = `<div class="card"><div class="empty">No supplier profile "${esc(id)}" in this build.</div></div>`; return; }
@@ -251,7 +252,7 @@ function network(id: string, name: string, cobid: [string, number][], co: [strin
 }
 
 export async function openTender(ref: string) {
-  loading("tender"); const m = await moneyMeta(); const k = ref.replace(/\s/g, "").toUpperCase().replace(/^0+/, "");
+  track("tender", { ref }); loading("tender"); const m = await moneyMeta(); const k = ref.replace(/\s/g, "").toUpperCase().replace(/^0+/, "");
   const T = (await getJSON<Record<string, any>>(`${MP}tender/${bucket(k, m.buckets)}.json`))[k];
   if (!T) { R().innerHTML = `<div class="card"><div class="kicker">Tender ${esc(ref)}</div><div class="empty">No City record with this reference in this build.</div></div>`; return; }
   const first = T.bids?.length ? await row("bids", T.bids[0]) : T.awards?.length ? await row("awards", T.awards[0]) : null;
@@ -284,7 +285,7 @@ export async function openDepartment(k: number) {
 }
 
 export async function openFlag(id: string) {
-  loading("flag"); const F = await flagsData(); const f = F.flags.find((x) => x.id === id);
+  track("flag", { id }); loading("flag"); const F = await flagsData(); const f = F.flags.find((x) => x.id === id);
   if (!f) { R().innerHTML = `<div class="card"><div class="empty">Flag not in this build (flags are recomputed with every data refresh).</div></div>`; return; }
   const by = new Map<string, number[]>(); for (const [t, i] of f.records) by.set(t, [...(by.get(t) || []), i]);
   const COLS: Record<string, string[]> = { rfq: ["date", "tracking", "directorate", "group", "supplier", "value"], awards: ["date", "ref", "decision", "reason", "code", "vendor", "value_text", "budget_text"],

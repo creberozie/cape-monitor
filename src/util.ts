@@ -1,6 +1,7 @@
 // Small shared helpers: downloads (CSV and JSON exports), the watchlist kept in this browser, and chart pieces.
 import { esc, fmt } from "./i18n";
 import { exportLimit, can, FREE_EXPORT_ROWS, proNote } from "./auth/entitlements";
+import { track } from "./access/activity";
 
 const csvCell = (v: any) => { if (v == null) return ""; const s = Array.isArray(v) ? v.join("; ") : typeof v === "object" ? JSON.stringify(v) : String(v); return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
 export function download(name: string, text: string, type = "text/csv") {
@@ -9,6 +10,7 @@ export function download(name: string, text: string, type = "text/csv") {
 }
 /** CSV with a first comment line naming the source, so an exported file carries its provenance */
 export function exportCSV(name: string, header: string[], rows: any[][], source = "") {
+  track("export", { name, rows: rows.length });
   const lines = [...(source ? [`# ${source.replace(/\n/g, " ")}`] : []), header.map(csvCell).join(","), ...rows.map((r) => r.map(csvCell).join(","))];
   download(name.replace(/[^\w.-]+/g, "_") + ".csv", "﻿" + lines.join("\r\n"));
 }
@@ -24,7 +26,7 @@ export function toast(msg: string) {
   t.textContent = msg; t.hidden = false; clearTimeout((t as any)._tm); (t as any)._tm = setTimeout(() => (t.hidden = true), 6000);
 }
 export { can };
-export const exportJSON = (name: string, obj: any) => download(name.replace(/[^\w.-]+/g, "_") + ".json", JSON.stringify(obj, null, 1), "application/json");
+export const exportJSON = (name: string, obj: any) => (track("export", { name, format: "json" }), download(name.replace(/[^\w.-]+/g, "_") + ".json", JSON.stringify(obj, null, 1), "application/json"));
 
 // ---------------------------------------------------------------- watchlist (this browser only)
 export interface Watch { kind: "supplier" | "plot" | "tender" | "department" | "flag" | "record"; id: string; label: string; district?: string; n: number; seen: number; added: string }
