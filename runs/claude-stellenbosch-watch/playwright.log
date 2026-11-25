@@ -11,40 +11,97 @@ Running 40 tests using 2 workers
 [8/40] [tablet] › tests/access.spec.ts:29:1 › open: no wall, straight into the app, nothing overflows
 [9/40] [tablet] › tests/app.spec.ts:21:1 › metro overview loads, lists districts and has no errors
 [10/40] [tablet] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier
-[11/40] [desktop] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
-[12/40] [desktop] › tests/app.spec.ts:57:1 › labour tab: statutory rates, filters, shareable #l= link
-[13/40] [tablet] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
-[14/40] [desktop] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
-[15/40] [desktop] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
-[16/40] [tablet] › tests/app.spec.ts:57:1 › labour tab: statutory rates, filters, shareable #l= link
-[17/40] [tablet] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
-[18/40] [tablet] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
-[19/40] [desktop] › tests/app.spec.ts:92:1 › search finds erven, addresses, places and suburbs city-wide; Enter opens the top match
-[20/40] [phone] › tests/access.spec.ts:7:1 › gated: sign-up signs straight in, shows the online count, logs actions
-[21/40] [tablet] › tests/app.spec.ts:92:1 › search finds erven, addresses, places and suburbs city-wide; Enter opens the top match
-[22/40] [phone] › tests/access.spec.ts:23:1 › gated: owners get the Users tab, others do not
-[23/40] [phone] › tests/access.spec.ts:29:1 › open: no wall, straight into the app, nothing overflows
-[24/40] [phone] › tests/app.spec.ts:21:1 › metro overview loads, lists districts and has no errors
-[25/40] [phone] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier
-[26/40] [watch-desktop] › tests/watch.spec.ts:22:1 › start page: flags, suppliers, finances and latest awards, with sources, fast and without errors
+[11/40] (retries) [desktop] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier (retry #1)
+[12/40] (retries) [tablet] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier (retry #1)
+  1) [desktop] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier ──
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('#msub .kpis')
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" locator('#msub .kpis') with timeout 20000ms
+      - waiting for locator('#msub .kpis')
+
+
+      31 | test("money panels, supplier profile, flag and tender dossier", async ({ page }) => {
+      32 |   const e = errors(page); await page.goto("./"); await enter(page); await expect(page.locator("#boot")).toHaveCount(0, { timeout: 30000 });
+    > 33 |   await tab(page, "money"); await expect(page.locator("#msub .kpis")).toBeVisible({ timeout: 20000 });
+         |                                                                       ^
+      34 |   for (const s of ["suppliers", "flags", "awards", "bids", "rfq", "etenders", "departments", "land", "docs"]) {
+      35 |     await page.locator(`[data-sub=${s}]`).click(); await page.waitForTimeout(1500);
+      36 |     await expect(page.locator("#msub")).not.toContainText("not in this build");
+        at /home/runner/work/cape-monitor/cape-monitor/tests/app.spec.ts:33:71
+
+    Error Context: test-results/app-money-panels-supplier-profile-flag-and-tender-dossier-desktop/error-context.md
+
+
+[13/40] [desktop] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
+[14/40] [desktop] › tests/app.spec.ts:57:1 › labour tab: statutory rates, filters, shareable #l= link
+[15/40] [desktop] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
+  2) [tablet] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier ───
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('#msub .kpis')
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" locator('#msub .kpis') with timeout 20000ms
+      - waiting for locator('#msub .kpis')
+
+
+      31 | test("money panels, supplier profile, flag and tender dossier", async ({ page }) => {
+      32 |   const e = errors(page); await page.goto("./"); await enter(page); await expect(page.locator("#boot")).toHaveCount(0, { timeout: 30000 });
+    > 33 |   await tab(page, "money"); await expect(page.locator("#msub .kpis")).toBeVisible({ timeout: 20000 });
+         |                                                                       ^
+      34 |   for (const s of ["suppliers", "flags", "awards", "bids", "rfq", "etenders", "departments", "land", "docs"]) {
+      35 |     await page.locator(`[data-sub=${s}]`).click(); await page.waitForTimeout(1500);
+      36 |     await expect(page.locator("#msub")).not.toContainText("not in this build");
+        at /home/runner/work/cape-monitor/cape-monitor/tests/app.spec.ts:33:71
+
+    Error Context: test-results/app-money-panels-supplier-profile-flag-and-tender-dossier-tablet/error-context.md
+
+
+[16/40] [tablet] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
+[17/40] [desktop] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
+[18/40] [tablet] › tests/app.spec.ts:57:1 › labour tab: statutory rates, filters, shareable #l= link
+[19/40] [tablet] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
+[20/40] [desktop] › tests/app.spec.ts:92:1 › search finds erven, addresses, places and suburbs city-wide; Enter opens the top match
+[21/40] [tablet] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
+[22/40] [phone] › tests/access.spec.ts:7:1 › gated: sign-up signs straight in, shows the online count, logs actions
+[23/40] [tablet] › tests/app.spec.ts:92:1 › search finds erven, addresses, places and suburbs city-wide; Enter opens the top match
+[24/40] [phone] › tests/access.spec.ts:23:1 › gated: owners get the Users tab, others do not
+[25/40] [phone] › tests/access.spec.ts:29:1 › open: no wall, straight into the app, nothing overflows
+[26/40] [phone] › tests/app.spec.ts:21:1 › metro overview loads, lists districts and has no errors
+[27/40] [phone] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier
+[28/40] [watch-desktop] › tests/watch.spec.ts:22:1 › start page: flags, suppliers, finances and latest awards, with sources, fast and without errors
 [watch-desktop] › tests/watch.spec.ts:22:1 › start page: flags, suppliers, finances and latest awards, with sources, fast and without errors
-watch start page ready in 1425 ms
+watch start page ready in 1583 ms
 
-[27/40] [watch-desktop] › tests/watch.spec.ts:40:1 › supplier profile: records with source links, and the same name in Cape Town
-[28/40] [watch-desktop] › tests/watch.spec.ts:55:1 › flag dossier lists the records behind the pattern
-[29/40] [watch-desktop] › tests/watch.spec.ts:64:1 › search finds a supplier and a tender number
-[30/40] [watch-desktop] › tests/watch.spec.ts:78:1 › sections and sources: every tab renders, sources list what was left out
-[31/40] [watch-phone] › tests/watch.spec.ts:22:1 › start page: flags, suppliers, finances and latest awards, with sources, fast and without errors
-[watch-phone] › tests/watch.spec.ts:22:1 › start page: flags, suppliers, finances and latest awards, with sources, fast and without errors
-watch start page ready in 656 ms
-
-[32/40] [watch-phone] › tests/watch.spec.ts:40:1 › supplier profile: records with source links, and the same name in Cape Town
+[29/40] [watch-desktop] › tests/watch.spec.ts:40:1 › supplier profile: records with source links, and the same name in Cape Town
+[30/40] [watch-desktop] › tests/watch.spec.ts:55:1 › flag dossier lists the records behind the pattern
+[31/40] [watch-desktop] › tests/watch.spec.ts:64:1 › search finds a supplier and a tender number
+[32/40] [watch-desktop] › tests/watch.spec.ts:78:1 › sections and sources: every tab renders, sources list what was left out
 [33/40] [phone] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
-[34/40] [watch-phone] › tests/watch.spec.ts:55:1 › flag dossier lists the records behind the pattern
-[35/40] [watch-phone] › tests/watch.spec.ts:64:1 › search finds a supplier and a tender number
-[36/40] [watch-phone] › tests/watch.spec.ts:78:1 › sections and sources: every tab renders, sources list what was left out
-[37/40] [phone] › tests/app.spec.ts:57:1 › labour tab: statutory rates, filters, shareable #l= link
-[38/40] [phone] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
-[39/40] [phone] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
-[40/40] [phone] › tests/app.spec.ts:92:1 › search finds erven, addresses, places and suburbs city-wide; Enter opens the top match
-  40 passed (2.6m)
+[34/40] [watch-phone] › tests/watch.spec.ts:22:1 › start page: flags, suppliers, finances and latest awards, with sources, fast and without errors
+[watch-phone] › tests/watch.spec.ts:22:1 › start page: flags, suppliers, finances and latest awards, with sources, fast and without errors
+watch start page ready in 844 ms
+
+[35/40] [watch-phone] › tests/watch.spec.ts:40:1 › supplier profile: records with source links, and the same name in Cape Town
+[36/40] [watch-phone] › tests/watch.spec.ts:55:1 › flag dossier lists the records behind the pattern
+[37/40] [watch-phone] › tests/watch.spec.ts:64:1 › search finds a supplier and a tender number
+[38/40] [watch-phone] › tests/watch.spec.ts:78:1 › sections and sources: every tab renders, sources list what was left out
+[39/40] [phone] › tests/app.spec.ts:57:1 › labour tab: statutory rates, filters, shareable #l= link
+[40/40] [phone] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
+[41/40] [phone] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
+[42/40] [phone] › tests/app.spec.ts:92:1 › search finds erven, addresses, places and suburbs city-wide; Enter opens the top match
+  2 flaky
+    [desktop] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier ───
+    [tablet] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier ────
+  38 passed (3.4m)
