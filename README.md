@@ -34,7 +34,7 @@ pipeline/metro/      run.py: districts.py, fetch_money.py, build_money.py, feeds
 pipeline/check.py    checks before anything is saved or deployed; index.py lists what is built; smoke.py tests the live site
 functions/live/      Cloudflare Pages Functions: /live/fires, /live/ships, /live/news
 src/                 the app (MapLibre + PMTiles over HTTP range requests)
-.github/workflows/   data.yml (weekly districts, metro daily), deploy.yml (build, deploy, test, report)
+.github/workflows/   data.yml (weekly districts, metro daily; also Actions > Data > Run workflow), deploy.yml (build, deploy, test, report)
 ```
 
 Each part (each district, the metro set) saves its own last good data. A part that fails keeps its last good data, so the

@@ -1,27 +1,27 @@
 name: Data
 # Weekly (Monday 03:23 SAST) every source is fetched again: the eight planning districts in parallel, plus the metro-wide
-# money, courts, notices and feeds. Every three hours the fast-moving metro sources (open tenders, awards, feeds) are
-# refreshed. Each part that succeeds is saved as that part's "last good" data; a part that fails keeps its last good
-# data, so the live site never loses a district because one source was down. Then the site is deployed.
+# money, courts, notices and feeds. Once a day (05:41 SAST) the fast-moving metro sources (open tenders, awards, feeds,
+# this year's gazettes) are refreshed. Daily rather than three-hourly keeps a private repository inside GitHub's free
+# Actions minutes; if the repository is made public (unlimited minutes) this can go back to "41 */3 * * *".
+# Data runs only on schedule or when started by hand (Actions > Data > Run workflow), never on a push, so code changes
+# do not refetch every source. Each part that succeeds is saved as that part's "last good" data; a part that fails keeps
+# its last good data, so the live site never loses a district because one source was down. Then the site is deployed.
 on:
   schedule:
     - cron: "23 1 * * 1"      # full refresh
-    - cron: "41 */3 * * *"    # metro quick refresh
+    - cron: "41 3 * * *"      # metro quick refresh, daily
   workflow_dispatch:
     inputs:
       scope: { description: "full or metro", default: "full" }
-  push:
-    branches: [main, "claude/**"]
-    paths: [".github/workflows/data.yml"]   # code-only changes do not refetch every source; edit this file to force a data run
 permissions: { contents: write }
 concurrency:
   group: "data-${{ github.ref }}"
-  cancel-in-progress: ${{ github.event_name == 'push' }}
+  cancel-in-progress: false
 env:
-  FULL: ${{ github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule == '23 1 * * 1') || (github.event_name == 'workflow_dispatch' && inputs.scope != 'metro') }}
+  FULL: ${{ (github.event_name == 'schedule' && github.event.schedule == '23 1 * * 1') || (github.event_name == 'workflow_dispatch' && inputs.scope != 'metro') }}
 jobs:
   district:
-    if: ${{ github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule == '23 1 * * 1') || (github.event_name == 'workflow_dispatch' && inputs.scope != 'metro') }}
+    if: ${{ (github.event_name == 'schedule' && github.event.schedule == '23 1 * * 1') || (github.event_name == 'workflow_dispatch' && inputs.scope != 'metro') }}
     runs-on: ubuntu-latest
     timeout-minutes: 340
     strategy:
