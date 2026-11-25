@@ -34,7 +34,7 @@ const SEVL = ["", "High", "Medium", "Low"];
 const rankFlags = (F: Flag[]) => [...F].sort((a, b) => (SEV[a.kind] || 3) - (SEV[b.kind] || 3) || (b.value || 0) - (a.value || 0) || b.records.length - a.records.length);
 
 const TABS: [string, string][] = [["overview", "Overview"], ["flags", "Pattern flags"], ["suppliers", "Suppliers"], ["awards", "Tenders awarded"], ["rfq", "Quotations"],
-  ["bids", "Bids read out"], ["etenders", "eTenders"], ["departments", "Departments"], ["finance", "Finances and audit"], ["docs", "Documents"], ["sources", "Sources"]];
+  ["bids", "Bids read out"], ["etenders", "eTenders"], ["departments", "Departments"], ["finance", "Finances and audit"], ["notices", "Notices and courts"], ["docs", "Documents"], ["sources", "Sources"]];
 let tab = "overview";
 const body = () => $("#dockbody");
 
@@ -48,6 +48,7 @@ async function openTab(k: string) {
     else if (k === "departments") await departments(el);
     else if (k === "finance") await finance(el);
     else if (k === "sources") await sources(el);
+    else if (k === "notices") await notices(el);
     else await tableView(k, el);
   } catch (e) { el.innerHTML = `<div class="empty">This part is not in this build yet (${esc(e)}).</div>`; }
 }
@@ -119,6 +120,21 @@ async function finance(el: HTMLElement) {
       <div class="note">Source: <a href="${esc(aud.url)}" target="_blank" rel="noopener">National Treasury Municipal Money</a>, audit_opinions data set (<a href="${esc(aud.api)}" target="_blank" rel="noopener">API</a>), fetched ${esc(aud.retrieved.slice(0, 10))}. The Auditor-General's own MFMA reports: <a href="${esc(aud.agsa)}" target="_blank" rel="noopener">agsa.co.za</a>.</div>` : ""}`;
   (el.querySelector("#fx") as HTMLElement).onclick = () => exportCSV("stellenbosch-finances", ["year_end", "type", "item", "label", "amount"], [...rows.map((r) => [r.year, r.type_label, r.item, r.label, r.amount]),
     ...U.map((r) => [r.year, "Audited (AFS notes)", r.item, r.label, r.amount])], `Stellenbosch Municipality (WC024). Source: National Treasury Municipal Money ${fin.api}, fetched ${fin.retrieved}.`);
+}
+
+let nq = "";
+async function notices(el: HTMLElement) {
+  const [N, J] = await Promise.all([getJSON<any>(ROOT + "notices.json").catch(() => null), getJSON<any>(ROOT + "justice.json").catch(() => null)]);
+  const q = nq.toLowerCase(); const hit = (x: any) => !q || JSON.stringify([x.title, x.kind, x.places, x.issuer, x.parties, x.subject]).toLowerCase().includes(q);
+  const ns = (N?.notices || []).filter(hit); const cs = (J?.items || []).filter(hit);
+  el.innerHTML = `<div class="toolbar"><b>Notices and courts</b><input class="nq" placeholder="Filter: place, kind, party…" value="${esc(nq)}" aria-label="Filter notices"></div>
+    <h3>Western Cape Provincial Gazette: notices naming a Stellenbosch place<span class="c">${fmt(ns.length)}</span></h3>
+    ${N ? `<div class="note">Source: <a href="${esc(N.url)}" target="_blank" rel="noopener">Western Cape Provincial Gazette (Department of the Premier)</a>, years ${esc((N.source?.years || []).join(", "))}, read ${esc(String(N.built).slice(0, 10))}. A notice is listed when it names one of: ${esc((N.places || []).join(", "))}.</div>
+      ${ns.slice(0, 200).map((n: any) => `<div class="feeditem"><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title || n.issuer)}</a><div class="meta">${esc(n.date)} · ${esc(n.gazette)} · ${esc(n.kind)} · ${esc(n.issuer)} · names ${esc(n.places.join(", "))}${n.erfs?.length ? " · erf " + esc(n.erfs.slice(0, 6).join(", ")) : ""}</div></div>`).join("") || `<div class="empty">None in this build.</div>`}` : `<div class="empty">Gazette notices are not in this build yet.</div>`}
+    <h3>Competition Tribunal: decided cases naming a Stellenbosch place or supplier<span class="c">${fmt(cs.length)}</span></h3>
+    ${J ? `<div class="note">Source: <a href="${esc(J.source.url)}" target="_blank" rel="noopener">${esc(J.source.name)}</a>, fetched ${esc(String(J.source.retrieved || "").slice(0, 10))}.</div>
+      ${cs.slice(0, 200).map((c: any) => `<div class="feeditem"><a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.parties)}</a><div class="meta">${esc(c.case || "")} · ${esc(c.type || "")} · ${esc(c.date || "")}${c.places?.length ? " · names " + esc(c.places.join(", ")) : ""}${c.suppliers?.length ? " · supplier in Stellenbosch records: " + c.suppliers.map((s: string) => `<a href="#s=${esc(s)}" data-sup="${esc(s)}">${esc(s)}</a>`).join(", ") : ""}</div></div>`).join("") || `<div class="empty">None in this build.</div>`}` : `<div class="empty">Tribunal cases are not in this build yet.</div>`}`;
+  let tm: any; (el.querySelector(".nq") as HTMLInputElement).oninput = (e) => { clearTimeout(tm); tm = setTimeout(() => { nq = (e.target as HTMLInputElement).value; notices(el).then(() => { const i = el.querySelector(".nq") as HTMLInputElement; i.focus(); i.setSelectionRange(i.value.length, i.value.length); }); }, 250); };
 }
 
 async function sources(el: HTMLElement) {

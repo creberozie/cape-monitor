@@ -77,7 +77,7 @@ test("search finds a supplier and a tender number", async ({ page, request }) =>
 
 test("sections and sources: every tab renders, sources list what was left out", async ({ page }) => {
   const e = errors(page); await start(page);
-  for (const k of ["awards", "rfq", "bids", "etenders", "departments", "finance", "docs", "sources"]) {
+  for (const k of ["awards", "rfq", "bids", "etenders", "departments", "finance", "notices", "docs", "sources"]) {
     await closeSheet(page);
     await page.locator(`#tabs [data-tab=${k}]`).click(); await page.waitForTimeout(800);
     await expect(page.locator("#dockbody")).not.toContainText("not in this build");
