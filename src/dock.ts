@@ -41,7 +41,7 @@ async function brief() {
   const kpi = (v: any, l: string) => `<div class="kpi"><b>${v}</b><span>${esc(l)}</span></div>`;
   const pop = a?.population ? Object.entries(a.population).filter(([k, v]) => typeof v === "number" && !/id/i.test(k)) : [];
   const P = layerById.get(M.parcels.layer);
-  $("#dockbody").innerHTML = `${briefSlot()}<div class="toolbar"><b>${esc(sel ? tc(sel) : M.district.label || M.district.name)}</b><select id="area-sel" aria-label="Suburb"><option value="">Entire sector</option>${keys.map((k) => `<option value="${esc(k)}" ${k === sel ? "selected" : ""}>${esc(tc(k))}</option>`).join("")}</select>
+  if (tab !== "brief") return; $("#dockbody").innerHTML = `${briefSlot()}<div class="toolbar"><b>${esc(sel ? tc(sel) : M.district.label || M.district.name)}</b><select id="area-sel" aria-label="Suburb"><option value="">Entire sector</option>${keys.map((k) => `<option value="${esc(k)}" ${k === sel ? "selected" : ""}>${esc(tc(k))}</option>`).join("")}</select>
       <span class="note">Incidents since January 2023; building-plan submissions matched to erven in this sector.</span></div>
     <div class="kpis">${sel ? "" : kpi(fmt(P?.n || 0), "erven")}${kpi(fmt(list.reduce((s, x) => s + x.sr_total, 0)), "incidents logged")}${kpi(fmt(py.reduce((s, x) => s + x[1], 0)), "building plan submissions")}
       ${kpi(money(pv.reduce((s, x) => s + x[1], 0) / 1e6) + "m", "declared building value")}${pop.slice(0, 3).map(([k, v]) => kpi(fmt(v as number), k.replace(/_/g, " "))).join("")}
@@ -60,7 +60,7 @@ async function metroBrief() {
   const tot = (a: any) => a ? Object.values(a.suburb as Record<string, any>).reduce((s: number, x: any) => s + x.sr_total, 0) : 0;
   const plans = (a: any) => a ? Object.values(a.suburb as Record<string, any>).reduce((s: number, x: any) => s + x.plans_year.reduce((t: number, y: any) => t + y[1], 0), 0) : 0;
   const m = await moneyMeta().catch(() => null);
-  $("#dockbody").innerHTML = `${briefSlot()}<div class="toolbar"><b>City of Cape Town</b><span class="note">District figures come from each district's own build; money is city-wide.</span></div>
+  if (tab !== "brief") return; $("#dockbody").innerHTML = `${briefSlot()}<div class="toolbar"><b>City of Cape Town</b><span class="note">District figures come from each district's own build; money is city-wide.</span></div>
     ${m ? `<div class="kpis">${[["suppliers", "supplier profiles"], ["awards", "award decisions"], ["bids", "bids read out"], ["rfq", "quotation orders"], ["etenders", "WC eTenders"], ["flags", "pattern flags"]].map(([k, l]) => `<div class="kpi"><b>${fmt(m.counts[k] || 0)}</b><span>${l}</span></div>`).join("")}</div>` : ""}
     <div class="tscroll"><table class="t"><thead><tr><th>District</th><th>Plots</th><th>Map layers</th><th>Service requests</th><th>Building plans matched</th><th>Data built</th></tr></thead><tbody>
     ${(I?.districts || []).map((d) => { const a = ms.find((x) => x.d.slug === d.slug)?.a; return `<tr><td><a href="${districtUrl(d.slug)}">${esc(d.label)}</a></td><td class="mono">${d.plots ? fmt(d.plots) : ""}</td><td class="mono">${d.layers ?? ""}</td><td class="mono">${a ? fmt(tot(a)) : ""}</td><td class="mono">${a ? fmt(plans(a)) : ""}</td><td class="mono">${d.built ? esc(d.built.slice(0, 10)) : "not built yet"}</td></tr>`; }).join("")}</tbody></table></div>`;
@@ -82,7 +82,7 @@ async function feed() {
   const only = (document.getElementById("feed-local") as HTMLInputElement | null)?.checked ?? !!DISTRICT;
   const items = F.items.filter((i) => !only || i.places.some((p: any) => !DISTRICT || p[1] === DISTRICT));
   items.sort((a, b) => Date.parse(b.date || 0) - Date.parse(a.date || 0));
-  $("#dockbody").innerHTML = `<div class="toolbar"><label><input type="checkbox" id="feed-local" ${only ? "checked" : ""}> Items naming a locality ${DISTRICT ? "in the sector" : "in Cape Town"} only</label>
+  if (tab !== "feed") return; $("#dockbody").innerHTML = `<div class="toolbar"><label><input type="checkbox" id="feed-local" ${only ? "checked" : ""}> Items naming a locality ${DISTRICT ? "in the sector" : "in Cape Town"} only</label>
       ${F.feeds.map((f) => `<a class="pill" href="${esc(f.url)}" target="_blank" rel="noopener" title="${esc(f.error || "fetched " + f.retrieved)}">${esc(f.name)} · ${f.error ? "unavailable" : f.n}</a>`).join("")}</div>
     ${items.slice(0, 300).map((i) => `<div class="feeditem"><a href="${esc(i.link)}" target="_blank" rel="noopener">${esc(i.title)}</a><div class="meta">${esc(F.feeds.find((f) => f.id === i.feed)?.name)} · ${esc(String(i.date).slice(0, 16).replace("T", " "))}${i.places.length ? " · " + i.places.map((p: any) => `<span class="pill">${esc(p[0])}</span>`).join("") : ""}</div><div class="sm mu">${esc(i.summary)}</div></div>`).join("") || `<div class="empty">No items.</div>`}`;
   (document.getElementById("feed-local") as HTMLInputElement).onchange = () => feed();
@@ -121,11 +121,11 @@ async function records(id?: string) {
 
 async function justice() {
   const J = await getJSON<any>(METRO + "justice.json").catch(() => null);
-  if (!J) { $("#dockbody").innerHTML = `<div class="empty">Court records are not in this build yet.</div>`; return; }
+  if (tab !== "justice") return; if (!J) { $("#dockbody").innerHTML = `<div class="empty">Court records are not in this build yet.</div>`; return; }
   const q = ((document.getElementById("j-q") as HTMLInputElement | null)?.value || "").toLowerCase();
   const only = (document.getElementById("j-sup") as HTMLInputElement | null)?.checked ?? false;
   const items = J.items.filter((c: any) => (!q || `${c.parties} ${c.case} ${c.type}`.toLowerCase().includes(q)) && (!only || c.suppliers.length));
-  $("#dockbody").innerHTML = `<div class="toolbar"><input id="j-q" placeholder="Filter by party, case number, type…" value="${esc(q)}"><label><input type="checkbox" id="j-sup" ${only ? "checked" : ""}> Only cases naming a City supplier</label>
+  if (tab !== "justice") return; $("#dockbody").innerHTML = `<div class="toolbar"><input id="j-q" placeholder="Filter by party, case number, type…" value="${esc(q)}"><label><input type="checkbox" id="j-sup" ${only ? "checked" : ""}> Only cases naming a City supplier</label>
       <button class="tb" id="j-x">Export CSV</button>${J.sources.map((s: any) => `<a class="pill" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)} · ${fmt(s.n)} · fetched ${esc(s.retrieved.slice(0, 10))}</a>`).join("")}</div>
     <div class="note">Not added: ${J.not_added.map((n: any) => `<a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.name)}</a>: ${esc(n.why)}`).join(" ")}</div>
     <div class="tscroll"><table class="t"><thead><tr><th>Order date</th><th>Case</th><th>Type</th><th>Parties</th><th>Status</th><th>City suppliers named</th><th>Places</th><th>Documents</th></tr></thead><tbody>
@@ -141,13 +141,13 @@ async function justice() {
 
 async function notices() {
   const N = await getJSON<any>(METRO + "notices.json").catch(() => null);
-  if (!N) { $("#dockbody").innerHTML = `<div class="empty">Gazette notices are not in this build yet.</div>`; return; }
+  if (tab !== "notices") return; if (!N) { $("#dockbody").innerHTML = `<div class="empty">Gazette notices are not in this build yet.</div>`; return; }
   const q = ((document.getElementById("n-q") as HTMLInputElement | null)?.value || "").toLowerCase();
   const kind = (document.getElementById("n-k") as HTMLSelectElement | null)?.value || "";
   const mine = (document.getElementById("n-d") as HTMLInputElement | null)?.checked ?? !!DISTRICT;
   const kinds = [...new Set(N.notices.map((n: any) => n.kind))].sort() as string[];
   const list = N.notices.filter((n: any) => (!kind || n.kind === kind) && (!q || `${n.title} ${n.text} ${n.gazette}`.toLowerCase().includes(q)) && (!mine || !DISTRICT || n.places.some((p: any) => p[1] === DISTRICT)));
-  $("#dockbody").innerHTML = `<div class="toolbar"><input id="n-q" placeholder="Filter: erf, suburb, applicant, word…" value="${esc(q)}"><select id="n-k" aria-label="Kind"><option value="">All kinds (${N.notices.length})</option>${kinds.map((k) => `<option ${k === kind ? "selected" : ""}>${esc(k)}</option>`).join("")}</select>
+  if (tab !== "notices") return; $("#dockbody").innerHTML = `<div class="toolbar"><input id="n-q" placeholder="Filter: erf, suburb, applicant, word…" value="${esc(q)}"><select id="n-k" aria-label="Kind"><option value="">All kinds (${N.notices.length})</option>${kinds.map((k) => `<option ${k === kind ? "selected" : ""}>${esc(k)}</option>`).join("")}</select>
       ${DISTRICT ? `<label><input type="checkbox" id="n-d" ${mine ? "checked" : ""}> Only naming a suburb in ${esc(M.district.label)}</label>` : ""}<button class="tb" id="n-x">Export CSV</button>
       <span class="note"><a href="${esc(N.source.url)}" target="_blank" rel="noopener">${esc(N.source.name)}</a> · ${N.source.gazettes} gazettes (${esc(N.source.years.join(", "))}) · built ${esc(N.built.slice(0, 10))}</span></div>
     ${list.slice(0, 200).map((n: any) => `<div class="feeditem"><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.kind)}: ${esc(n.title)}</a><div class="meta">${esc(n.gazette)} · ${esc(n.issuer)}${n.ref ? " · " + esc(n.ref) : ""}${n.places.length ? " · " + n.places.map((p: any) => `<span class="pill">${esc(p[0])}</span>`).join("") : ""}${n.erf_suburbs.length ? " · " + n.erf_suburbs.map((e: any) => esc(`Erf ${e[0]} ${e[1]}`)).join("; ") : ""}</div>
@@ -166,7 +166,7 @@ let lab = { council: "", kind: "", year: "", q: "" };
 export function setLabourFilter(h: string) { const [council = "", kind = "", year = "", q = ""] = h.split(":").map(decodeURIComponent); lab = { council, kind, year, q }; }
 async function labour() {
   const L = await getJSON<any>(METRO + "labour.json").catch(() => null);
-  if (!L) { $("#dockbody").innerHTML = `<div class="empty">Labour records are not in this build yet.</div>`; return; }
+  if (tab !== "labour") return; if (!L) { $("#dockbody").innerHTML = `<div class="empty">Labour records are not in this build yet.</div>`; return; }
   const councils = L.sources.filter((x: any) => x.id !== "lrs");
   const kinds = [...new Set(L.documents.map((d: any) => d.kind))].sort() as string[];
   const years = [...new Set(L.documents.map((d: any) => d.year).filter(Boolean))].sort().reverse() as string[];
@@ -175,7 +175,7 @@ async function labour() {
   const name = (id: string) => councils.find((c: any) => c.id === id)?.name || id;
   const opt = (v: string, cur: string, label = v) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(label)}</option>`;
   history.replaceState(null, "", location.pathname + location.search + "#l=" + [lab.council, lab.kind, lab.year, lab.q].map(encodeURIComponent).join(":"));
-  $("#dockbody").innerHTML = `<h3>Statutory minimums (from the Government Gazette)</h3>
+  if (tab !== "labour") return; $("#dockbody").innerHTML = `<h3>Statutory minimums (from the Government Gazette)</h3>
     <div class="tscroll"><table class="t"><thead><tr><th>Item</th><th>Rate</th><th>Applies to</th><th>Binding from</th><th>Source</th></tr></thead><tbody>
     ${L.statutory.map((r: any) => `<tr><td>${esc(r.item)}</td><td class="mono">${esc(r.rate)}</td><td>${esc(r.scope)}</td><td class="mono">${esc(r.binding_from)}</td><td><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.source)}</a></td></tr>`).join("")}</tbody></table></div>
     <h3>Bargaining-council agreements, wage schedules, circulars and exemptions<span class="c">${fmt(docs.length)} of ${fmt(L.documents.length)}</span></h3>
@@ -235,9 +235,9 @@ async function sources() {
     ${F ? F.feeds.map((x: any) => `<tr><td class="dim">Feed</td><td><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>${x.error ? ` <span class="warn">unavailable: ${esc(x.error)}</span>` : ""}</td><td class="mono">${fmt(x.n)}</td><td class="mono">${esc(x.retrieved.slice(0, 10))}</td></tr>`).join("") : ""}
     </tbody></table>
     <h3>Not added, and why</h3><table class="t"><tbody>${(LB?.not_added || []).map((n: any) => `<tr><td><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.name)}</a></td><td>${esc(n.why)}</td></tr>`).join("")}${NOT_ADDED.map(([n, u, w]) => `<tr><td><a href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a></td><td>${esc(w)}</td></tr>`).join("")}${(J?.not_added || []).map((n: any) => `<tr><td><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.name)}</a></td><td>${esc(n.why)}</td></tr>`).join("")}</tbody></table>`;
-  if (!DISTRICT) { $("#dockbody").innerHTML = `<div class="note">Everything city-wide in Cape Monitor, where it comes from and when it was fetched. Each district's GIS layers are listed under Sources inside that district.</div>${metro}${CREDITS}`; return; }
+  if (tab !== "sources") return; if (!DISTRICT) { $("#dockbody").innerHTML = `<div class="note">Everything city-wide in Cape Monitor, where it comes from and when it was fetched. Each district's GIS layers are listed under Sources inside that district.</div>${metro}${CREDITS}`; return; }
   const byTheme = M.themes.map((th) => ({ th, ls: M.layers.filter((l) => l.theme === th.id) })).filter((x) => x.ls.length);
-  $("#dockbody").innerHTML = `<div class="note">Source of every layer, record table and feed, with retrieval dates. Compiled ${esc(M.built.slice(0, 16).replace("T", " "))} UTC. Counts are records inside the ${esc(M.district.name)} planning district unless marked city-wide.</div>
+  if (tab !== "sources") return; $("#dockbody").innerHTML = `<div class="note">Source of every layer, record table and feed, with retrieval dates. Compiled ${esc(M.built.slice(0, 16).replace("T", " "))} UTC. Counts are records inside the ${esc(M.district.name)} planning district unless marked city-wide.</div>
     <table class="t"><thead><tr><th>Group</th><th>Layer or record table</th><th>Records</th><th>Source</th><th>Retrieved</th></tr></thead><tbody>
     ${byTheme.map(({ th, ls }) => ls.map((l) => `<tr><td class="dim">${esc(themeName(clientTheme(l), "en"))}</td><td>${esc(l.name)}</td><td class="mono">${fmt(l.n)}${l.server_count && l.server_count !== l.n ? ` <span class="dim">(server ${fmt(l.server_count)})</span>` : ""}</td><td><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.source)}</a></td><td class="mono">${esc((l.retrieved || "").slice(0, 10))}</td></tr>`).join("")).join("")}
     ${M.tables.map((x) => `<tr><td class="dim">Records</td><td>${esc(x.name)}</td><td class="mono">${fmt(x.n)}</td><td><a href="${esc(x.url)}" target="_blank" rel="noopener">City of Cape Town Open Data Portal</a> ${x.scope === "city-wide" ? "· city-wide" : ""}</td><td class="mono">${esc((x.retrieved || "").slice(0, 10))}</td></tr>`).join("")}
