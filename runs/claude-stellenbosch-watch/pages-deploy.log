@@ -2,14 +2,14 @@
  ⛅️ wrangler 4.168.0
 ────────────────────
 ✨ Compiled Worker successfully
-Uploading... (12400/12534)
-Uploading... (12445/12534)
-Uploading... (12489/12534)
-Uploading... (12534/12534)
-✨ Success! Uploaded 134 files (12400 already uploaded) (1.23 sec)
+Uploading... (12028/12536)
+Uploading... (12198/12536)
+Uploading... (12367/12536)
+Uploading... (12536/12536)
+✨ Success! Uploaded 508 files (12028 already uploaded) (3.48 sec)
 
 ✨ Uploading _headers
 ✨ Uploading Functions bundle
 🌎 Deploying...
-✨ Deployment complete! Take a peek over at https://df6f0acc.cape-monitor.pages.dev
+✨ Deployment complete! Take a peek over at https://69e21bcf.cape-monitor.pages.dev
 ✨ Deployment alias URL: https://claude-stellenbosch-watch.cape-monitor.pages.dev

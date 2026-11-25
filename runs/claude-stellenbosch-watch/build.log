@@ -1,4 +1,4 @@
-data index: [('blaauwberg', '2026-11-25'), ('table-bay', '2026-11-25'), ('tygerberg', '2026-11-25'), ('northern', '2026-11-25'), ('southern', '2026-11-25'), ('cape-flats', '2026-11-25'), ('mitchells-plain-khayelitsha', '2026-11-25'), ('helderberg', '2026-11-25')] metro 2026-11-25T16:22:10+00:00
+data index: [('blaauwberg', '2026-11-25'), ('table-bay', '2026-11-25'), ('tygerberg', '2026-11-25'), ('northern', '2026-11-25'), ('southern', '2026-11-25'), ('cape-flats', '2026-11-25'), ('mitchells-plain-khayelitsha', '2026-11-25'), ('helderberg', '2026-11-25')] metro 2026-11-25T19:14:01+00:00
 search index: 853892 erven in 116 files, 852792 addresses in 448 files, 7486 places
 
 > cape-monitor@1.0.0 prebuild
@@ -17,24 +17,24 @@ transforming...
 ✓ 75 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/watch/index.html               2.26 kB │ gzip:   1.02 kB
+dist/watch/index.html               2.30 kB │ gzip:   1.02 kB
 dist/index.html                     2.83 kB │ gzip:   1.18 kB
-dist/assets/watch-BHI6-OQB.css      2.19 kB │ gzip:   0.83 kB
+dist/assets/watch-CchVrPNd.css      2.13 kB │ gzip:   0.82 kB
 dist/assets/gate-gPpAeUdm.css      18.17 kB │ gzip:   4.68 kB
 dist/assets/main-qvkd0SPb.css      71.33 kB │ gzip:  10.25 kB
-dist/assets/watch-B9u9IONz.js      21.37 kB │ gzip:   7.43 kB
-dist/assets/gate-DEkOjPjQ.js       50.04 kB │ gzip:  17.53 kB
+dist/assets/watch-DvkeOWtB.js      17.81 kB │ gzip:   6.45 kB
+dist/assets/gate-DbD3F2wv.js       50.03 kB │ gzip:  17.49 kB
 dist/assets/dist-DwhOg3L3.js      217.56 kB │ gzip:  56.25 kB
-dist/assets/main-Q_GVB8qg.js    1,187.29 kB │ gzip: 334.79 kB
+dist/assets/main-BaEw6u4e.js    1,187.29 kB │ gzip: 334.79 kB
 
-[32m✓ built in 32.13s[39m
-[33m[33m[PLUGIN_TIMINGS] [0mJavaScript callbacks ran for 31.6s of this 32.1s build (98%).
+[32m✓ built in 1m 2s[39m
+[33m[33m[PLUGIN_TIMINGS] [0mJavaScript callbacks ran for 61.9s of this 62.3s build (99%).
 The slowest callbacks, timed inside each callback (the wait before a callback starts is excluded, the time it awaits is included):
-  - plugin vite:prepare-out-dir renderStart (98%, 31.5s, 1 call)
+  - plugin vite:prepare-out-dir renderStart (99%, 61.7s, 1 call)
 1 callback is listed without a time. Its calls overlapped, so the time inside one call includes work from other calls. To find its cost, profile the build with `node --cpu-prof`:
   - plugin vite:build-html transform (2 calls)
 See https://rolldown.rs/reference/InputOptions.checks#bundlertimings for more details.
 [39m
 168 tile files moved under dist/t/
-dist: 12535 files
+dist: 12537 files
 check ok
