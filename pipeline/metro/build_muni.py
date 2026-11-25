@@ -39,8 +39,9 @@ if os.path.exists(cases_path):
     dump(justice, os.path.join(OUT, "justice.json"))
 
 notices_src = os.path.join(ROOT, "public", "data", "metro", f"notices-{M['slug']}.json")   # written by gazettes.py in the metro step
-notices = json.load(open(notices_src)) if os.path.exists(notices_src) else None
-if notices: dump(notices, os.path.join(OUT, "notices.json"))
+kept = os.path.join(OUT, "notices.json")   # last good copy, when the metro step has not written this municipality's notices yet
+notices = json.load(open(notices_src)) if os.path.exists(notices_src) else json.load(open(kept)) if os.path.exists(kept) else None
+if notices and os.path.exists(notices_src): dump(notices, kept)
 
 T = money.get("tables", {})
 METHOD = {"etenders": "eTender API", "awards": "PDF Text (OCR for scanned registers)", "fq": "PDF Text (OCR for scanned registers)", "bids": "Dual-Pass OCR",

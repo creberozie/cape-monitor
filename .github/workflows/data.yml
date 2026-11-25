@@ -88,12 +88,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with: { name: log-metro, path: logs, retention-days: 14 }
 
-  # ZopStopper (MUNI=stellenbosch): after the metro job, whose eTender archive, Cape Town supplier index and gazette notices it reads.
+  # ZopStopper (MUNI=stellenbosch): runs alongside the metro job and deploys as soon as it is done. It reads the eTender archive, the
+  # Cape Town supplier index and the gazette notices from the last metro run that saved them (one run behind at most).
   # Downloaded PDFs, agenda text and OCR results are kept in their own cache, keyed by the SHA-256 list of the files (files.sha256), so a
   # run with nothing new reads only the municipality's document list and the Treasury APIs. Target: under 8 minutes with a warm cache.
   watch:
-    needs: [metro]
-    if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env: { MUNI: stellenbosch }
@@ -109,6 +108,8 @@ jobs:
         with: { path: pipeline/cache/metro/muni, key: "watch-files-x", restore-keys: "watch-files-" }
       - uses: actions/cache/restore@v4
         with: { path: public/data/metro, key: "good-metro-x", restore-keys: "good-metro-" }
+      - uses: actions/cache/restore@v4   # last good ZopStopper data: kept parts (gazette notices) when this run cannot rebuild them
+        with: { path: public/data/muni, key: "good-muni-x", restore-keys: "good-muni-" }
       - name: Unit tests (readers, OCR register, deviations, rotated text, names, restricted list)
         run: python3 -m pytest -q pipeline/tests
       - name: Fetch and build ZopStopper data
@@ -127,8 +128,16 @@ jobs:
         uses: actions/upload-artifact@v4
         with: { name: log-watch, path: logs, retention-days: 14 }
 
+  # ZopStopper first: deployed as soon as its job is done, with the other parts' last good data
+  deploy-watch:
+    needs: [watch]
+    if: ${{ always() && needs.watch.result == 'success' }}
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit
+    with: { data_run: "${{ github.run_id }}", metro_result: "pending" }
+
   deploy:
-    needs: [district, metro, watch]
+    needs: [district, metro, watch, deploy-watch]
     if: ${{ always() }}
     uses: ./.github/workflows/deploy.yml
     secrets: inherit
