@@ -1,2 +1,0 @@
-{'performance': 40, 'accessibility': 100, 'best-practices': 100}
-{'first-contentful-paint': '1.0\xa0s', 'largest-contentful-paint': '7.5\xa0s', 'total-blocking-time': '4,570\xa0ms', 'cumulative-layout-shift': '0.095', 'speed-index': '5.0\xa0s'}
