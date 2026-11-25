@@ -84,7 +84,7 @@ def money_val(v):
 
 # ---------------------------------------------------------------- suppliers registry
 # words that are never a supplier on their own: price-column leftovers in the bid registers and fragments of split vendor lists
-GENERIC = {"RATES", "VARIOUS", "VARIOUS RATES", "BLANK", "SERVICES", "MAINTENANCE", "ATTORNEYS", "SCHEDULE", "SUBMISSION", "AUTOMOTIVE", "TRADING",
+GENERIC = {"GROUP", "RATES", "VARIOUS", "VARIOUS RATES", "BLANK", "SERVICES", "MAINTENANCE", "ATTORNEYS", "SCHEDULE", "SUBMISSION", "AUTOMOTIVE", "TRADING",
            "PROJECTS", "CONSTRUCTION", "HOLDINGS", "INCORPORATED", "AND", "JV", "JOINT VENTURE", "CONSORTIUM", "NOT STATED", "NIL", "NONE", "N A", "TBC"}
 class Registry:
     def __init__(self): self.by = {}; self.compact = {}

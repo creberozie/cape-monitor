@@ -17,6 +17,7 @@ configureMoney(ROOT, {
   bids: "Bids read out at Stellenbosch tender openings (OCR)", et: "eTender portal (Stellenbosch Municipality)", rfq: "Formal quotations awarded", land: "Land",
   tender: "Stellenbosch tender or quotation", notender: "No Stellenbosch record with this number in this build.", factAwards: "tender awards", factRfq: "quotations awarded",
   bidsRead: "bids read (OCR)", refCols: ["ref", "number", "tracking"],
+  supHeads: [[1, "Supplier"], [2, "Tender awards"], [3, "Value of tender awards"], [4, "Quotations"], [5, "Quotation value"], [6, "Bids read (OCR)"], [7, "eTenders"], [11, "Flags"], [14, "Also in Cape Town records"]],
   awardCols: ["date", "ref", "desc", "value_text", "bbbee", "completion", "doc"], bidCols: ["closing", "ref", "desc", "price_text", "rank", "n_bids", "conf", "doc"],
   rfqCols: ["date", "tracking", "group_text", "value_text", "bbbee", "doc"], tenderAwardCols: ["date", "vendor", "value_text", "bbbee", "closing", "completion", "sup", "doc"],
   tenderBidCols: ["n", "bidder", "price_text", "rank", "hdi", "conf", "doc"],
@@ -74,7 +75,7 @@ async function overview(el: HTMLElement) {
         <div class="note">${esc(F.note)}</div><button class="mini" data-go="flags">All ${fmt(F.flags.length)} flags</button></div>
       <div class="tile"><div class="caps">Largest suppliers by value of published awards and quotations</div>${bars(top.map((r) => [r[1], r[3] + r[5]] as [string, number]), 12, short, "supname")}
         <div class="note">Counts each published amount naming the supplier. Rates-based awards (no single total) add nothing to value; see Suppliers for counts.</div></div>
-      <div class="tile"><div class="caps">Irregular, fruitless and unauthorised expenditure (audited, per financial year)</div>
+      <div class="tile wide"><div class="caps">Irregular, fruitless and unauthorised expenditure (audited, per financial year)</div>
         ${years.length ? `<div class="tscroll"><table class="t"><thead><tr><th>Year</th><th class="num">Irregular</th><th class="num">Fruitless and wasteful</th><th class="num">Unauthorised</th><th>Audit opinion</th></tr></thead><tbody>
         ${years.slice().reverse().slice(0, 10).map((y) => { const o = aud?.rows?.find((r: any) => r.year === y); return `<tr><td class="mono">${fy(y)}</td><td class="num mono">${uv(y, "irregular") != null ? rand(uv(y, "irregular")) : "—"}</td><td class="num mono">${uv(y, "fruitless") != null ? rand(uv(y, "fruitless")) : "—"}</td><td class="num mono">${uv(y, "unauthorised") != null ? rand(uv(y, "unauthorised")) : "—"}</td><td>${o ? (o.report ? `<a href="${esc(o.report)}" target="_blank" rel="noopener">${esc(o.opinion)}</a>` : esc(o.opinion)) : ""}</td></tr>`; }).join("")}</tbody></table></div>
         <div class="note">National Treasury Municipal Money, from the notes to the audited annual financial statements; audit opinions from Treasury's audit-opinion data with the Auditor-General's report linked. <button class="mini" data-go="finance">Finances and audit</button></div>` : `<div class="empty">Not in this build.</div>`}</div>

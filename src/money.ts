@@ -12,7 +12,8 @@ let ROOTP = METRO;
 export const L = {
   scope: "published City and eTender records", awards: "City award decisions", bids: "Bids at City tender openings", et: "eTender portal (Western Cape buyers)",
   rfq: "City quotation orders", land: "City land bought", tender: "City tender", notender: "No City record with this reference in this build.",
-  factAwards: "award decisions", refCols: ["ref", "number"], factRfq: "quotation orders", bidsRead: "bids read out",
+  factAwards: "award decisions", refCols: ["ref", "number"],
+  supHeads: [[1, "Supplier"], [2, "Award decisions"], [3, "Fixed value of decisions"], [12, "Rates-based budgets"], [4, "Quotation orders"], [5, "Quotation value"], [6, "Bids"], [7, "eTenders"], [8, "Land bought"], [11, "Flags"]] as [number, string][], factRfq: "quotation orders", bidsRead: "bids read out",
   awardCols: ["date", "ref", "decision", "reason", "code", "desc", "value_text", "budget_text", "sup"], bidCols: ["closing", "ref", "desc", "price_text", "rank", "n_bids", "doc"],
   rfqCols: ["date", "tracking", "directorate", "group", "value", "bbbee", "dq"], tenderAwardCols: ["date", "decision", "reason", "code", "vendor", "value_text", "budget_text", "sup"],
   tenderBidCols: ["n", "bidder", "price_text", "rank", "hdi", "closing", "doc"],
@@ -153,11 +154,14 @@ export async function supplierList(el: HTMLElement) {
   let rows = q ? S.rows.filter((r) => String(r[1]).toLowerCase().includes(q) || String(r[0]).includes(q.replace(/\s+/g, "-"))) : S.rows;
   if (hidePersons()) rows = rows.filter((r) => !r[13]);
   rows = [...rows].sort((a, b) => supSort === 3 ? (b[3] + b[5]) - (a[3] + a[5]) : (Number(b[supSort]) || 0) - (Number(a[supSort]) || 0));
-  const H: [number, string][] = [[1, "Supplier"], [2, "Award decisions"], [3, "Fixed value of decisions"], [12, "Rates-based budgets"], [4, "Quotation orders"], [5, "Quotation value"], [6, "Bids"], [7, "eTenders"], [8, "Land bought"], [11, "Flags"]];
+  const H = L.supHeads;
   el.innerHTML = `<div class="toolbar"><input class="sq" placeholder="Find a supplier…" value="${esc(supQ)}" aria-label="Find a supplier"><button class="tb sx">Export CSV</button>
     <span class="note">${fmt(rows.length)} of ${fmt(S.rows.length)} suppliers named in ${esc(L.scope)}.</span></div><div class="note">${esc(IDENTITY_NOTE)}</div>
     <div class="tscroll"><table class="t"><thead><tr>${H.map(([k, l]) => `<th data-ss="${k}">${l}${supSort === k ? " ▼" : ""}</th>`).join("")}<th>Years</th></tr></thead><tbody>
-    ${rows.slice(0, 300).map((r) => `<tr class="click" data-sup="${esc(r[0])}"><td>${esc(r[1])}${r[13] ? ' <span class="pill person" title="Possibly a private individual">person?</span>' : ""}</td><td class="mono">${fmt(r[2])}</td><td class="mono">${r[3] ? short(r[3]) : ""}</td><td class="mono dim">${r[12] ? short(r[12]) : ""}</td><td class="mono">${fmt(r[4])}</td><td class="mono">${r[5] ? short(r[5]) : ""}</td><td class="mono">${fmt(r[6])}</td><td class="mono">${fmt(r[7])}</td><td class="mono">${r[8] || ""}</td><td class="mono">${r[11] ? `<span class="flagc">${r[11]}</span>` : ""}</td><td class="mono dim">${esc(r[9] || "")}${r[10] && r[10] !== r[9] ? "–" + esc(r[10]) : ""}</td></tr>`).join("")}</tbody></table></div>`;
+    ${rows.slice(0, 300).map((r) => `<tr class="click" data-sup="${esc(r[0])}">${H.map(([k]) => k === 1 ? `<td>${esc(r[1])}${r[13] ? ' <span class="pill person" title="Possibly a private individual">person?</span>' : ""}</td>`
+      : k === 3 || k === 5 ? `<td class="mono">${r[k] ? short(r[k]) : ""}</td>` : k === 12 ? `<td class="mono dim">${r[12] ? short(r[12]) : ""}</td>`
+      : k === 11 ? `<td class="mono">${r[11] ? `<span class="flagc">${r[11]}</span>` : ""}</td>` : k === 8 ? `<td class="mono">${r[8] || ""}</td>`
+      : k === 14 ? `<td>${r[14] ? "yes" : ""}</td>` : `<td class="mono">${fmt(r[k])}</td>`).join("")}<td class="mono dim">${esc(r[9] || "")}${r[10] && r[10] !== r[9] ? "–" + esc(r[10]) : ""}</td></tr>`).join("")}</tbody></table></div>`;
   let tm: any; (el.querySelector(".sq") as HTMLInputElement).oninput = (e) => { clearTimeout(tm); tm = setTimeout(() => { supQ = (e.target as HTMLInputElement).value; supplierList(el).then(() => { const i = el.querySelector(".sq") as HTMLInputElement; i.focus(); i.setSelectionRange(i.value.length, i.value.length); }); }, 200); };
   el.querySelectorAll("[data-ss]").forEach((th) => (th as HTMLElement).onclick = () => { supSort = +(th as HTMLElement).dataset.ss!; supplierList(el); });
   (el.querySelector(".sx") as HTMLElement).onclick = () => exportTable("suppliers", S.fields, rows, "Cape Monitor supplier index built from City of Cape Town Open Data Portal, City bid registers and the eTender portal");

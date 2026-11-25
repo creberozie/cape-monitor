@@ -151,7 +151,7 @@ def ocr_pages(url):
             im = Image.open(p); W = im.width
             for w in words:
                 if re.fullmatch(r"-?R\S*\d\S*", w["text"]) and w["x"] > W * 0.35:
-                    line = [x for x in words if x["line"] == w["line"] and x["x"] >= w["x"] and x["x"] < w["x"] + int(W * 0.22) and re.fullmatch(r"-?R?[\d.,]*\d[\d.,]*\.?", x["text"])]
+                    line = [x for x in words if x["line"] == w["line"] and x["x"] >= w["x"] and x["x"] < w["x"] + int(W * 0.22) and (x is w or re.fullmatch(r"-?R?[\d.,]*\d[\d.,]*\.?", x["text"]))]
                     x1 = max(x["x"] + x["w"] for x in line); y0 = min(x["y"] for x in line); y1 = max(x["y"] + x["h"] for x in line)
                     pad = int(12 * DPI / 300); crop = os.path.join(tmp, "c.png")
                     im.crop((max(0, w["x"] - pad), max(0, y0 - pad), min(W, x1 + pad), min(im.height, y1 + pad))).save(crop)
@@ -324,9 +324,21 @@ def parse_awards(text, kind):
     return rows
 
 
+def prefetch(docs, ocr=False):
+    """download (and, with ocr=True, OCR the scanned ones) four at a time; newest first, within the run's OCR budget. Results are cached on disk."""
+    t0 = time.time(); os.environ.setdefault("OMP_THREAD_LIMIT", "1")   # one thread per tesseract, four in parallel
+    def one(d):
+        try:
+            text = pdf_text(d["file"])
+            if ocr and len(text.strip()) < 200 and time.time() - t0 < OCR_BUDGET: ocr_pages(d["file"])
+        except Exception as e: log("prefetch", d["file"][-80:], str(e)[:100])
+    with cf.ThreadPoolExecutor(4) as ex: list(ex.map(one, sorted(docs, key=lambda d: d["published"], reverse=True)))
+
+
 def awards():
     D = json.load(open(os.path.join(CACHE, "docs.json")))["docs"]
     out = {"awards": [], "fq": []}; read = []; failed = []
+    prefetch([d for d in D if d["kind"] in ("awards", "fq", "rfq") and d.get("file", "").lower().endswith(".pdf")], ocr=True)
     t0 = time.time()
     for d in D:
         if d["kind"] not in ("awards", "fq", "rfq") or not d.get("file") or not d["file"].lower().endswith(".pdf"): continue
@@ -334,12 +346,18 @@ def awards():
         try:
             text = pdf_text(d["file"]); how = "text"
             if len(text.strip()) < 200:
-                if time.time() - t0 > OCR_BUDGET and not os.path.exists(local(d["file"]) + f".ocr-{DPI}-4c.json"): read.append({**slimdoc(d), "how": "waiting for OCR", "rows": 0}); continue
+                if not os.path.exists(local(d["file"]) + f".ocr-{DPI}-4c.json"): read.append({**slimdoc(d), "how": "waiting for OCR", "rows": 0}); continue
                 text = ocr_text(ocr_pages(d["file"])); how = "ocr"
             kind = "fq" if d["kind"] == "rfq" else d["kind"]
             rows = parse_awards(text, kind)
             if not rows and kind == "fq": rows = parse_awards(text, "rfq")
             if not rows and re.search(r"^\s*NONE\s*$", text, re.M): how += ", none awarded that month"
+            if how == "ocr":
+                # a register read by OCR: keep a row only when the name reads as a name; its amount is shown as read but not parsed
+                # (it was read once; the bid-register check of two agreeing readings is not done for these yet)
+                good = [r for r in rows if re.fullmatch(r"[A-Za-z][A-Za-z0-9&'.,()/\- ]{2,}", r["bidder"]) and len(re.sub(r"[^A-Za-z]", "", r["bidder"])) >= 4]
+                for r in good: r["amount"] = None; r["amount_note"] = "read by OCR; not parsed"
+                rows = good
             for r in rows: r.update({"doc": d["file"], "doc_page": d["page"], "doc_title": d["title"], "published": d["published"], "how": how, "kind": d["kind"]})
             out["awards" if kind == "awards" else "fq"] += rows
             read.append({**slimdoc(d), "how": how, "rows": len(rows)})
@@ -432,7 +450,8 @@ def bids():
     path = os.path.join(CACHE, "muni-bids.json")
     regs = [d for d in D if d["kind"] in ("bids", "awards") and d.get("file") and re.search(r"bid\s*open|opening\s*regist|bid\s*register", d["title"] + " " + d["file"], re.I)]
     tenders, status, failed = [], [], []
-    t0 = time.time()
+    prefetch(regs, ocr=True)
+    t0 = time.time() - OCR_BUDGET   # the budget was spent in prefetch: only registers already read are parsed now
     for d in sorted(regs, key=lambda d: d["published"], reverse=True):   # newest first, so a time-limited run reads the latest registers
         try:
             text = pdf_text(d["file"])
