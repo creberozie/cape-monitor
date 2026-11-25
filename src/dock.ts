@@ -24,38 +24,32 @@ const spark = (rows: [string, number][]) => { if (rows.length < 2) return ""; co
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polygon class="a" points="0,${H} ${pts} ${W},${H}"/></svg><div class="sm dim" style="display:flex;justify-content:space-between"><span>${esc(rows[0][0])}</span><span>${esc(rows[rows.length - 1][0])}</span></div>`; };
 const sum = (list: Area[], key: "sr_type" | "sr_month" | "plans_year" | "plans_value") => { const m = new Map<string, number>(); for (const a of list) for (const [k, v] of a[key]) m.set(k, (m.get(k) || 0) + v); return [...m]; };
 
-let cmp = "";
 const briefSlot = () => can("weeklyBrief") ? `<div class="tile pro">Weekly brief: the next human-written brief will appear here once briefs are published.</div>` : "";
+// the Situation Report, as in the Blaauwberg pilot: the sector or one suburb
 async function brief() {
   if (!DISTRICT) return metroBrief();
   areas ??= await getJSON(DP + "areas.json");
-  const kind = ((document.getElementById("area-kind") as HTMLSelectElement | null)?.value || "suburb") as "suburb" | "ward";
-  const keys = Object.keys(areas![kind]).filter((k) => /^[ -~]+$/.test(k)).sort((a, b) => kind === "ward" ? +a - +b : a.localeCompare(b));
+  const keys = Object.keys(areas!.suburb).filter((k) => /^[ -~]+$/.test(k)).sort();
   const sel = (document.getElementById("area-sel") as HTMLSelectElement | null)?.value || "";
-  cmp = (document.getElementById("area-cmp") as HTMLSelectElement | null)?.value ?? cmp;
-  const col = (key: string) => {
-    const list = key ? [areas![kind][key]].filter(Boolean) : keys.map((k) => areas![kind][k]);
-    const months = sum(list, "sr_month").sort((x, y) => x[0].localeCompare(y[0])).filter(([m]) => m);
-    const types = sum(list, "sr_type").sort((x, y) => y[1] - x[1]);
-    const py = sum(list, "plans_year").sort((x, y) => x[0].localeCompare(y[0])), pv = sum(list, "plans_value");
-    const a = key ? areas![kind][key] : null;
-    const pop = a?.population ? Object.entries(a.population).filter(([k, v]) => typeof v === "number" && !/id/i.test(k)) : [];
-    const kpi = (v: any, l: string) => `<div class="kpi"><b>${v}</b><span>${esc(l)}</span></div>`;
-    return `<div class="cmpcol"><h3>${key ? esc((kind === "ward" ? "Ward " : "") + key) : "Entire sector"}</h3>
-      <div class="kpis">${kpi(fmt(list.reduce((s, x) => s + x.sr_total, 0)), "service requests")}${kpi(fmt(py.reduce((s, x) => s + x[1], 0)), "building plans")}
-        ${kpi(money(pv.reduce((s, x) => s + x[1], 0) / 1e6) + "m", "declared building value")}${pop.slice(0, 3).map(([k, v]) => kpi(fmt(v as number), k.replace(/_/g, " "))).join("")}</div>
-      <div class="grid"><div class="tile"><div class="caps">Service requests per month</div>${spark(months)}</div>
-        <div class="tile"><div class="caps">Incidents by category</div>${bars(types, 8)}</div>
-        <div class="tile"><div class="caps">Building plans per year</div>${bars(py.map(([y, n]) => [y, n] as [string, number]).reverse(), 13)}</div>
-        ${a?.licences ? `<div class="tile"><div class="caps">Business licences</div>${bars(a.licences, 8)}</div>` : ""}</div></div>`;
-  };
-  const opts = (v: string, none: string) => `<option value="">${none}</option>${keys.map((k) => `<option ${k === v ? "selected" : ""}>${esc(k)}</option>`).join("")}`;
-  $("#dockbody").innerHTML = `<div class="toolbar"><b>${esc(M.district.label || M.district.name)}</b><select id="area-kind" aria-label="Compare by"><option value="suburb" ${kind === "suburb" ? "selected" : ""}>Suburbs</option><option value="ward" ${kind === "ward" ? "selected" : ""}>Wards</option></select>
-      <select id="area-sel" aria-label="Area">${opts(sel, "Entire sector")}</select><span class="sm">compare with</span><select id="area-cmp" aria-label="Compare with">${opts(cmp, "— nothing —")}</select>
-      <span class="note">Service requests since Jan 2023; building plans matched to erven in this sector.</span></div>
-    <div class="${cmp ? "cmp" : ""}">${col(sel)}${cmp ? col(cmp) : ""}</div>
-    ${!sel && !cmp ? `<div class="tile"><div class="caps">Busiest ${kind === "ward" ? "wards" : "suburbs"} (service requests)</div>${bars(keys.map((k) => [k, areas![kind][k].sr_total] as [string, number]).sort((x, y) => y[1] - x[1]), 12)}</div>` : ""}`;
-  for (const id of ["area-kind", "area-sel", "area-cmp"]) (document.getElementById(id) as HTMLSelectElement).onchange = (e) => { if (id === "area-kind") { (document.getElementById("area-sel") as HTMLSelectElement).value = ""; cmp = ""; (document.getElementById("area-cmp") as HTMLSelectElement).value = ""; } brief(); };
+  const list = sel ? [areas!.suburb[sel]].filter(Boolean) : keys.map((k) => areas!.suburb[k]);
+  const a = sel ? areas!.suburb[sel] : null;
+  const months = sum(list, "sr_month").sort((x, y) => x[0].localeCompare(y[0])).filter(([m]) => m);
+  const types = sum(list, "sr_type").sort((x, y) => y[1] - x[1]);
+  const py = sum(list, "plans_year").sort((x, y) => x[0].localeCompare(y[0])), pv = sum(list, "plans_value");
+  const kpi = (v: any, l: string) => `<div class="kpi"><b>${v}</b><span>${esc(l)}</span></div>`;
+  const pop = a?.population ? Object.entries(a.population).filter(([k, v]) => typeof v === "number" && !/id/i.test(k)) : [];
+  const P = layerById.get(M.parcels.layer);
+  $("#dockbody").innerHTML = `${briefSlot()}<div class="toolbar"><b>${esc(sel || M.district.name)}</b><select id="area-sel" aria-label="Suburb"><option value="">Entire sector</option>${keys.map((k) => `<option ${k === sel ? "selected" : ""}>${esc(k)}</option>`).join("")}</select>
+      <span class="note">Incidents since January 2023; building-plan submissions matched to erven in this sector.</span></div>
+    <div class="kpis">${sel ? "" : kpi(fmt(P?.n || 0), "erven")}${kpi(fmt(list.reduce((s, x) => s + x.sr_total, 0)), "incidents logged")}${kpi(fmt(py.reduce((s, x) => s + x[1], 0)), "building plan submissions")}
+      ${kpi(money(pv.reduce((s, x) => s + x[1], 0) / 1e6) + "m", "declared building value")}${pop.slice(0, 3).map(([k, v]) => kpi(fmt(v as number), k.replace(/_/g, " "))).join("")}
+      ${sel ? "" : M.layers.filter((L) => ["police-stations", "fire-stations", "schools", "health-care-facilities"].includes(L.id)).map((L) => kpi(fmt(L.n), L.name)).join("")}</div>
+    <div class="grid"><div class="tile"><div class="caps">Incidents per month</div>${spark(months)}</div>
+      <div class="tile"><div class="caps">Incidents by category</div>${bars(types, 10)}</div>
+      <div class="tile"><div class="caps">Building plan submissions per year</div>${bars(py.map(([y, n]) => [y, n] as [string, number]).reverse(), 13)}</div>
+      ${sel ? "" : `<div class="tile"><div class="caps">Incidents by suburb</div>${bars(keys.map((k) => [k, areas!.suburb[k].sr_total] as [string, number]).sort((x, y) => y[1] - x[1]), 12)}</div>`}
+      ${a?.licences ? `<div class="tile"><div class="caps">Business licences</div>${bars(a.licences, 8)}</div>` : ""}</div>`;
+  (document.getElementById("area-sel") as HTMLSelectElement).onchange = () => brief();
 }
 
 async function metroBrief() {
@@ -71,12 +65,12 @@ async function metroBrief() {
 }
 
 async function activity() {
-  const L = layerById.get("service-requests"); if (!L) { $("#dockbody").innerHTML = `<div class="empty">No service-request data.</div>`; return; }
+  const L = layerById.get("service-requests"); if (!L) { $("#dockbody").innerHTML = `<div class="empty">No incident records.</div>`; return; }
   const last = Math.floor((L.n - 1) / M.parcels.shard);
   const [a, b] = await Promise.all([getJSON<any[][]>(`${DP}attrs/service-requests/${last}.json`), last > 0 ? getJSON<any[][]>(`${DP}attrs/service-requests/${last - 1}.json`) : Promise.resolve([])]);
   const f = (k: string) => L.fields.findIndex((x) => x[0] === k);
   const rows = [...b.map((r, k) => [r, (last - 1) * M.parcels.shard + k] as const), ...a.map((r, k) => [r, last * M.parcels.shard + k] as const)].reverse().slice(0, 300);
-  $("#dockbody").innerHTML = `<div class="note">Latest ${rows.length} service requests logged in ${esc(M.district.name)} (of ${fmt(L.n)} since January 2023). Click one to see it on the map.</div>
+  $("#dockbody").innerHTML = `<div class="note">Last ${rows.length} incidents logged in sector ${esc(M.district.name)}, of ${fmt(L.n)} since January 2023. Select an entry to locate it.</div>
     <table class="t"><thead><tr><th>Logged</th><th>Type</th><th>Suburb</th><th>Ward</th><th>Completed</th><th>Work centre</th></tr></thead><tbody>
     ${rows.map(([r, i]) => `<tr class="click" data-rec="service-requests:${i}"><td class="mono">${esc(r[f("Created_On_Date")])}</td><td>${esc(r[f("C3_Complaint_Type")] || r[f("Notification_type")])}</td><td>${esc(r[f("Suburb")])}</td><td>${esc(r[f("Ward")])}</td><td class="mono">${esc(r[f("Completed_Date")] || "open")}</td><td class="dim">${esc(r[f("Work_Center")])}</td></tr>`).join("")}</tbody></table>`;
 }
@@ -86,7 +80,7 @@ async function feed() {
   const only = (document.getElementById("feed-local") as HTMLInputElement | null)?.checked ?? !!DISTRICT;
   const items = F.items.filter((i) => !only || i.places.some((p: any) => !DISTRICT || p[1] === DISTRICT));
   items.sort((a, b) => Date.parse(b.date || 0) - Date.parse(a.date || 0));
-  $("#dockbody").innerHTML = `<div class="toolbar"><label><input type="checkbox" id="feed-local" ${only ? "checked" : ""}> Only items naming a suburb ${DISTRICT ? "in " + esc(M.district.label) : "in Cape Town"}</label>
+  $("#dockbody").innerHTML = `<div class="toolbar"><label><input type="checkbox" id="feed-local" ${only ? "checked" : ""}> Items naming a locality ${DISTRICT ? "in the sector" : "in Cape Town"} only</label>
       ${F.feeds.map((f) => `<a class="pill" href="${esc(f.url)}" target="_blank" rel="noopener" title="${esc(f.error || "fetched " + f.retrieved)}">${esc(f.name)} · ${f.error ? "unavailable" : f.n}</a>`).join("")}</div>
     ${items.slice(0, 300).map((i) => `<div class="feeditem"><a href="${esc(i.link)}" target="_blank" rel="noopener">${esc(i.title)}</a><div class="meta">${esc(F.feeds.find((f) => f.id === i.feed)?.name)} · ${esc(String(i.date).slice(0, 16).replace("T", " "))}${i.places.length ? " · " + i.places.map((p: any) => `<span class="pill">${esc(p[0])}</span>`).join("") : ""}</div><div class="sm mu">${esc(i.summary)}</div></div>`).join("") || `<div class="empty">No items.</div>`}`;
   (document.getElementById("feed-local") as HTMLInputElement).onchange = () => feed();
@@ -111,7 +105,7 @@ async function records(id?: string) {
   }
   const show = rows.slice(0, 500);
   $("#dockbody").innerHTML = `<div class="toolbar"><select id="tv-t">${tables.map((x) => `<option value="${x.id}" ${x.id === T.id ? "selected" : ""}>${esc(x.name)} (${fmt(x.n)})</option>`).join("")}</select>
-      <input id="tv-q" placeholder="Filter rows…" value="${esc(tv.q)}"><select id="tv-g"><option value="-1">Aggregate by…</option>${T.fields.map((f, k) => `<option value="${k}" ${k === tv!.group ? "selected" : ""}>${esc(f[1] || f[0])}</option>`).join("")}</select>
+      <input id="tv-q" placeholder="Filter entries…" value="${esc(tv.q)}"><select id="tv-g"><option value="-1">Aggregate by…</option>${T.fields.map((f, k) => `<option value="${k}" ${k === tv!.group ? "selected" : ""}>${esc(f[1] || f[0])}</option>`).join("")}</select>
       <button class="tb" id="tv-x">Export CSV</button><span class="note">${fmt(rows.length)} rows${rows.length > 500 ? " (first 500 shown; export has all)" : ""} · ${T.scope === "city-wide" ? "whole city" : esc(M.district.name)} · <a href="${esc(T.url)}" target="_blank" rel="noopener">source</a> · fetched ${esc((T.retrieved || "").slice(0, 10))}</span></div>
     ${T.note ? `<div class="note">${esc(T.note)}</div>` : ""}${groupHtml}
     <div class="tscroll"><table class="t"><thead><tr>${T.fields.map((f, k) => `<th data-sort="${k}" title="${esc(f[0])}">${esc(f[1] || f[0])}${tv!.sort === k ? (tv!.dir > 0 ? " ▲" : " ▼") : ""}</th>`).join("")}</tr></thead>
@@ -241,29 +235,30 @@ async function sources() {
     <h3>Not added, and why</h3><table class="t"><tbody>${(LB?.not_added || []).map((n: any) => `<tr><td><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.name)}</a></td><td>${esc(n.why)}</td></tr>`).join("")}${NOT_ADDED.map(([n, u, w]) => `<tr><td><a href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a></td><td>${esc(w)}</td></tr>`).join("")}${(J?.not_added || []).map((n: any) => `<tr><td><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.name)}</a></td><td>${esc(n.why)}</td></tr>`).join("")}</tbody></table>`;
   if (!DISTRICT) { $("#dockbody").innerHTML = `<div class="note">Everything city-wide in Cape Monitor, where it comes from and when it was fetched. Each district's GIS layers are listed under Sources inside that district.</div>${metro}${CREDITS}`; return; }
   const byTheme = M.themes.map((th) => ({ th, ls: M.layers.filter((l) => l.theme === th.id) })).filter((x) => x.ls.length);
-  $("#dockbody").innerHTML = `<div class="note">Everything in Cape Monitor, where it comes from and when it was fetched. Data built ${esc(M.built.slice(0, 16).replace("T", " "))} UTC. Counts are records inside the ${esc(M.district.name)} planning district unless marked city-wide.</div>
-    <table class="t"><thead><tr><th>Theme</th><th>Layer or table</th><th>Records</th><th>Source</th><th>Fetched</th></tr></thead><tbody>
-    ${byTheme.map(({ th, ls }) => ls.map((l) => `<tr><td class="dim">${esc(themeName(clientTheme(l), "en"))}</td><td>${esc(nameOf(l))}</td><td class="mono">${fmt(l.n)}${l.server_count && l.server_count !== l.n ? ` <span class="dim">(server ${fmt(l.server_count)})</span>` : ""}</td><td><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.source)}</a></td><td class="mono">${esc((l.retrieved || "").slice(0, 10))}</td></tr>`).join("")).join("")}
+  $("#dockbody").innerHTML = `<div class="note">Source of every layer, record table and feed, with retrieval dates. Compiled ${esc(M.built.slice(0, 16).replace("T", " "))} UTC. Counts are records inside the ${esc(M.district.name)} planning district unless marked city-wide.</div>
+    <table class="t"><thead><tr><th>Group</th><th>Layer or record table</th><th>Records</th><th>Source</th><th>Retrieved</th></tr></thead><tbody>
+    ${byTheme.map(({ th, ls }) => ls.map((l) => `<tr><td class="dim">${esc(themeName(clientTheme(l), "en"))}</td><td>${esc(l.name)}</td><td class="mono">${fmt(l.n)}${l.server_count && l.server_count !== l.n ? ` <span class="dim">(server ${fmt(l.server_count)})</span>` : ""}</td><td><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.source)}</a></td><td class="mono">${esc((l.retrieved || "").slice(0, 10))}</td></tr>`).join("")).join("")}
     ${M.tables.map((x) => `<tr><td class="dim">Records</td><td>${esc(x.name)}</td><td class="mono">${fmt(x.n)}</td><td><a href="${esc(x.url)}" target="_blank" rel="noopener">City of Cape Town Open Data Portal</a> ${x.scope === "city-wide" ? "· city-wide" : ""}</td><td class="mono">${esc((x.retrieved || "").slice(0, 10))}</td></tr>`).join("")}
-    ${M.feeds.map((x) => `<tr><td class="dim">Feed</td><td>${esc(x.name)}</td><td class="mono">${fmt(x.n)}</td><td><a href="${esc(x.url)}" target="_blank" rel="noopener">RSS</a></td><td class="mono">${esc((x.retrieved || "").slice(0, 10))}</td></tr>`).join("")}
+    ${M.feeds.map((x) => `<tr><td class="dim">Press</td><td>${esc(x.name)}</td><td class="mono">${fmt(x.n)}</td><td><a href="${esc(x.url)}" target="_blank" rel="noopener">RSS</a></td><td class="mono">${esc((x.retrieved || "").slice(0, 10))}</td></tr>`).join("")}
     </tbody></table>
     ${metro}
-    <h3>Excluded (${M.skipped.filter((s) => s.why !== "no records in this district").length}) and empty here (${M.skipped.filter((s) => s.why === "no records in this district").length})</h3>
-    <table class="t"><thead><tr><th>Layer</th><th>Service</th><th>Why</th></tr></thead><tbody>${M.skipped.sort((a, b) => a.why.localeCompare(b.why)).map((s) => `<tr><td><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)}</a></td><td class="dim">${esc(s.service)}</td><td>${esc(s.why)}</td></tr>`).join("")}</tbody></table>${CREDITS}`;
+    <h3>Excluded (${M.skipped.filter((s) => s.why !== "no records in this district").length}) and without entries in this sector (${M.skipped.filter((s) => s.why === "no records in this district").length})</h3>
+    <table class="t"><thead><tr><th>Layer</th><th>Service</th><th>Reason</th></tr></thead><tbody>${M.skipped.sort((a, b) => a.why.localeCompare(b.why)).map((s) => `<tr><td><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)}</a></td><td class="dim">${esc(s.service)}</td><td>${esc(s.why)}</td></tr>`).join("")}</tbody></table>${CREDITS}`;
 }
 
 async function heritage() {
   const H = await getJSON<any>(DP + "heritage.json").catch(() => null);
   if (!H) { $("#dockbody").innerHTML = `<div class="empty">No heritage module.</div>`; return; }
-  $("#dockbody").innerHTML = `<div class="note">The Blaauwberg heritage research register: ${H.finds.length} sourced finds (middens, burials, shipwrecks, Stone Age sites, battle), ${H.registers.length} records from SAHRIS, Wikidata and OpenStreetMap, and ${H.stories.length} stories. The City's heritage inventory is in the Heritage layers on the left.</div>
+  $("#dockbody").innerHTML = `<div class="note">The Blaauwberg heritage research register: ${H.finds.length} sourced finds (middens, burials, shipwrecks, Stone Age sites, battle), ${H.registers.length} records from SAHRIS, Wikidata and OpenStreetMap, and ${H.stories.length} stories. The City's heritage inventory is under Historical Record in the layer panel.</div>
     <div class="grid">${H.finds.map((f: any, k: number) => `<div class="tile"><div class="caps">${esc(f.cat)} · ${esc(f.place)}${f.radius ? " ±" + fmt(f.radius) + " m" : ""}</div><b>${esc(f.name)}</b><div class="sm" style="margin:4px 0">${esc(f.facts)}</div>
       <div class="links"><button class="mini" data-fly="${f.lon},${f.lat}">Show on map</button>${f.sources.slice(0, 3).map((s: any) => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title.slice(0, 60))}…</a>`).join("")}</div></div>`).join("")}</div>
-    <h3>Stories</h3><div class="grid">${H.stories.map((s: any) => `<div class="tile"><div class="caps">${esc(s.date)}</div><b>${esc(s.title)}</b><div class="sm" style="white-space:pre-wrap;margin-top:4px">${esc(s.text)}</div><div class="links">${s.sources.map((x: any) => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title.slice(0, 50))}</a>`).join("")}</div></div>`).join("")}</div>`;
+    <h3>Accounts</h3><div class="grid">${H.stories.map((s: any) => `<div class="tile"><div class="caps">${esc(s.date)}</div><b>${esc(s.title)}</b><div class="sm" style="white-space:pre-wrap;margin-top:4px">${esc(s.text)}</div><div class="links">${s.sources.map((x: any) => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title.slice(0, 50))}</a>`).join("")}</div></div>`).join("")}</div>`;
 }
 
-const TABS: [string, () => any][] = [["brief", brief], ["money", () => moneyTab($("#dockbody"))], ["justice", justice], ["labour", labour], ["notices", notices], ["feed", feed],
-  ...(DISTRICT ? [["activity", activity], ["records", () => records()]] as [string, () => any][] : []), ["watchlist", watchlist],
-  ...(DISTRICT === "blaauwberg" ? [["heritage", heritage]] as [string, () => any][] : []), ["sources", sources]];
+const TABS: [string, () => any][] = [["brief", brief],
+  ...(DISTRICT ? [["activity", activity]] as [string, () => any][] : []), ["feed", feed], ...(DISTRICT ? [["records", () => records()]] as [string, () => any][] : []),
+  ...(DISTRICT === "blaauwberg" ? [["heritage", heritage]] as [string, () => any][] : []),
+  ["money", () => moneyTab($("#dockbody"))], ["justice", justice], ["labour", labour], ["notices", notices], ["watchlist", watchlist], ["sources", sources]];
 /** the owner-only "Users" tab (the database decides who is an owner) */
 export function addOwnerTab() { if (!TABS.some((t) => t[0] === "users")) { TABS.push(["users", () => ownerView($("#dockbody"), esc, exportCSV)]); renderTabs(); } }
 const NOT_ADDED: [string, string, string][] = [
@@ -278,7 +273,7 @@ const NOT_ADDED: [string, string, string][] = [
   ["City web procurement portal (open RFQs)", "https://web1.capetown.gov.za/web1/procurementportal/", "Did not answer from the build machine. Open City tenders are taken from the national eTender portal instead."],
 ];
 export function renderTabs() {
-  $("#tabs").innerHTML = TABS.map(([k]) => `<button data-tab="${k}" class="${k === tab ? "on" : ""}">${t(k as any)}</button>`).join("") + `<span class="sp"></span><button data-size="1" title="Bigger or smaller">⇕</button>`;
+  $("#tabs").innerHTML = TABS.map(([k]) => `<button data-tab="${k}" class="${k === tab ? "on" : ""}">${t(k as any)}</button>`).join("") + `<span class="sp"></span><button data-size="1" title="Panel size">⇕</button>`;
 }
 export function openTab(k: string) { tab = k; track("tab", { tab: k }); renderTabs(); if (document.body.classList.contains("dockmin")) document.body.classList.remove("dockmin"); TABS.find((x) => x[0] === k)![1](); }
 export function bindDock() {

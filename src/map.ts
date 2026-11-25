@@ -16,8 +16,10 @@ export const catColour = (L: Layer, c: string) => { const k = L.cats.findIndex((
 const colourExpr = (L: Layer): any => L.cats.length > 1 ? ["match", ["get", "c"], ...L.cats.flatMap(([c], k) => [c, PALETTE[k % PALETTE.length]]), themeColour(L)] : themeColour(L);
 const TEXT = { "text-font": ["Noto Sans Regular"], "text-size": 10.5 } as const;
 const HALO = { "text-color": "#d5dde2", "text-halo-color": "#0b0f12", "text-halo-width": 1.3 };
-const isStreets = (L: Layer) => /^street-names?$/.test(L.id);
-const isAddress = (L: Layer) => L.geom === "Point" && /^(ADR_NO|ADDR|FULL_ADR)$/i.test(L.label || "");
+const isStreets = (L: Layer) => L.geom === "Polyline" && /street.?name|road.?centre|centreline/i.test(L.id + " " + L.name);
+export const isAddress = (L: Layer) => L.geom !== "Polygon" && L.geom !== "Polyline" && /street.?number|address/i.test(L.id + " " + L.name) && !!L.label && /ADR_NO|ADDR|FULL_ADR/i.test(L.label);
+/** an active layer the map does not draw at this zoom (address points only from street scale) */
+export const notDrawnHere = (L: Layer) => !!map && map.getZoom() < Math.max(L.minzoom ?? 9, isAddress(L) ? 15 : 0);
 
 // draw order (bottom → top). Picking uses the same order reversed, so what you see on top is what you get.
 const ORDER: Record<string, number> = { Polygon: 0, Polyline: 1, Multipoint: 2, Point: 2 };
@@ -105,29 +107,33 @@ function addLayer(L: Layer) {
   const boundary = clientTheme(L) === "boundaries" && L.geom === "Polygon" && L.n <= 400 && !!L.label;
   sets(L).forEach((ts, k) => {
     const src = "ts-" + ts, sl = L.id, b = k ? `${L.id}@${k}` : L.id;
+    // drawing rules as in the Blaauwberg pilot
     if (L.geom === "Polygon") {
       const parcels = L.id === M.parcels.layer;
       add({ id: `${b}~f`, type: "fill", source: src, "source-layer": sl, minzoom, layout: vis, paint: { "fill-color": col, "fill-opacity": parcels ? 0 : boundary ? .04 : L.n > 5000 ? .16 : .2 } });
       add({ id: `${b}~l`, type: "line", source: src, "source-layer": sl, minzoom, layout: vis, paint: { "line-color": parcels ? "#aab4bb" : col, "line-width": ["interpolate", ["linear"], ["zoom"], 11, .4, 16, parcels ? 1 : 1.6], "line-opacity": parcels ? .55 : .9 } });
-      // parcel house numbers from z16; boundary names ("Ward 23") from the layer's own zoom to street scale, so the first screen is not empty
-      if (parcels) add({ id: `${b}~t`, type: "symbol", source: src, "source-layer": sl, minzoom: 16, layout: { ...vis, ...TEXT, "text-field": ["get", "n"], "text-size": 10 }, paint: { ...HALO, "text-color": "#c3ccd2" } }, "anchor-labels");
-      else if (boundary) add({ id: `${b}~t`, type: "symbol", source: src, "source-layer": sl, minzoom, maxzoom: 15, layout: { ...vis, ...TEXT, "text-size": 12,
-        "text-field": /^wards?$/.test(L.id) ? ["concat", "Ward ", ["get", "n"]] : ["get", "n"] }, paint: { ...HALO, "text-color": "#aeb8f0" } }, "anchor-labels");
+      if (parcels) add({ id: `${b}~t`, type: "symbol", source: src, "source-layer": sl, minzoom: 15.5, layout: { ...vis, "text-field": ["get", "n"], "text-font": ["Noto Sans Regular"], "text-size": 10 }, paint: { "text-color": "#c3ccd2", "text-halo-color": "#0b0f12", "text-halo-width": 1.3 } }, "anchor-labels");
+      else if (boundary) add({ id: `${b}~t`, type: "symbol", source: src, "source-layer": sl, minzoom, maxzoom: 15, layout: { ...vis,
+        "text-field": /^wards?$/.test(L.id) ? ["concat", "Ward ", ["get", "n"]] : ["get", "n"], "text-font": ["Noto Sans Medium"], "text-size": ["interpolate", ["linear"], ["zoom"], 10, 10, 14, 13],
+        "text-transform": "uppercase", "text-letter-spacing": .08, "text-max-width": 8, "symbol-placement": "point" }, paint: { "text-color": "#c5cae9", "text-halo-color": "#0b0f12", "text-halo-width": 1.6, "text-opacity": .85 } }, "anchor-labels");
     } else if (L.geom === "Polyline") {
       const streets = isStreets(L);
-      add({ id: `${b}~l`, type: "line", source: src, "source-layer": sl, minzoom, layout: { ...vis, "line-cap": "round" }, paint: { "line-color": streets ? "#8a99a3" : col,
-        "line-width": streets ? ["interpolate", ["linear"], ["zoom"], 11, .4, 16, 1.2] : ["interpolate", ["linear"], ["zoom"], 11, .8, 16, 2.4], "line-opacity": streets ? .35 : 1 } });
-      if (streets) add({ id: `${b}~t`, type: "symbol", source: src, "source-layer": sl, minzoom: Math.max(14, minzoom), layout: { ...vis, ...TEXT, "symbol-placement": "line", "text-field": ["get", "n"], "text-size": 11 }, paint: HALO }, "anchor-labels");
+      add({ id: `${b}~l`, type: "line", source: src, "source-layer": sl, minzoom, layout: { ...vis, "line-cap": "round" }, paint: streets
+        ? { "line-color": "#8a96a0", "line-width": ["interpolate", ["linear"], ["zoom"], 12, .2, 17, 1], "line-opacity": .35 }
+        : { "line-color": col, "line-width": ["interpolate", ["linear"], ["zoom"], 11, .8, 16, 2.4] } });
+      if (L.label) add({ id: `${b}~t`, type: "symbol", source: src, "source-layer": sl, minzoom: Math.max(minzoom, streets ? 14 : 13), layout: { ...vis, "symbol-placement": "line", "text-field": ["get", "n"],
+        "text-font": ["Noto Sans Regular"], "text-size": streets ? ["interpolate", ["linear"], ["zoom"], 14, 10, 18, 13] : 10.5, "text-max-angle": 30, "symbol-spacing": 320 },
+        paint: { "text-color": streets ? "#e6ecef" : col, "text-halo-color": "#0b0f12", "text-halo-width": 1.5 } }, "anchor-labels");
+    } else if (isAddress(L)) {
+      add({ id: `${b}~p`, type: "circle", source: src, "source-layer": sl, minzoom: Math.max(minzoom, 15), layout: vis, paint: { "circle-radius": 1.5, "circle-color": "#8a96a0", "circle-opacity": .6 } });
+      add({ id: `${b}~t`, type: "symbol", source: src, "source-layer": sl, minzoom: Math.max(minzoom, 16), layout: { ...vis, "text-field": ["get", "n"], "text-font": ["Noto Sans Medium"], "text-size": 10.5, "text-offset": [0, .7], "text-allow-overlap": false },
+        paint: { "text-color": "#ffd98a", "text-halo-color": "#0b0f12", "text-halo-width": 1.4 } }, "anchor-labels");
     } else {
-      // address points are the base layer: small grey dots, so the facilities a view is about stay readable
-      if (isAddress(L)) add({ id: `${b}~p`, type: "circle", source: src, "source-layer": sl, minzoom, layout: vis, paint: {
-        "circle-color": "#8a99a3", "circle-opacity": ["interpolate", ["linear"], ["zoom"], 14, .35, 17, .8], "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 1, 17, 2.6] } });
-      else add({ id: `${b}~p`, type: "circle", source: src, "source-layer": sl, minzoom, layout: vis, paint: {
+      add({ id: `${b}~p`, type: "circle", source: src, "source-layer": sl, minzoom, layout: vis, paint: {
         "circle-color": col, "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, L.n > 2000 ? 1.6 : 3, 16, L.n > 2000 ? 4.5 : 7],
         "circle-stroke-color": "#0b0f12", "circle-stroke-width": L.n > 2000 ? .4 : 1 } });
-      // house numbers on address points from z16; names on smaller named point layers from z14
-      if (isAddress(L)) add({ id: `${b}~t`, type: "symbol", source: src, "source-layer": sl, minzoom: 16, layout: { ...vis, ...TEXT, "text-field": ["get", "n"], "text-size": 10, "text-offset": [0, -.9] }, paint: HALO }, "anchor-labels");
-      else if (L.label && L.n <= 3000) add({ id: `${b}~t`, type: "symbol", source: src, "source-layer": sl, minzoom: Math.max(14, minzoom), layout: { ...vis, ...TEXT, "text-field": ["get", "n"], "text-offset": [0, 1.1], "text-anchor": "top", "text-optional": true }, paint: HALO }, "anchor-labels");
+      if (L.label && L.n <= 3000) add({ id: `${b}~t`, type: "symbol", source: src, "source-layer": sl, minzoom: Math.max(minzoom, 14), layout: { ...vis, "text-field": ["get", "n"], "text-font": ["Noto Sans Regular"],
+        "text-size": 10.5, "text-offset": [0, 1], "text-anchor": "top", "text-max-width": 9, "text-optional": true }, paint: { "text-color": col, "text-halo-color": "#0b0f12", "text-halo-width": 1.4 } }, "anchor-labels");
     }
   });
 }
