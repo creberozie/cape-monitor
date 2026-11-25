@@ -17,7 +17,7 @@
     "metro": "python3 -I pipeline/metro/run.py full",
     "test": "playwright test --trace off",
     "test:unit": "node --experimental-strip-types --test unit/access-config.test.mjs && python3 -m unittest discover -s pipeline/tests",
-    "build:gated": "VITE_SUPABASE_URL=https://cm-test.supabase.co VITE_SUPABASE_ANON_KEY=test-anon-key-for-browser-tests-only-0000 VITE_REQUIRE_ACCOUNT_ACCESS=true vite build --outDir dist-gated && node -e \"require('fs').cpSync('dist/t','dist-gated/t',{recursive:true})\""
+    "build:gated": "CM_NO_PUBLIC=1 VITE_SUPABASE_URL=https://cm-test.supabase.co VITE_SUPABASE_ANON_KEY=test-anon-key-for-browser-tests-only-0000 VITE_REQUIRE_ACCOUNT_ACCESS=true vite build --outDir dist-gated && node scripts/link-gated.mjs"
   },
   "keywords": [],
   "author": "",

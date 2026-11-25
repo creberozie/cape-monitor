@@ -45,6 +45,7 @@ jobs:
         run: |
           set -o pipefail; mkdir -p logs
           ( python3 -I pipeline/index.py && npm run build && python3 -I pipeline/tiles_out.py && python3 -I pipeline/check.py dist ) 2>&1 | tee logs/build.log
+          rm -rf public/data   # dist/ holds its own copy; freeing the restored data keeps the runner's disk clear for the tests
       - name: Deploy to Cloudflare Pages
         id: pages
         env:
@@ -96,7 +97,7 @@ jobs:
           MR: ${{ inputs.metro_result }}
           JOB: ${{ job.status }}
         run: |
-          mkdir -p logs; cp public/data/index.json logs/data-index.json 2>/dev/null || true
+          mkdir -p logs; cp dist/data/index.json logs/data-index.json 2>/dev/null || true
           python3 - <<'PY'
           import json, os, glob, datetime
           out = {"run": os.environ["RUN"], "branch": os.environ["BRANCH"], "sha": os.environ.get("GITHUB_SHA"), "at": datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z",
