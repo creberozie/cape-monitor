@@ -123,6 +123,13 @@ async function showPlot(i: number, f: any, s: number, hits: { layer: string; i: 
     [/servitude/, "Servitude"], [/split-zoning/, "Split-zoned"], [/koeberg/, "Koeberg planning zone"], [/home-owner/, "Home owners' association"],
     [/wetland|dune|biodiversity|flood|coastal|watercourse|critical-biodiversity|protected-area/, "Environmental constraint"]] as [RegExp, string][];
   const flagsHtml = flagWords.filter(([re]) => on(re)).map(([, w]) => `<span class="flag">${esc(w)}</span>`).join("");
+  // one plain sentence with the facts that matter, before the detail
+  const nPlans = new Set(D.plans || []).size, nReq = D.requests?.length || 0, nSales = D.sales?.length || 0;
+  const flagList = flagWords.filter(([re]) => on(re)).map(([, w]) => w);
+  const summary = [v("ZONING") ? `Zoned ${String(v("ZONING")).replace(/\s*:\s*/, ", ")}` : "Zoning not recorded",
+    ...flagList, nReq ? `${fmt(nReq)} incident${nReq === 1 ? "" : "s"} logged since 2023` : "No incidents logged since 2023",
+    nPlans ? `${fmt(nPlans)} building plan submission${nPlans === 1 ? "" : "s"}` : "No building plan submissions since 2014",
+    ...(nSales ? [`State disposal on record`] : [])].join(". ") + ".";
   if (s !== seq) return;
   const others = hits.filter((h) => h.layer !== P.id);
   $("#right").innerHTML = `<div class="card primary"><div class="kicker">${t("plot")} · ${esc(v("OFC_SBRB_NAME") || v("ALT_NAME") || "")}</div>
@@ -131,6 +138,7 @@ async function showPlot(i: number, f: any, s: number, hits: { layer: string; i: 
     <div class="facts"><div class="fact"><b>${fmt(Number(v("_area") || 0)) || "—"}</b><span>m² (mapped)</span></div><div class="fact"><b>${esc(ward || "—")}</b><span>${t("ward")}</span></div><div class="fact"><b>${esc(v("SUB_CNCL_NMBR") || "—")}</b><span>Subcouncil</span></div></div>
     ${v("ZONING") ? `<span class="pill">${esc(v("ZONING"))}</span>` : ""}${v("LU_LGL_STS_DSCR") ? `<span class="pill">${esc(v("LU_LGL_STS_DSCR"))}</span>` : ""}
     ${flagsHtml ? `<div class="flags">${flagsHtml}</div>` : ""}
+    <p class="summary">${esc(summary)}</p>
     <div class="links"><a href="${P.url}/query?where=SL_LAND_PRCL_KEY%3D${encodeURIComponent(key)}&outFields=*&returnGeometry=false&f=html" target="_blank" rel="noopener">${t("cityrec")} ↗</a><button class="mini" data-share="p=${esc(key)}">${t("share")}</button>
       ${watchButton("plot", `${DISTRICT}|${key}`, `Erf ${v("PRTY_NMBR")} ${v("OFC_SBRB_NAME") || ""}`, (D.plans?.length || 0) + (D.requests?.length || 0) + (D.sales?.length || 0), DISTRICT)}<button class="mini" data-dl="1">Export erf file (JSON)</button></div></div>
     ${z ? `<h3>${t("zones")}<span class="c">${D.zones!.length}</span></h3>${z}${zMore ? `<details class="raw"><summary>${zonesRanked.length - 8} more: service regions and administrative areas</summary>${zMore}</details>` : ""}` : ""}
@@ -207,7 +215,7 @@ export async function showStart() {
       <p class="mu">Published records of the City, the Province, the courts and the national state, joined by place and supplier: tender decisions, bids read out at openings, quotation orders, eTenders, City land sales, gazette notices, tribunal cases and every City GIS layer by erf. Each record links to its source.</p>
       <div class="facts"><div class="fact"><b>${I ? I.districts.filter((d) => d.built).length : "—"}/8</b><span>sectors built</span></div><div class="fact"><b>${F ? fmt(F.flags.length) : "—"}</b><span>pattern flags</span></div><div class="fact"><b>${I ? fmt(I.districts.reduce((s, d) => s + (d.plots || 0), 0)) : "—"}</b><span>erven</span></div></div>
       <p class="note">Select a planning district for erven and layers. Money, flags, courts, notices and press: dock below, city-wide.</p>
-      <p class="note">Some records name private individuals as the state published them; see Sources.</p></div>
+      </div>
       <h3>Sectors</h3>${(I?.districts || []).map((d) => d.built ? `<a class="row" href="${districtUrl(d.slug)}"><span class="t">${esc(d.label)}</span><small>${fmt(d.plots || 0)} erven · ${d.layers} layers · data ${esc(String(d.built).slice(0, 10))}</small></a>` : `<div class="row"><span class="t dim">${esc(d.label)}</span><small>not built yet</small></div>`).join("")}
       ${watchHtml}`;
     return;

@@ -29,7 +29,9 @@ const briefSlot = () => can("weeklyBrief") ? `<div class="tile pro">Weekly brief
 async function brief() {
   if (!DISTRICT) return metroBrief();
   areas ??= await getJSON(DP + "areas.json");
-  const keys = Object.keys(areas!.suburb).filter((k) => /^[ -~]+$/.test(k)).sort();
+  // suburbs only: the City's suburb field sometimes holds a street or farm name
+  const keys = Object.keys(areas!.suburb).filter((k) => /^[ -~]+$/.test(k) && !/\b(ROAD|STREET|LANE|AVENUE|DRIVE|WAY|CLOSE|CRESCENT|PLACE|BOULEVARD|HIGHWAY)\b/i.test(k)).sort();
+  const tc = (x: string) => x.toLowerCase().replace(/(^|[\s(\-/])\S/g, (c) => c.toUpperCase());
   const sel = (document.getElementById("area-sel") as HTMLSelectElement | null)?.value || "";
   const list = sel ? [areas!.suburb[sel]].filter(Boolean) : keys.map((k) => areas!.suburb[k]);
   const a = sel ? areas!.suburb[sel] : null;
@@ -39,7 +41,7 @@ async function brief() {
   const kpi = (v: any, l: string) => `<div class="kpi"><b>${v}</b><span>${esc(l)}</span></div>`;
   const pop = a?.population ? Object.entries(a.population).filter(([k, v]) => typeof v === "number" && !/id/i.test(k)) : [];
   const P = layerById.get(M.parcels.layer);
-  $("#dockbody").innerHTML = `${briefSlot()}<div class="toolbar"><b>${esc(sel || M.district.name)}</b><select id="area-sel" aria-label="Suburb"><option value="">Entire sector</option>${keys.map((k) => `<option ${k === sel ? "selected" : ""}>${esc(k)}</option>`).join("")}</select>
+  $("#dockbody").innerHTML = `${briefSlot()}<div class="toolbar"><b>${esc(sel ? tc(sel) : M.district.label || M.district.name)}</b><select id="area-sel" aria-label="Suburb"><option value="">Entire sector</option>${keys.map((k) => `<option value="${esc(k)}" ${k === sel ? "selected" : ""}>${esc(tc(k))}</option>`).join("")}</select>
       <span class="note">Incidents since January 2023; building-plan submissions matched to erven in this sector.</span></div>
     <div class="kpis">${sel ? "" : kpi(fmt(P?.n || 0), "erven")}${kpi(fmt(list.reduce((s, x) => s + x.sr_total, 0)), "incidents logged")}${kpi(fmt(py.reduce((s, x) => s + x[1], 0)), "building plan submissions")}
       ${kpi(money(pv.reduce((s, x) => s + x[1], 0) / 1e6) + "m", "declared building value")}${pop.slice(0, 3).map(([k, v]) => kpi(fmt(v as number), k.replace(/_/g, " "))).join("")}
@@ -47,7 +49,7 @@ async function brief() {
     <div class="grid"><div class="tile"><div class="caps">Incidents per month</div>${spark(months)}</div>
       <div class="tile"><div class="caps">Incidents by category</div>${bars(types, 10)}</div>
       <div class="tile"><div class="caps">Building plan submissions per year</div>${bars(py.map(([y, n]) => [y, n] as [string, number]).reverse(), 13)}</div>
-      ${sel ? "" : `<div class="tile"><div class="caps">Incidents by suburb</div>${bars(keys.map((k) => [k, areas!.suburb[k].sr_total] as [string, number]).sort((x, y) => y[1] - x[1]), 12)}</div>`}
+      ${sel ? "" : `<div class="tile"><div class="caps">Incidents by suburb</div>${bars(keys.map((k) => [tc(k), areas!.suburb[k].sr_total] as [string, number]).sort((x, y) => y[1] - x[1]), 12)}</div>`}
       ${a?.licences ? `<div class="tile"><div class="caps">Business licences</div>${bars(a.licences, 8)}</div>` : ""}</div>`;
   (document.getElementById("area-sel") as HTMLSelectElement).onchange = () => brief();
 }
@@ -90,7 +92,7 @@ async function feed() {
 let tv: { id: string; rows: any[][]; q: string; sort: number; dir: number; group: number } | null = null;
 async function records(id?: string) {
   const tables = M.tables.filter((x) => x.n > 0);
-  const T = tables.find((x) => x.id === (id || tv?.id)) || tables.find((x) => x.id === "rfq-awards") || tables[0];
+  const T = tables.find((x) => x.id === (id || tv?.id)) || tables.find((x) => x.id === "building-plans") || tables.find((x) => x.id === "service-requests") || tables.find((x) => !/stormwater|sewer|water|electric/i.test(x.name)) || tables[0];
   if (!T) return;
   if (!tv || tv.id !== T.id) { $("#dockbody").innerHTML = `<div class="empty">${t("loading")}</div>`; tv = { id: T.id, rows: await tableRows(T), q: "", sort: -1, dir: 1, group: -1 }; }
   const q = tv.q.toLowerCase();
@@ -206,7 +208,7 @@ async function watchlist() {
   // suppliers can be re-counted from the index without opening each profile
   if (W.some((w) => w.kind === "supplier")) { const S = await suppliers().catch(() => null); if (S) for (const w of W.filter((w) => w.kind === "supplier")) { const r = S.rows.find((x) => x[0] === w.id); if (r) updateCount("supplier", w.id, r[2] + r[4] + r[6] + r[7] + r[8]); } }
   const L = watches();
-  $("#dockbody").innerHTML = `<div class="note">Your watchlist is kept in this browser only (nothing is sent anywhere). Items show how many records were added since you last opened them. Use ☆ Watch on any supplier, tender, plot, record, department or flag.</div>
+  $("#dockbody").innerHTML = `<div class="note">Watchlist, kept in this browser only; nothing is sent anywhere. Each item shows the records added since it was last opened. Use ☆ Watch on any supplier, tender, plot, record, department or flag.</div>
     ${L.length ? `<div class="tscroll"><table class="t"><thead><tr><th>Item</th><th>Kind</th><th>District</th><th>Records</th><th>Change</th><th>Added</th><th></th></tr></thead><tbody>
     ${L.map((w, k) => `<tr class="click" data-wopen="${k}"><td>${esc(w.label)}</td><td>${esc(w.kind)}</td><td>${esc(w.district || "city-wide")}</td><td class="mono">${fmt(w.n)}</td><td class="mono">${w.n !== w.seen ? `<b class="new">${w.n - w.seen > 0 ? "+" : ""}${w.n - w.seen}</b>` : ""}</td><td class="mono">${esc(w.added)}</td><td><button class="mini" data-wdel="${k}">Remove</button></td></tr>`).join("")}</tbody></table></div>
     <button class="tb" id="w-x">Export watchlist (CSV)</button>` : `<div class="empty">Nothing watched yet.</div>`}

@@ -87,3 +87,22 @@ test("district: map, layer panel, click logic (point, then plot, then smallest a
   for (const t of ["brief", "activity", "records", "sources"]) { await tab(page, t); await expect(page.locator("#dockbody")).not.toBeEmpty(); }
   expect(e).toEqual([]);
 });
+
+// city-wide search: these queries must keep working, from the city-wide page, before anything is deployed
+test("search finds erven, addresses, places and suburbs city-wide; Enter opens the top match", async ({ page }) => {
+  await page.goto("./"); await enter(page); await page.waitForTimeout(3000);
+  const built = (await (await page.request.get("data/index.json")).json()).districts.filter((d: any) => d.built).map((d: any) => d.slug);
+  const top = async (q: string) => { await page.fill("#q", q); await page.waitForFunction(() => !document.querySelector("#results")!.textContent!.startsWith("Loading"), null, { timeout: 20000 });
+    return (await page.locator("#results .res").first().textContent()) || ""; };
+  if (built.includes("blaauwberg")) {
+    expect(await top("4 Longchamp Way")).toContain("4 Longchamp Way");
+    expect(await top("erf 12819")).toContain("Erf 12819");
+    expect(await top("Table View police")).toMatch(/Table View.*Police/);
+    expect(await top("Milnerton")).toMatch(/^Milnerton\s*suburb/);
+    expect(await top("Longchamp")).toContain("Longchamp");
+  }
+  if (built.includes("table-bay")) { expect(await top("Long Street")).toContain("Long Street"); expect(await top("Sea Point police")).toMatch(/Sea Point.*Police/); }
+  expect(await top("xyzzy")).toContain("No match");
+  if (built.includes("blaauwberg")) { await page.fill("#q", "4 Longchamp Way"); await page.waitForTimeout(1500); await page.keyboard.press("Enter");
+    await expect(page.locator("#right h2")).toContainText("Erf 12819", { timeout: 25000 }); }
+});
