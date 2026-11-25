@@ -61,7 +61,7 @@ async function showFeature(layerId: string, i: number, f: any, s: number, hits: 
     ${watchButton("record", `${DISTRICT}|${layerId}|${oid ?? i}`, labelOf(layerId, rec), 1, DISTRICT)}<button class="mini" data-dl="1">Export (JSON)</button>
     <label class="mini"><input type="checkbox" id="empty" ${showEmpty ? "checked" : ""}> ${t("showempty")}</label></div>
     <div class="note">${esc(L.source)} · ${esc((L.retrieved || "").slice(0, 10))}</div></div>
-    ${plotI != null ? `<div class="row" data-plot="${plotI}"><span class="t">▭ ${t("plot")}: open the erf file</span></div>` : ""}
+    ${plotI != null ? `<div class="row" data-plot="${plotI}"><span class="t">▭ ${t("plot")}: open file</span></div>` : ""}
     ${lines.length ? `<h3>${t("alsohere")}<span class="c">${others.length}</span></h3>${lines.join("")}` : ""}`;
   $("#right").scrollTop = 0; setHash(`f=${layerId}:${oid ?? i}`);
   const dl = $("#right").querySelector("[data-dl]") as HTMLElement | null;
@@ -122,7 +122,7 @@ async function showPlot(i: number, f: any, s: number, hits: { layer: string; i: 
   const flagWords = [[/^heritage-inventory$/, "Heritage-graded"], [/nhra|formal-protection|formal-national-heritage/, "Protected under heritage law"], [/heritage-audit/, "Heritage survey area"],
     [/servitude/, "Servitude"], [/split-zoning/, "Split-zoned"], [/koeberg/, "Koeberg planning zone"], [/home-owner/, "Home owners' association"],
     [/wetland|dune|biodiversity|flood|coastal|watercourse|critical-biodiversity|protected-area/, "Environmental constraint"]] as [RegExp, string][];
-  const flagsHtml = flagWords.filter(([re]) => on(re)).map(([, w]) => `<span class="pill flag">${esc(w)}</span>`).join("");
+  const flagsHtml = flagWords.filter(([re]) => on(re)).map(([, w]) => `<span class="flag">${esc(w)}</span>`).join("");
   if (s !== seq) return;
   const others = hits.filter((h) => h.layer !== P.id);
   $("#right").innerHTML = `<div class="card primary"><div class="kicker">${t("plot")} · ${esc(v("OFC_SBRB_NAME") || v("ALT_NAME") || "")}</div>
@@ -135,7 +135,7 @@ async function showPlot(i: number, f: any, s: number, hits: { layer: string; i: 
       ${watchButton("plot", `${DISTRICT}|${key}`, `Erf ${v("PRTY_NMBR")} ${v("OFC_SBRB_NAME") || ""}`, (D.plans?.length || 0) + (D.requests?.length || 0) + (D.sales?.length || 0), DISTRICT)}<button class="mini" data-dl="1">Export erf file (JSON)</button></div></div>
     ${z ? `<h3>${t("zones")}<span class="c">${D.zones!.length}</span></h3>${z}${zMore ? `<details class="raw"><summary>${zonesRanked.length - 8} more: service regions and administrative areas</summary>${zMore}</details>` : ""}` : ""}
     ${rq ? `<h3>${t("requests")}<span class="c">${fmt(D.requests!.length)}</span></h3>${rq}` : ""}
-    ${pl ? `<h3>${t("plans")}<span class="c">${new Set(D.plans).size}</span></h3>${pl}` : `<div class="sm dim" style="margin-top:10px">${t("plans")}: ${t("none").toLowerCase()} (2014 onward)</div>`}
+    ${pl ? `<h3>${t("plans")}<span class="c">${new Set(D.plans).size}</span></h3>${pl}` : `<h3>${t("plans")}<span class="c">0</span></h3><div class="empty sm">${t("none")} (2014 onward)</div>`}
     ${r2 ? `<h3>${t("recs")}<span class="c">${D.records!.length}</span></h3>${r2}` : ""}
     ${nm ? `<h3>Gazette notices, court records and news naming this erf</h3>${nm}<div class="note">Matched by erf number and suburb (or allotment) name as published in the notice, title or summary.</div>` : ""}
     ${bz ? `<h3>Registered businesses at this address</h3>${bz}<div class="note">Company-register addresses matched to this erf's street number, street and suburb.</div>` : ""}
@@ -203,23 +203,24 @@ export async function showStart() {
   const watchHtml = W.length ? `<h3>Watchlist<span class="c">${W.length}</span></h3>${W.slice(0, 12).map((w) => `<div class="row" data-w="${esc(JSON.stringify(w))}"><span class="t">${esc(w.label)}</span><small>${w.kind}${w.n !== w.seen ? ` · <b class="new">${w.n - w.seen > 0 ? "+" : ""}${w.n - w.seen} new</b>` : ""}</small></div>`).join("")}<div class="note">Kept in this browser only.${changed.length ? ` ${changed.length} item(s) changed since you last opened them.` : ""}</div>` : "";
   if (!DISTRICT) {
     const [I, F] = await Promise.all([getJSON<DataIndex>("data/index.json").catch(() => null), flagsData().catch(() => null)]);
-    $("#right").innerHTML = `<div class="card primary"><div class="kicker">City of Cape Town · metro overview</div><h2>Metro sector</h2>
+    $("#right").innerHTML = `<div class="card primary"><div class="kicker">Sector: metro overview</div><h2>City of Cape Town</h2>
       <p class="mu">Published records of the City, the Province, the courts and the national state, joined by place and supplier: tender decisions, bids read out at openings, quotation orders, eTenders, City land sales, gazette notices, tribunal cases and every City GIS layer by erf. Each record links to its source.</p>
-      <div class="facts"><div class="fact"><b>${I ? I.districts.filter((d) => d.built).length : "—"}/8</b><span>districts built</span></div><div class="fact"><b>${F ? fmt(F.flags.length) : "—"}</b><span>pattern flags</span></div><div class="fact"><b>${I ? fmt(I.districts.reduce((s, d) => s + (d.plots || 0), 0)) : "—"}</b><span>erven</span></div></div>
+      <div class="facts"><div class="fact"><b>${I ? I.districts.filter((d) => d.built).length : "—"}/8</b><span>sectors built</span></div><div class="fact"><b>${F ? fmt(F.flags.length) : "—"}</b><span>pattern flags</span></div><div class="fact"><b>${I ? fmt(I.districts.reduce((s, d) => s + (d.plots || 0), 0)) : "—"}</b><span>erven</span></div></div>
       <p class="note">Select a planning district for erven and layers. Money, flags, courts, notices and press: dock below, city-wide.</p>
       <p class="note">Some records name private individuals as the state published them; see Sources.</p></div>
-      <h3>Planning districts</h3>${(I?.districts || []).map((d) => d.built ? `<a class="row" href="${districtUrl(d.slug)}"><span class="t">${esc(d.label)}</span><small>${fmt(d.plots || 0)} erven · ${d.layers} layers · data ${esc(String(d.built).slice(0, 10))}</small></a>` : `<div class="row"><span class="t dim">${esc(d.label)}</span><small>not built yet</small></div>`).join("")}
+      <h3>Sectors</h3>${(I?.districts || []).map((d) => d.built ? `<a class="row" href="${districtUrl(d.slug)}"><span class="t">${esc(d.label)}</span><small>${fmt(d.plots || 0)} erven · ${d.layers} layers · data ${esc(String(d.built).slice(0, 10))}</small></a>` : `<div class="row"><span class="t dim">${esc(d.label)}</span><small>not built yet</small></div>`).join("")}
       ${watchHtml}`;
     return;
   }
   const H = await getJSON<any>(DP + "heritage.json").catch(() => null);
   const sr = layerById.get("service-requests");
-  $("#right").innerHTML = `<div class="card primary"><div class="kicker">${esc(M.district.label || M.district.name)} planning district</div><h2>${esc(M.district.label || M.district.name)} sector</h2>
-    <p class="mu">${fmt(M.layers.length)} layers, ${fmt(layerById.get(M.parcels.layer)?.n || 0)} erven, ${fmt(sr?.n || 0)} service requests. Select an erf or installation on the map for its file: zoning and overlays, incidents, building plan submissions, records, State disposals, notices naming it and the nearest services.</p>
-    <div class="facts"><div class="fact"><b>${fmt(M.layers.length)}</b><span>map layers</span></div><div class="fact"><b>${fmt(layerById.get(M.parcels.layer)?.n || 0)}</b><span>erven</span></div><div class="fact"><b>${fmt(sr?.n || 0)}</b><span>service requests</span></div></div>
-    <p class="note">Search: erf number, address, suburb, supplier, tender number, police station, school or layer. Layers: left. Money, statistics, courts, press and sources: dock below.</p></div>
+  const nm = M.district.label || M.district.name.charAt(0) + M.district.name.slice(1).toLowerCase();
+  $("#right").innerHTML = `<div class="card primary"><div class="kicker">Sector: ${esc(M.district.name)}</div><h2>${esc(nm)} sector</h2>
+    <p class="mu">${fmt(M.layers.length)} layers, ${fmt(layerById.get(M.parcels.layer)?.n || 0)} erven, incident and building-plan records cross-referenced per erf. Select an erf or installation on the map for its file.</p>
+    <div class="facts"><div class="fact"><b>${fmt(M.layers.length)}</b><span>layers</span></div><div class="fact"><b>${fmt(layerById.get(M.parcels.layer)?.n || 0)}</b><span>erven</span></div><div class="fact"><b>${fmt(sr?.n || 0)}</b><span>incidents logged</span></div></div>
+    <p class="note">Search by erf number, address, suburb, installation, layer or record. Layers at left; records, statistics, press and sources in the lower panel.</p></div>
     ${watchHtml}
-    ${H ? `<h3>Start with</h3>${(H.highlights || []).filter((h: any) => h.t === "find").map((h: any) => { const k = H.finds.findIndex((f: any) => f.id === h.k); return k < 0 ? "" : `<div class="row" data-go="research-finds:${k}"><span class="t">${esc(H.finds[k].name)}</span><small>${esc(h.why)}</small></div>`; }).join("")}` : ""}`;
+    ${H ? `<h3>Index</h3>${(H.highlights || []).filter((h: any) => h.t === "find").map((h: any) => { const k = H.finds.findIndex((f: any) => f.id === h.k); return k < 0 ? "" : `<div class="row" data-go="research-finds:${k}"><span class="t">${esc(H.finds[k].name)}</span><small>${esc(h.why)}</small></div>`; }).join("")}` : ""}`;
 }
 
 export function bindInspector() {
