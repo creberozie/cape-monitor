@@ -12,7 +12,9 @@ steps += [("money-fetch", py("fetch_money.py", *(["--refresh"] if mode == "full"
           ("feeds", py("feeds.py"), False),
           ("justice", py("justice.py", *(["--full"] if mode == "full" else [])), False),
           ("labour", py("labour.py"), False),
-          ("gazettes", py("gazettes.py", *([] if mode == "full" else [str(time.gmtime().tm_year)])), False)]
+          # always the full four-year window: downloaded PDFs are kept between runs, so a daily run fetches only new gazettes,
+          # and the published archive never shrinks to the current year
+          ("gazettes", py("gazettes.py"), False)]
 report = []
 for name, cmd, core in steps:
     t = time.time(); r = subprocess.run(cmd)
