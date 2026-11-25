@@ -512,6 +512,134 @@ def bids():
     return f"{len(tenders)} tenders, {sum(len(t['bids']) for t in tenders)} bids from {len(read)} scanned registers; {sum(1 for s in status if s['how'] == 'waiting for OCR')} waiting; {len(failed)} failed"
 
 
+# ================================================================ 4b. deviations (MFMA SCM Regulation 36), as reported to Council
+# Stellenbosch reports the deviations its accounting officer approved to every ordinary Council meeting, in an agenda item
+# "MONTHLY FINANCIAL STATUTORY REPORTING: DEVIATIONS FOR ..." with one table: deviation number (D/SM 3/27), contract date, name of
+# contractor, contract description, reason, why the SCM process could not be followed, total contract price. The agendas (often
+# hundreds of MB) are read once; only their text is kept.
+DEV_COLS = ["number", "date", "contractor", "description", "reason", "substantiation", "price"]
+
+
+def dev_header(line):
+    """character positions of the seven columns from the table's first header line, or None"""
+    if not (re.search(r"\bDEVIATION\b", line) and re.search(r"\bNAME OF\b", line) and re.search(r"\bREASON\b", line)): return None
+    pos = [m.start() for m in re.finditer(r"DEVIATION|CONTRACT|NAME OF|REASON|SUBSTANTIATION|TOTAL", line)]
+    return pos if len(pos) == 7 else None
+
+
+def parse_deviations(text):
+    """[{number, date, contractor, description, reason, substantiation, price_text, price, period, page}] from an agenda's text (pages split by form feeds)"""
+    rows, cols, cur, period = [], None, None, None
+    for pno, page in enumerate(text.split("\f"), 1):
+        for line in page.splitlines():
+            h = re.search(r"DEVIATIONS\s+FOR\s+(?:THE\s+)?(?:PERIOD\s+|MONTH\s+OF\s+)?(.{6,60}?)\s*$", line)
+            if h and "....." not in line: period = re.sub(r"\s+\d{1,4}$", "", re.sub(r"\s+", " ", h.group(1))).strip()
+            hp = dev_header(line)
+            if hp: cols = hp; cur = None; continue
+            if cols is None: continue
+            if re.search(r"Page \d+\s*$|MEETING OF (THE )?COUNCIL|OF STELLENBOSCH MUNICIPALITY|^\s*\d{1,3}\s*$|^\s*NUMBER\s+DATE|^\s*FOLLOWED\s|PRICE R\s*$", line): continue
+            if not line.strip(): continue
+            # the table ends at the next numbered heading or section of the report
+            if re.match(r"^\s{0,24}(?:\d+(?:\.\d+)*\.?\s+[A-Z][A-Za-z]|RECOMMEND|FINANCIAL IMPLICATION|LEGAL IMPLICATION|ANNEXURE|FOR FURTHER DETAILS|NOTED|RESOLVED)", line) and not re.match(r"^\s*D\s*/\s*SM", line):
+                cols = None; cur = None; continue
+            m = re.match(r"^\s*(D\s*/\s*SM\s*\d{1,3}\s*/\s*\d\d)\b", line)
+            chunks_ = [(mm.start(), mm.group(0)) for mm in re.finditer(r"\S+(?: \S+)*", line)]
+            if m:
+                cur = {k: [] for k in DEV_COLS}; cur["page"] = pno; cur["period"] = period; rows.append(cur)
+                # the row's own column starts: its first line usually has a piece in every column, so the table's drift from page to page is followed
+                rc = list(cols)
+                for x, _ in chunks_:
+                    k = min(range(7), key=lambda i: abs(cols[i] - x))
+                    if abs(cols[k] - x) <= 8: rc[k] = x
+                cur["_cols"] = rc
+            if cur is None: continue
+            rc = cur["_cols"]
+            for x, t in chunks_:
+                k = max([i for i, c in enumerate(rc) if c <= x + 2] or [0])
+                if pno != cur["page"]: k = max(k, 3)   # a row running onto the next page continues its long columns only
+                cur[DEV_COLS[k]].append(t)
+    out = []
+    for r in rows:
+        d = {k: re.sub(r"\s+", " ", " ".join(r[k])).strip() for k in DEV_COLS}
+        d["number"] = re.sub(r"\s+", " ", re.sub(r"\s*/\s*", "/", d["number"].split("  ")[0])).replace("D/SM", "D/SM ").replace("  ", " ")
+        d["number"] = re.match(r"D/SM ?\d{1,3}/\d\d", d["number"]).group(0).replace("D/SM", "D/SM ").replace("  ", " ") if re.match(r"D/SM ?\d{1,3}/\d\d", d["number"]) else d["number"]
+        dm = re.search(r"(20\d\d)[/-](\d\d)[/-](\d\d)", d["date"])
+        d["date"] = f"{dm.group(1)}-{dm.group(2)}-{dm.group(3)}" if dm else (iso(d["date"]) or d["date"] or None)
+        d["price_text"] = d.pop("price")
+        pm = re.search(r"R\s?(\d{1,3}(?:[ \u00a0]\d{3})+|\d+)(?:[,.](\d{2}))?", d["price_text"])
+        d["price"] = float(re.sub(r"\D", "", pm.group(1)) + ("." + pm.group(2) if pm.group(2) else "")) if pm else None
+        d.update(page=r["page"], period=r["period"])
+        if d["contractor"]: out.append(d)
+    return out
+
+
+def agenda_text(d):
+    """the text of one agenda, kept in the cache; a damaged PDF is read page by page and unreadable pages are counted"""
+    key = os.path.join(CACHE, "agenda", f"{d['id']}.txt"); os.makedirs(os.path.dirname(key), exist_ok=True)
+    if os.path.exists(key): return open(key, encoding="utf-8", errors="replace").read(), json.load(open(key + ".json"))
+    pdf = key[:-4] + ".pdf"
+    subprocess.run(["curl", "-sL", "--fail", "-m", "1800", "-A", UA["User-Agent"], "-o", pdf, urllib.parse.quote(d["file"], safe=":/?&=%#+,;@")], check=True)
+    meta = {"bytes": os.path.getsize(pdf), "unreadable_pages": 0, "pages": 0}
+    r = subprocess.run(["pdftotext", "-layout", pdf, key], capture_output=True, timeout=1800)
+    if r.returncode or not os.path.exists(key) or os.path.getsize(key) < 1000:
+        import pypdfium2 as P   # pdftotext refuses a PDF whose index is damaged; pdfium reads the pages it can
+        doc = P.PdfDocument(pdf); parts = []
+        for i in range(len(doc)):
+            try: parts.append(doc[i].get_textpage().get_text_range())
+            except Exception: parts.append(""); meta["unreadable_pages"] += 1
+        meta["pages"] = len(doc); meta["note"] = "PDF damaged on the municipality's site: read page by page; layout not kept"
+        open(key, "w").write("\f".join(parts))
+    else: meta["pages"] = open(key, errors="replace").read().count("\f")
+    os.remove(pdf); json.dump(meta, open(key + ".json", "w"))
+    return open(key, encoding="utf-8", errors="replace").read(), meta
+
+
+def agendas():
+    out, p = {}, 1
+    while True:
+        d = jget(f"{WP}stb_document?search=agenda+council&per_page=100&page={p}&_fields=id,date,title,link")
+        for x in d:
+            t = html.unescape(re.sub(r"<[^>]+>", "", x["title"]["rendered"]))
+            if re.search(r"agenda", t, re.I) and re.search(r"council", t, re.I) and x["date"] >= "2023-01-01": out[x["id"]] = {"id": x["id"], "published": x["date"][:10], "title": t, "page": x["link"]}
+        if len(d) < 100: break
+        p += 1
+    return list(out.values())
+
+
+def deviations():
+    path = os.path.join(CACHE, "muni-deviations.json")
+    old = json.load(open(path)) if os.path.exists(path) else {"agendas": []}
+    known = {a["id"]: a for a in old.get("agendas", [])}
+    A = agendas(); read, failed, rows = [], [], []
+    t0 = time.time(); budget = int(os.environ.get("AGENDA_MINUTES", "40")) * 60
+    for a in sorted(A, key=lambda a: a["published"], reverse=True):
+        a = {**known.get(a["id"], {}), **a}
+        try:
+            if not a.get("file"):
+                h = http(a["page"], tries=3).decode("utf-8", "replace"); m = re.search(r'class="btn stb-doc-dl" href="([^"]+)"', h)
+                if not m: failed.append({**a, "error": "no file on the document page"}); continue
+                a["file"] = html.unescape(m.group(1))
+            if not os.path.exists(os.path.join(CACHE, "agenda", f"{a['id']}.txt")) and time.time() - t0 > budget: read.append({**a, "how": "waiting"}); continue
+            text, meta = agenda_text(a)
+            devs = parse_deviations(text)
+            for r in devs: r.update(agenda=a["title"], agenda_date=a["published"], doc=a["file"] + f"#page={r['page']}", doc_page=a["page"])
+            rows += devs; read.append({**a, **meta, "how": "read", "deviations": len(devs)})
+        except Exception as e:
+            failed.append({**a, "error": str(e)[:160]})
+    # the same deviation is printed in the agenda that reports it and again in the minutes in later agendas: keep one, list the others
+    seen = {}
+    for r in sorted(rows, key=lambda r: r["agenda_date"]):
+        k = (r["number"].replace(" ", ""), re.sub(r"[^a-z]", "", r["contractor"].lower())[:20])
+        if k in seen: seen[k].setdefault("also_in", []).append(r["doc"])
+        else: seen[k] = r
+    rows = sorted(seen.values(), key=lambda r: (r["date"] or "", r["number"]), reverse=True)
+    warnings = [f"{x['title']}: {x['unreadable_pages']} of {x['pages']} pages could not be read (the PDF on the municipality's site is damaged)" for x in read if x.get("unreadable_pages")]
+    warnings += [f"{x['title']}: no deviations table found" for x in read if x.get("how") == "read" and not x.get("deviations") and x.get("bytes", 0) > 5e6]
+    dump({"id": "muni-deviations", "title": f"{M['label']}: deviations (MFMA SCM Regulation 36) reported to Council", "url": M["site"] + "council/",
+          "retrieved": now(), "rows": rows, "agendas": read, "failed": failed, "warnings": warnings}, path)
+    return f"{len(rows)} deviations from {sum(1 for x in read if x.get('how') == 'read')} council agendas; {sum(1 for x in read if x.get('how') == 'waiting')} waiting; {len(failed)} failed"
+
+
 # ================================================================ 5. eTender portal: this buyer's records from the metro archive
 def etenders():
     src = os.path.join(HERE, "cache", "metro", "money", "etenders.json")
@@ -611,7 +739,7 @@ def restricted():
 
 if __name__ == "__main__":
     if M["slug"] == "cape-town": raise SystemExit("fetch_muni.py is for municipalities other than Cape Town; set MUNI")
-    jobs = {"docs": docs, "awards": awards, "bids": bids, "etenders": etenders, "finance": finance, "restricted": restricted}
+    jobs = {"docs": docs, "awards": awards, "bids": bids, "deviations": deviations, "etenders": etenders, "finance": finance, "restricted": restricted}
     only = [a for a in sys.argv[1:] if not a.startswith("-")]
     failed = []
     for name, fn in jobs.items():

@@ -83,6 +83,19 @@ class ScannedBidRegister(unittest.TestCase):
         self.assertIsNone(next(b for b in t["bids"] if b["n"] == 1)["price"])
 
 
+class CouncilDeviations(unittest.TestCase):
+    def test_deviation_table_rows(self):
+        rows = F.parse_deviations(fx("stb-council-deviations-2025-10.txt"))
+        by = {r["number"]: r for r in rows}
+        self.assertEqual(sorted(by), ["D/SM 2/26", "D/SM 3/26", "D/SM 5/26", "D/SM 6/26"])
+        a = by["D/SM 2/26"]
+        self.assertEqual((a["date"], a["contractor"], a["price"]), ("2025-08-27", "Enderstein Malumbete Attorneys", 77165.00))
+        self.assertTrue(a["reason"].startswith("Exceptional case"))
+        self.assertEqual(by["D/SM 3/26"]["contractor"], "Visit Stellenbosch & Franschhoek Wine Valley")   # a row running onto the next page
+        self.assertEqual(by["D/SM 3/26"]["price"], 9774425.00)
+        self.assertEqual(by["D/SM 5/26"]["price"], 292626.63)
+
+
 class RestrictedSuppliers(unittest.TestCase):
     def test_report_rows(self):
         rows = F.parse_restricted(fx("restricted-report.txt"))

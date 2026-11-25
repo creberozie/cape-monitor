@@ -61,8 +61,9 @@ async function overview(el: HTMLElement) {
   const [m, F, S, names, fin, aud] = await Promise.all([moneyMeta(), flagsData(), suppliers(), supNames(), getJSON<any>(ROOT + "finance.json").catch(() => null), getJSON<any>(ROOT + "audit.json").catch(() => null)]);
   const [aw, fq] = await Promise.all([allRows("awards").catch(() => []), allRows("rfq").catch(() => [])]);
   const c = m.counts; const flags = rankFlags(F.flags);
+  const devs = aw.filter((r) => String(r[3] || "").startsWith("Deviation")).sort((a, b) => String(b[0]).localeCompare(String(a[0])));
   const top = [...S.rows].sort((a, b) => (b[3] + b[5]) - (a[3] + a[5])).filter((r) => r[3] + r[5] > 0).slice(0, 12);
-  const latest = [...aw.map((r) => ({ d: r[0], ref: r[1], desc: r[5], sup: r[12]?.[0], name: r[6], v: r[7], kind: "Tender" })),
+  const latest = [...aw.filter((r) => !String(r[3] || "").startsWith("Deviation")).map((r) => ({ d: r[0], ref: r[1], desc: r[5], sup: r[12]?.[0], name: r[6], v: r[7], kind: "Tender" })),
     ...fq.map((r) => ({ d: r[0], ref: r[1], desc: r[4], sup: r[8], name: r[5], v: r[11], kind: "Quotation" }))].sort((a, b) => String(b.d).localeCompare(String(a.d))).slice(0, 14);
   const U = fin?.uifw?.rows || []; const years = [...new Set(U.map((r: any) => r.year))].sort() as number[];
   const uv = (y: number, k: string) => U.find((r: any) => r.year === y && r.item === k)?.amount;
@@ -80,8 +81,13 @@ async function overview(el: HTMLElement) {
         ${years.length ? `<div class="tscroll"><table class="t"><thead><tr><th>Year</th><th class="num">Irregular</th><th class="num">Fruitless and wasteful</th><th class="num">Unauthorised</th><th>Audit opinion</th></tr></thead><tbody>
         ${years.slice().reverse().slice(0, 10).map((y) => { const o = aud?.rows?.find((r: any) => r.year === y); return `<tr><td class="mono">${fy(y)}</td><td class="num mono">${uv(y, "irregular") != null ? rand(uv(y, "irregular")) : "—"}</td><td class="num mono">${uv(y, "fruitless") != null ? rand(uv(y, "fruitless")) : "—"}</td><td class="num mono">${uv(y, "unauthorised") != null ? rand(uv(y, "unauthorised")) : "—"}</td><td>${o ? (o.report ? `<a href="${esc(o.report)}" target="_blank" rel="noopener">${esc(o.opinion)}</a>` : esc(o.opinion)) : ""}</td></tr>`; }).join("")}</tbody></table></div>
         <div class="note">National Treasury Municipal Money, from the notes to the audited annual financial statements; audit opinions from Treasury's audit-opinion data with the Auditor-General's report linked. <button class="mini" data-go="finance">Finances and audit</button></div>` : `<div class="empty">Not in this build.</div>`}</div>
+      <div class="tile"><div class="caps">Deviations reported to Council (MFMA SCM Regulation 36)</div>
+        ${devs.length ? devs.slice(0, 8).map((r) => `<div class="row" data-tender="${esc(r[1])}"><span class="t">${esc(r[1])}: ${esc(names.get(r[12]?.[0]) || r[6])}</span><small>${esc(r[0] || "")}${r[8] ? " · " + short(r[8]) : ""}</small></div>`).join("")
+          + `<div class="note">${fmt(devs.length)} deviations, ${short(devs.reduce((a, r) => a + (Number(r[8]) || 0), 0))} together, read from the monthly deviations item in the Council agendas. Largest contractors by deviation value:</div>`
+          + bars([...devs.reduce((m, r) => m.set(names.get(r[12]?.[0]) || r[6], (m.get(names.get(r[12]?.[0]) || r[6]) || 0) + (Number(r[8]) || 0)), new Map<string, number>())].sort((a, b) => b[1] - a[1]), 6, short)
+          : `<div class="empty">Not in this build yet.</div>`}</div>
       <div class="tile"><div class="caps">Departments</div><div id="ov-dep"></div>
-        <div class="note">Stellenbosch's award registers do not name the directorate, and it publishes no deviations register (see Sources). Departments here are those the eTender portal names.</div></div>
+        <div class="note">Stellenbosch's award registers and deviation reports do not name the directorate. Departments here are those the eTender portal names.</div></div>
       <div class="tile" style="grid-column:1/-1"><div class="caps">Latest awards</div><div class="tscroll"><table class="t"><thead><tr><th>Date</th><th>Number</th><th>Kind</th><th>Description</th><th>Awarded to</th><th>Amount as published</th></tr></thead><tbody>
         ${latest.map((r) => `<tr><td class="mono">${esc(r.d || "")}</td><td><a href="#t=${esc(r.ref)}" data-tender="${esc(r.ref)}">${esc(r.ref)}</a></td><td>${r.kind}</td><td>${esc(String(r.desc || "").slice(0, 140))}</td><td>${r.sup ? `<a href="#s=${esc(r.sup)}" data-sup="${esc(r.sup)}">${esc(names.get(r.sup) || r.name)}</a>` : esc(r.name)}</td><td class="mono">${esc(r.v || "")}</td></tr>`).join("")}</tbody></table></div></div>
     </div>`;
@@ -93,7 +99,7 @@ async function overview(el: HTMLElement) {
 
 async function departments(el: HTMLElement) {
   await deptList(el);
-  el.insertAdjacentHTML("afterbegin", `<div class="note warnbox">Stellenbosch publishes its tender and quotation awards without the directorate, and publishes no deviations register. Departments below are the
+  el.insertAdjacentHTML("afterbegin", `<div class="note warnbox">Stellenbosch publishes its tender and quotation awards, and its deviation reports to Council, without the directorate. Departments below are the
     municipality's registers as a whole and the departments named on the eTender portal. Irregular expenditure is published for the municipality as a whole: see Finances and audit.</div>`);
 }
 

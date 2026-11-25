@@ -18,7 +18,7 @@ steps += [("money-fetch", py("fetch_money.py", *(["--refresh"] if mode == "full"
 # other municipalities (ZopStopper), after Cape Town so their supplier profiles can show the same name in Cape Town's records.
 # Never core: a failure keeps that municipality's last good data and leaves Cape Monitor untouched.
 for m in ["stellenbosch"]:
-    steps += [(f"{m}-fetch", py("fetch_muni.py", *([] if mode == "full" else ["docs", "awards", "bids", "etenders", "finance", "restricted"])), False, {"MUNI": m}),
+    steps += [(f"{m}-fetch", py("fetch_muni.py", *([] if mode == "full" else ["docs", "awards", "bids", "deviations", "etenders", "finance", "restricted"])), False, {"MUNI": m}),
               (f"{m}-money", py("build_money.py"), False, {"MUNI": m}),
               (f"{m}-build", py("build_muni.py"), False, {"MUNI": m})]
 report = []

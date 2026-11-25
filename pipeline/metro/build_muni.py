@@ -53,6 +53,9 @@ if bids: sources.append(src("bids", bids["title"], bids["url"], bids.get("retrie
                             note=f"{len(bids['tenders'])} tenders. " + bids.get("method", "") + f" Registers: {sum(1 for r in bids['registers'] if r['bids'])} read, "
                             f"{sum(1 for r in bids['registers'] if r['how'] == 'ocr' and not r['bids'])} unreadable (mostly handwritten), {sum(1 for r in bids['registers'] if r['how'] == 'waiting for OCR')} waiting for the next run.",
                             warnings=bids.get("warnings")))
+dv = load("muni-deviations.json")
+if dv: sources.append(src("deviations", dv["title"], dv["url"], dv.get("retrieved"), len(dv["rows"]), note=f"Read from {sum(1 for x in dv['agendas'] if x.get('how') == 'read')} Council agendas since 2023 "
+                          f"(monthly item 'Monthly financial statutory reporting: deviations'); each deviation links to its agenda page.", warnings=dv.get("warnings")))
 if docs: sources.append(src("docs", docs["title"], docs["url"], docs.get("retrieved"), len(docs["docs"]), note="Read through the site's public document API (" + docs.get("api", "") + "), procurement categories only."))
 if fin: sources.append(src("finance", fin["title"], fin["url"], fin.get("retrieved"), len(fin["rows"]), published=fin.get("data_updated"), note="Data API: " + fin["api"]))
 if fin: sources.append(src("uifw", fin["uifw"]["title"], fin["url"], fin["uifw"].get("retrieved"), len(fin["uifw"]["rows"]), note="Data API: " + fin["uifw"]["api"] + ". Figures as published, including repeated or unusual values."))
@@ -63,8 +66,8 @@ if justice: sources.append(src("tribunal", "Competition Tribunal decided cases n
 if notices: sources.append(src("gazette", "Western Cape Provincial Gazette notices naming a Stellenbosch place", notices.get("url", ""), notices.get("built"), len(notices.get("notices", []))))
 
 not_added = [
-    {"name": "Deviations register (MFMA SCM Regulation 36)", "url": M["site"] + "downloads/scm-reports/",
-     "why": "Not published as a register on the municipality's site. Deviations are reported to Council in the quarterly SCM implementation reports inside council agendas; those are not read yet."},
+    {"name": "Deviations in Council agendas that print only the minutes, or whose table is a scanned annexure", "url": M["site"] + "council/",
+     "why": "Deviations are read from the monthly deviations table in each Council agenda. Where an agenda carries only the minutes (which note the deviations without the table), or a damaged PDF, they are not in; listed under Sources with the agenda."},
     {"name": "Handwritten bid-opening registers (mostly 2019 to 2021)", "url": M["site"] + "tender-opening/",
      "why": "Scanned handwriting cannot be read reliably by OCR. They are listed under Documents with a link to each scan; no bids are taken from them."},
     {"name": "Award registers whose table is split across two pages side by side (some 2024 quotation registers)", "url": M["site"] + "formal-quotations-awarded/",

@@ -29,23 +29,24 @@ ol.steps li{display:grid;grid-template-columns:88px 1fr;gap:12px;padding:12px 0;
 <body>
 <main>
 <h1>ZopStopper: progress</h1>
-<p class="when">Last updated <b id="upd">25 Nov 2026, 21:40 SAST</b>. Refresh this page to see the latest.</p>
+<p class="when">Last updated <b id="upd">25 Nov 2026, 22:15 SAST</b>. Refresh this page to see the latest.</p>
 <p>Preview of the app: <a href="https://claude-stellenbosch-watch.cape-monitor.pages.dev/watch/">claude-stellenbosch-watch.cape-monitor.pages.dev/watch/</a> · Code and review: <a href="https://github.com/creberozie/cape-monitor/pull/2">pull request 2</a> (not merged; waits for your yes).</p>
 
 <h2>Steps</h2>
 <ol class="steps">
 <li><span class="st done">Done</span><span>App at /watch/ with its own name, icon and install. Start page, supplier, tender and flag pages, search, finances, notices, documents, sources.</span></li>
 <li><span class="st done">Done</span><span>Award registers read: 1 800 tender award rows, 1 020 quotation award rows, from 206 monthly registers.</span></li>
-<li><span class="st wip">Running</span><span>Scanned bid-opening registers read by text recognition. Local test: 593 bids from about 120 registers; a price is kept only when two readings agree (232 so far).</span></li>
+<li><span class="st done">Done</span><span>Scanned bid-opening registers read by text recognition: 1 868 bids on 386 tenders from 607 registers. A price is kept only when two readings agree. First flags: 16 awards above the lowest price read out, 10 suppliers who were sole bidder more than once.</span></li>
 <li><span class="st done">Done</span><span>Treasury finance (budget against actual, irregular spending) and audit opinions 2011 to 2024. Treasury restricted list: 409 names, 2 name matches.</span></li>
 <li><span class="st done">Done</span><span>Provincial Gazette: 59 notices in 2026 naming a Stellenbosch place.</span></li>
 <li><span class="st wip">Running</span><span>Server data run on GitHub, then deploy of the data to the preview. eTender count comes from this run.</span></li>
-<li><span class="st wip">Started</span><span>Deviations read from council agendas.</span></li>
+<li><span class="st wip">Running</span><span>Deviations read from Council agendas: each monthly agenda has a deviations table (number, date, contractor, reason, why, price). Reader written and tested; now reading every Council agenda since 2023. One agenda (44th Council, 21 Oct 2026) is damaged on the municipality's site: 1 009 of 1 195 pages cannot be opened.</span></li>
 <li><span class="st next">Next</span><span>Check the preview on desktop and phone; report with record counts.</span></li>
 </ol>
 
 <h2>Updates, newest first</h2>
 <section class="log">
+<div><p class="d">25 Nov, 22:15</p><p>App renamed ZopStopper (title, header, install name, icon). Deviations reader working on the agendas tested; reading all agendas now.</p></div>
 <div><p class="d">25 Nov, 21:40</p><p>Started on deviations from the council agendas. This progress page set up.</p></div>
 <div><p class="d">25 Nov, 21:25</p><p>Gazette notices for Stellenbosch working. Preview deploy check fixed.</p></div>
 <div><p class="d">25 Nov, 21:15</p><p>First version pushed. Server data run started.</p></div>

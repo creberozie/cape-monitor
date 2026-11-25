@@ -209,6 +209,23 @@ if not CT:
               ["completion", "Completion"], ["how", "Read from"]], awards, f"{M['label']}: tenders awarded", MA["url"], MA["retrieved"],
               "Read from the municipality's monthly 'Tenders awarded' registers (PDF). One row per successful bidder; a panel award lists every member with the tender's amount "
               "(usually 'RATES': a rates-based contract with no single total). Amounts are as published. Rows are read from the register's layout; check them against the PDF linked on each row.")
+    DV = load("muni-deviations")
+    if DV and DV["rows"] and "awards" in tables:
+        first_dev = len(awards)
+        for r in sorted(DV["rows"], key=lambda r: (r.get("date") or r["agenda_date"], r["number"])):
+            i = len(awards); s = REG.get(r["contractor"]); sids = [s["id"]] if s else []
+            if s:
+                s["refs"]["awards"].append(i); s["award_value"] += r.get("price") or 0
+                if r.get("date"): s["years"].add(r["date"][:4])
+            awards.append([r.get("date") or r["agenda_date"], r["number"], f"Reported to Council: {r['agenda']}", f"Deviation (reg. 36): {r.get('reason') or 'reason not stated'}", "Approved",
+                           f"{r.get('description')}. Why the SCM process was not followed, as reported: {r.get('substantiation')}", r["contractor"], r.get("price_text"), r.get("price"),
+                           None, None, "", sids, r["doc"], None, None, None, "council agenda (text)"])
+        tables["awards"]["n"] = len(awards)
+        for k in range(0, max(1, len(awards)), SHARD): dump(awards[k:k + SHARD], os.path.join(PUB, "t", f"awards-{k // SHARD}.json"))
+        tables["awards"]["shards"] = max(1, math.ceil(len(awards) / SHARD))
+        tables["awards"]["name"] = f"{M['label']}: tenders awarded, and deviations reported to Council"
+        tables["awards"]["note"] += (f" Also {len(awards) - first_dev} deviations (MFMA SCM Regulation 36) approved by the accounting officer and reported to Council, "
+                                     "read from the monthly deviations item in the Council agendas; each links to the agenda page.")
     MF = load("muni-fq")
     if MF:
         for i, r in enumerate(sorted(MF["rows"], key=lambda r: (r.get("approved") or r.get("published") or "", muni_ref(r["ref"])))):
