@@ -32,7 +32,7 @@ export const exportJSON = (name: string, obj: any) => (track("export", { name, f
 export interface Watch { kind: "supplier" | "plot" | "tender" | "department" | "flag" | "record"; id: string; label: string; district?: string; n: number; seen: number; added: string }
 const KEY = "cm-watch";
 export const watches = (): Watch[] => { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; } };
-const save = (w: Watch[]) => localStorage.setItem(KEY, JSON.stringify(w));
+const save = (w: Watch[]) => { try { localStorage.setItem(KEY, JSON.stringify(w)); } catch { /* storage blocked */ } };
 export const isWatched = (kind: string, id: string) => watches().some((w) => w.kind === kind && w.id === id);
 export function toggleWatch(w: Omit<Watch, "seen" | "added">) {
   const all = watches(); const k = all.findIndex((x) => x.kind === w.kind && x.id === w.id);

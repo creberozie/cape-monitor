@@ -1,16 +1,21 @@
 """How City layers are grouped in the app, and which ones are left out (with the reason, so nothing is dropped silently)."""
 import re
 
-THEMES = [  # id, English, Afrikaans: the layer groups shown in the app
-    ("money", "Money and tenders", "Geld en tenders"),
-    ("justice", "Justice", "Justisie"),
-    ("notices", "Notices and gazettes", "Kennisgewings en koerante"),
+THEMES = [  # id, English, Afrikaans: the layer groups shown in the app (the app splits the folded ones below by City service)
     ("property", "Property and planning", "Eiendom en beplanning"),
-    ("safety", "Safety", "Veiligheid"),
-    ("utilities", "Utilities and infrastructure", "Nutsdienste en infrastruktuur"),
-    ("community", "Community and City services", "Gemeenskap en Stadsdienste"),
-    ("environment", "Environment", "Omgewing"),
-    ("heritage", "Heritage", "Erfenis"),
+    ("community", "Public Facilities", "Openbare Fasiliteite"),
+    ("safety", "Security", "Sekuriteit"),
+    ("justice", "Law and Order", "Wet en Orde"),
+    ("transport", "Transport and roads", "Vervoer en paaie"),
+    ("complaints", "Complaints and Incident Reports", "Insidentverslae"),
+    ("environment", "Natural environment", "Natuurlike omgewing"),
+    ("heritage", "Historical Record", "Historiese Rekord"),
+    ("boundaries", "Jurisdictions", "Jurisdiksies"),
+    ("economy", "Trade and Commerce", "Handel"),
+    ("infra", "Installations and Utilities", "Installasies en Nutsdienste"),
+    ("utilities", "Installations and Utilities", "Installasies en Nutsdienste"),
+    ("money", "Money and tenders", "Geld en tenders"),
+    ("notices", "Notices and gazettes", "Kennisgewings en koerante"),
     ("live", "Live", "Regstreeks"),
 ]
 # the pilot's finer subjects, folded into the groups above

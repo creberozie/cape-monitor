@@ -13,18 +13,20 @@ on:
   workflow_dispatch:
     inputs:
       scope: { description: "full or metro", default: "full" }
-  push:   # working branches only: a change to the metro pipeline rebuilds the metro data (districts never rebuild on push)
-    branches: ["claude/**"]
+  push:   # working branches: a change to the metro pipeline rebuilds the metro data (districts never rebuild there).
+    # main: a change to this file or the metro pipeline runs a full refresh, because saved data belongs to the branch that
+    # made it, so production needs its own (this is what fills production after a merge).
+    branches: ["claude/**", "main"]
     paths: ["pipeline/metro/**", ".github/workflows/data.yml"]
 permissions: { contents: write }
 concurrency:
   group: "data-${{ github.ref }}"
   cancel-in-progress: false
 env:
-  FULL: ${{ (github.event_name == 'schedule' && github.event.schedule == '23 1 * * 1') || (github.event_name == 'workflow_dispatch' && inputs.scope != 'metro') }}
+  FULL: ${{ (github.event_name == 'schedule' && github.event.schedule == '23 1 * * 1') || (github.event_name == 'workflow_dispatch' && inputs.scope != 'metro') || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
 jobs:
   district:
-    if: ${{ (github.event_name == 'schedule' && github.event.schedule == '23 1 * * 1') || (github.event_name == 'workflow_dispatch' && inputs.scope != 'metro') }}
+    if: ${{ (github.event_name == 'schedule' && github.event.schedule == '23 1 * * 1') || (github.event_name == 'workflow_dispatch' && inputs.scope != 'metro') || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
     runs-on: ubuntu-latest
     timeout-minutes: 340
     strategy:

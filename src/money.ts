@@ -32,7 +32,7 @@ const supNames = async () => { const S = await suppliers(); return new Map(S.row
 /** Some published records name private individuals (land buyers, sole proprietors, contact people). They stay in, as published;
  * the owner decides on any redaction. Entries marked as possible private individuals can be hidden in this browser. */
 export const PERSONAL_NOTE = "Some records name private individuals and their contact details (City land buyers, sole proprietors, contact people on awards), exactly as the state published them. Profiles that look like a private individual are marked; you can hide them.";
-export const hidePersons = () => localStorage.getItem("cm-hide-persons") === "1";
+export const hidePersons = () => { try { return localStorage.getItem("cm-hide-persons") === "1"; } catch { return false; } };
 export const IDENTITY_NOTE = "A supplier is identified only by its published name, normalised for case, punctuation and suffixes such as (Pty) Ltd or CC. No fuzzy matching: two spellings of one company appear as two profiles, and two companies with the same name would share one. Check the CIPC register before relying on identity.";
 
 // ---------------------------------------------------------------- generic table renderer (filter, sort, group, export)
@@ -100,7 +100,7 @@ export async function moneyTab(host: HTMLElement, k?: string) {
   if (k) sub = k;
   host.innerHTML = `<div class="note warnbox personal">${esc(PERSONAL_NOTE)} <label><input type="checkbox" class="hidep" ${hidePersons() ? "checked" : ""}> Hide them</label></div><nav class="subnav">${SUBS.map(([id, l]) => `<button data-sub="${id}" class="${id === sub ? "on" : ""}">${l}</button>`).join("")}</nav><div id="msub"></div>`;
   host.querySelectorAll("[data-sub]").forEach((b) => (b as HTMLElement).onclick = () => moneyTab(host, (b as HTMLElement).dataset.sub));
-  (host.querySelector(".hidep") as HTMLInputElement).onchange = (e) => { localStorage.setItem("cm-hide-persons", (e.target as HTMLInputElement).checked ? "1" : "0"); moneyTab(host); };
+  (host.querySelector(".hidep") as HTMLInputElement).onchange = (e) => { try { localStorage.setItem("cm-hide-persons", (e.target as HTMLInputElement).checked ? "1" : "0"); } catch { /* blocked */ } moneyTab(host); };
   const el = host.querySelector("#msub") as HTMLElement;
   try {
     if (sub === "overview") await overview(el);

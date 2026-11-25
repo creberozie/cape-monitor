@@ -9,6 +9,7 @@ import { watches, toggleWatch, updateCount, exportCSV, exportTable, exportJSON }
 import { can, proNote } from "./auth/entitlements";
 import { track } from "./access/activity";
 import { ownerView } from "./access/owner";
+import { nameOf, themeName, clientTheme } from "./catalog";
 
 const $ = (s: string) => document.querySelector(s) as HTMLElement;
 type Area = { sr_total: number; sr_type: [string, number][]; sr_month: [string, number][]; plans_year: [string, number][]; plans_value: [string, number][];
@@ -40,18 +41,18 @@ async function brief() {
     const a = key ? areas![kind][key] : null;
     const pop = a?.population ? Object.entries(a.population).filter(([k, v]) => typeof v === "number" && !/id/i.test(k)) : [];
     const kpi = (v: any, l: string) => `<div class="kpi"><b>${v}</b><span>${esc(l)}</span></div>`;
-    return `<div class="cmpcol"><h3>${key ? esc((kind === "ward" ? "Ward " : "") + key) : "Whole district"}</h3>
+    return `<div class="cmpcol"><h3>${key ? esc((kind === "ward" ? "Ward " : "") + key) : "Entire sector"}</h3>
       <div class="kpis">${kpi(fmt(list.reduce((s, x) => s + x.sr_total, 0)), "service requests")}${kpi(fmt(py.reduce((s, x) => s + x[1], 0)), "building plans")}
         ${kpi(money(pv.reduce((s, x) => s + x[1], 0) / 1e6) + "m", "declared building value")}${pop.slice(0, 3).map(([k, v]) => kpi(fmt(v as number), k.replace(/_/g, " "))).join("")}</div>
       <div class="grid"><div class="tile"><div class="caps">Service requests per month</div>${spark(months)}</div>
-        <div class="tile"><div class="caps">Top service-request types</div>${bars(types, 8)}</div>
+        <div class="tile"><div class="caps">Incidents by category</div>${bars(types, 8)}</div>
         <div class="tile"><div class="caps">Building plans per year</div>${bars(py.map(([y, n]) => [y, n] as [string, number]).reverse(), 13)}</div>
         ${a?.licences ? `<div class="tile"><div class="caps">Business licences</div>${bars(a.licences, 8)}</div>` : ""}</div></div>`;
   };
   const opts = (v: string, none: string) => `<option value="">${none}</option>${keys.map((k) => `<option ${k === v ? "selected" : ""}>${esc(k)}</option>`).join("")}`;
   $("#dockbody").innerHTML = `<div class="toolbar"><b>${esc(M.district.label || M.district.name)}</b><select id="area-kind" aria-label="Compare by"><option value="suburb" ${kind === "suburb" ? "selected" : ""}>Suburbs</option><option value="ward" ${kind === "ward" ? "selected" : ""}>Wards</option></select>
-      <select id="area-sel" aria-label="Area">${opts(sel, "Whole district")}</select><span class="sm">compare with</span><select id="area-cmp" aria-label="Compare with">${opts(cmp, "— nothing —")}</select>
-      <span class="note">Service requests since Jan 2023; building plans matched to plots in this district.</span></div>
+      <select id="area-sel" aria-label="Area">${opts(sel, "Entire sector")}</select><span class="sm">compare with</span><select id="area-cmp" aria-label="Compare with">${opts(cmp, "— nothing —")}</select>
+      <span class="note">Service requests since Jan 2023; building plans matched to erven in this sector.</span></div>
     <div class="${cmp ? "cmp" : ""}">${col(sel)}${cmp ? col(cmp) : ""}</div>
     ${!sel && !cmp ? `<div class="tile"><div class="caps">Busiest ${kind === "ward" ? "wards" : "suburbs"} (service requests)</div>${bars(keys.map((k) => [k, areas![kind][k].sr_total] as [string, number]).sort((x, y) => y[1] - x[1]), 12)}</div>` : ""}`;
   for (const id of ["area-kind", "area-sel", "area-cmp"]) (document.getElementById(id) as HTMLSelectElement).onchange = (e) => { if (id === "area-kind") { (document.getElementById("area-sel") as HTMLSelectElement).value = ""; cmp = ""; (document.getElementById("area-cmp") as HTMLSelectElement).value = ""; } brief(); };
@@ -110,7 +111,7 @@ async function records(id?: string) {
   }
   const show = rows.slice(0, 500);
   $("#dockbody").innerHTML = `<div class="toolbar"><select id="tv-t">${tables.map((x) => `<option value="${x.id}" ${x.id === T.id ? "selected" : ""}>${esc(x.name)} (${fmt(x.n)})</option>`).join("")}</select>
-      <input id="tv-q" placeholder="Filter rows…" value="${esc(tv.q)}"><select id="tv-g"><option value="-1">Group by…</option>${T.fields.map((f, k) => `<option value="${k}" ${k === tv!.group ? "selected" : ""}>${esc(f[1] || f[0])}</option>`).join("")}</select>
+      <input id="tv-q" placeholder="Filter rows…" value="${esc(tv.q)}"><select id="tv-g"><option value="-1">Aggregate by…</option>${T.fields.map((f, k) => `<option value="${k}" ${k === tv!.group ? "selected" : ""}>${esc(f[1] || f[0])}</option>`).join("")}</select>
       <button class="tb" id="tv-x">Export CSV</button><span class="note">${fmt(rows.length)} rows${rows.length > 500 ? " (first 500 shown; export has all)" : ""} · ${T.scope === "city-wide" ? "whole city" : esc(M.district.name)} · <a href="${esc(T.url)}" target="_blank" rel="noopener">source</a> · fetched ${esc((T.retrieved || "").slice(0, 10))}</span></div>
     ${T.note ? `<div class="note">${esc(T.note)}</div>` : ""}${groupHtml}
     <div class="tscroll"><table class="t"><thead><tr>${T.fields.map((f, k) => `<th data-sort="${k}" title="${esc(f[0])}">${esc(f[1] || f[0])}${tv!.sort === k ? (tv!.dir > 0 ? " ▲" : " ▼") : ""}</th>`).join("")}</tr></thead>
@@ -221,12 +222,14 @@ async function watchlist() {
   const x = document.getElementById("w-x"); if (x) x.onclick = () => exportCSV("watchlist", ["label", "kind", "id", "district", "records", "seen", "added"], L.map((w) => [w.label, w.kind, w.id, w.district, w.n, w.seen, w.added]));
 }
 
+const CREDITS = `<div class="credits"><div><b>SOURCES</b> City of Cape Town GIS and Open Data Portal · National eTender portal · Competition Tribunal · Western Cape Provincial Gazette · Government Gazette · MEIBC, MIBCO, NBCRFLI, SALGBC · Labour Research Service · SAHRIS · Wikidata · OpenStreetMap · Blaauwberg TimeFlyer · News24 · IOL · Daily Maverick · GI-TOC · NASA FIRMS</div>
+  <div><b>SYSTEMS</b> Python · Shapely · ArcGIS REST · GeoJSON-VT · PMTiles · MapLibre GL · Protomaps · TypeScript · Vite</div><div>Compiled by Crehan de Jager</div></div>`;
 async function sources() {
   const LB = await getJSON<any>(METRO + "labour.json").catch(() => null); const RG = await getJSON<any>(METRO + "registry.json").catch(() => null);
   const mm = await moneyMeta().catch(() => null); const NN = await getJSON<any>(METRO + "notices.json").catch(() => null); const J = await getJSON<any>(METRO + "justice.json").catch(() => null); const F = await getJSON<any>(METRO + "feed.json").catch(() => null);
   const metro = `<h3>Personal information and identity</h3><div class="note warnbox">${esc(PERSONAL_NOTE)} Officials named on tenders appear in their public capacity.</div><div class="note">${esc(IDENTITY_NOTE)}</div>
     <div class="note">Place tags (news, tribunal cases, gazette notices) are matched by suburb name and placed at the suburb centre, not an address. Erven are matched by erf number and suburb name as published. Pattern flags are patterns in published data, each with its rule, its records and, where one applies, the regulation it cites.</div>
-    <div class="note">Money, Justice and Notices panels are in English only in this version; the map, layers and plot dossiers are in English and Afrikaans.</div>
+    <div class="note">Money, Justice and Notices panels are in English only in this version; the map, layers and erf files are in English and Afrikaans.</div>
     ${(mm as any)?.warnings?.length || NN?.warnings?.length ? `<h3>Parser and source warnings</h3>${[...((mm as any)?.warnings || []), ...(NN?.warnings || [])].map((w: string) => `<div class="note warnbox">${esc(w)}</div>`).join("")}` : ""}
     <h3>City-wide sources</h3><table class="t"><thead><tr><th>Group</th><th>Source</th><th>Records</th><th>Fetched</th></tr></thead><tbody>
     ${mm ? Object.values(mm.tables).map((x: any) => `<tr><td class="dim">Money</td><td><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a> · ${esc(x.source)}${x.note ? `<div class="sm dim">${esc(x.note)}</div>` : ""}</td><td class="mono">${fmt(x.n)}</td><td class="mono">${esc(x.retrieved.slice(0, 10))}</td></tr>`).join("") : ""}
@@ -236,17 +239,17 @@ async function sources() {
     ${F ? F.feeds.map((x: any) => `<tr><td class="dim">Feed</td><td><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>${x.error ? ` <span class="warn">unavailable: ${esc(x.error)}</span>` : ""}</td><td class="mono">${fmt(x.n)}</td><td class="mono">${esc(x.retrieved.slice(0, 10))}</td></tr>`).join("") : ""}
     </tbody></table>
     <h3>Not added, and why</h3><table class="t"><tbody>${(LB?.not_added || []).map((n: any) => `<tr><td><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.name)}</a></td><td>${esc(n.why)}</td></tr>`).join("")}${NOT_ADDED.map(([n, u, w]) => `<tr><td><a href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a></td><td>${esc(w)}</td></tr>`).join("")}${(J?.not_added || []).map((n: any) => `<tr><td><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.name)}</a></td><td>${esc(n.why)}</td></tr>`).join("")}</tbody></table>`;
-  if (!DISTRICT) { $("#dockbody").innerHTML = `<div class="note">Everything city-wide in Cape Monitor, where it comes from and when it was fetched. Each district's GIS layers are listed under Sources inside that district.</div>${metro}`; return; }
+  if (!DISTRICT) { $("#dockbody").innerHTML = `<div class="note">Everything city-wide in Cape Monitor, where it comes from and when it was fetched. Each district's GIS layers are listed under Sources inside that district.</div>${metro}${CREDITS}`; return; }
   const byTheme = M.themes.map((th) => ({ th, ls: M.layers.filter((l) => l.theme === th.id) })).filter((x) => x.ls.length);
   $("#dockbody").innerHTML = `<div class="note">Everything in Cape Monitor, where it comes from and when it was fetched. Data built ${esc(M.built.slice(0, 16).replace("T", " "))} UTC. Counts are records inside the ${esc(M.district.name)} planning district unless marked city-wide.</div>
     <table class="t"><thead><tr><th>Theme</th><th>Layer or table</th><th>Records</th><th>Source</th><th>Fetched</th></tr></thead><tbody>
-    ${byTheme.map(({ th, ls }) => ls.map((l) => `<tr><td class="dim">${esc(th.en)}</td><td>${esc(l.name)}</td><td class="mono">${fmt(l.n)}${l.server_count && l.server_count !== l.n ? ` <span class="dim">(server ${fmt(l.server_count)})</span>` : ""}</td><td><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.source)}</a></td><td class="mono">${esc((l.retrieved || "").slice(0, 10))}</td></tr>`).join("")).join("")}
+    ${byTheme.map(({ th, ls }) => ls.map((l) => `<tr><td class="dim">${esc(themeName(clientTheme(l), "en"))}</td><td>${esc(nameOf(l))}</td><td class="mono">${fmt(l.n)}${l.server_count && l.server_count !== l.n ? ` <span class="dim">(server ${fmt(l.server_count)})</span>` : ""}</td><td><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.source)}</a></td><td class="mono">${esc((l.retrieved || "").slice(0, 10))}</td></tr>`).join("")).join("")}
     ${M.tables.map((x) => `<tr><td class="dim">Records</td><td>${esc(x.name)}</td><td class="mono">${fmt(x.n)}</td><td><a href="${esc(x.url)}" target="_blank" rel="noopener">City of Cape Town Open Data Portal</a> ${x.scope === "city-wide" ? "· city-wide" : ""}</td><td class="mono">${esc((x.retrieved || "").slice(0, 10))}</td></tr>`).join("")}
     ${M.feeds.map((x) => `<tr><td class="dim">Feed</td><td>${esc(x.name)}</td><td class="mono">${fmt(x.n)}</td><td><a href="${esc(x.url)}" target="_blank" rel="noopener">RSS</a></td><td class="mono">${esc((x.retrieved || "").slice(0, 10))}</td></tr>`).join("")}
     </tbody></table>
     ${metro}
-    <h3>Left out (${M.skipped.filter((s) => s.why !== "no records in this district").length}) and empty here (${M.skipped.filter((s) => s.why === "no records in this district").length})</h3>
-    <table class="t"><thead><tr><th>Layer</th><th>Service</th><th>Why</th></tr></thead><tbody>${M.skipped.sort((a, b) => a.why.localeCompare(b.why)).map((s) => `<tr><td><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)}</a></td><td class="dim">${esc(s.service)}</td><td>${esc(s.why)}</td></tr>`).join("")}</tbody></table>`;
+    <h3>Excluded (${M.skipped.filter((s) => s.why !== "no records in this district").length}) and empty here (${M.skipped.filter((s) => s.why === "no records in this district").length})</h3>
+    <table class="t"><thead><tr><th>Layer</th><th>Service</th><th>Why</th></tr></thead><tbody>${M.skipped.sort((a, b) => a.why.localeCompare(b.why)).map((s) => `<tr><td><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)}</a></td><td class="dim">${esc(s.service)}</td><td>${esc(s.why)}</td></tr>`).join("")}</tbody></table>${CREDITS}`;
 }
 
 async function heritage() {

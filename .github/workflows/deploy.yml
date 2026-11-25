@@ -37,7 +37,13 @@ jobs:
       - { uses: actions/cache/restore@v4, with: { path: public/data/d/mitchells-plain-khayelitsha, key: "good-mitchells-plain-khayelitsha-x", restore-keys: "good-mitchells-plain-khayelitsha-" } }
       - { uses: actions/cache/restore@v4, with: { path: public/data/d/helderberg, key: "good-helderberg-x", restore-keys: "good-helderberg-" } }
       - { uses: actions/cache/restore@v4, with: { path: public/data/metro, key: "good-metro-x", restore-keys: "good-metro-" } }
+      - name: Hold back if there is no data for this branch yet
+        id: hasdata
+        run: |
+          if ls public/data/d/*/manifest.json >/dev/null 2>&1 && [ -f public/data/metro/notices.json ]; then echo "ok=true" >> "$GITHUB_OUTPUT"
+          else echo "ok=false" >> "$GITHUB_OUTPUT"; echo "::warning::No saved data for ${BRANCH} yet. Nothing deployed; the Data run deploys once it has built the data."; fi
       - name: Index, build and check (file size, file count) before deploying
+        if: ${{ steps.hasdata.outputs.ok == 'true' }}
         env:   # accounts (optional): repository variables; REQUIRE_ACCOUNT_ACCESS=false opens the app to everyone
           VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
@@ -48,6 +54,7 @@ jobs:
           rm -rf public/data   # dist/ holds its own copy; freeing the restored data keeps the runner's disk clear for the tests
       - name: Deploy to Cloudflare Pages
         id: pages
+        if: ${{ steps.hasdata.outputs.ok == 'true' }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFARE_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

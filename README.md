@@ -45,6 +45,11 @@ src/                 the app (MapLibre + PMTiles over HTTP range requests)
 
 Each part (each district, the metro set) saves its own last good data. A part that fails keeps its last good data, so the
 live site never loses a district because one source was down. Status of every deploy is written to the `ci-status` branch.
+Saved data belongs to the branch that built it: a push to `main` that changes the data workflow or the metro pipeline runs a full
+refresh for production, and a deploy with no saved data for its branch holds back instead of publishing an empty site.
+
+**Interface.** Layer names, groups, quick views, field words and legend wording live in `src/catalog.ts`; group names also in
+`pipeline/themes.py`. The app keeps the browser's chosen layers under `cm-layers-v2-<district>`.
 
 Local: `npm ci && pip install shapely pmtiles`, then `CM_DISTRICT=blaauwberg npm run data`, `python3 -I pipeline/metro/run.py full`,
 `python3 -I pipeline/index.py`, `npm run dev`.

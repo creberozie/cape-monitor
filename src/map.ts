@@ -2,15 +2,22 @@ import * as maplibregl from "maplibre-gl";
 type MLMap = maplibregl.Map; type MapGeoJSONFeature = maplibregl.MapGeoJSONFeature;
 import { Protocol, PMTiles } from "pmtiles";
 import { BASE, DP, M, Layer, layerById, DISTRICT } from "./data";
+import { clientTheme } from "./catalog";
 
 export let map: MLMap;
 export const visible = new Set<string>();
 const PALETTE = ["#38d39f", "#2aa3ff", "#ffb020", "#ff5d5d", "#b98cff", "#ff7ac6", "#7be0ff", "#d4e157", "#ff9e57", "#4dd0e1", "#9ccc65", "#f06292",
   "#ba68c8", "#4fc3f7", "#ffd54f", "#a1887f", "#90a4ae", "#e57373", "#81c784", "#64b5f6", "#ffb74d", "#aed581", "#f48fb1", "#ce93d8"];
 export const THEME_COLOUR: Record<string, string> = { money: "#ffd54f", justice: "#ff7ac6", notices: "#b98cff", property: "#c9a227", safety: "#ff7a2e",
-  utilities: "#2aa3ff", community: "#38d39f", environment: "#7cd36b", heritage: "#e05cd0", live: "#ff5d5d" };
-export const catColour = (L: Layer, c: string) => { const k = L.cats.findIndex((x) => x[0] === c); return k < 0 ? THEME_COLOUR[L.theme] || "#9fa8da" : PALETTE[k % PALETTE.length]; };
-const colourExpr = (L: Layer): any => L.cats.length > 1 ? ["match", ["get", "c"], ...L.cats.flatMap(([c], k) => [c, PALETTE[k % PALETTE.length]]), THEME_COLOUR[L.theme] || "#9fa8da"] : THEME_COLOUR[L.theme] || "#9fa8da";
+  utilities: "#2aa3ff", infra: "#2aa3ff", transport: "#b0bec5", complaints: "#ff5d5d", boundaries: "#9fa8da", economy: "#e6c35c",
+  community: "#38d39f", environment: "#7cd36b", heritage: "#e05cd0", live: "#ff5d5d" };
+const themeColour = (L: Layer) => THEME_COLOUR[clientTheme(L)] || THEME_COLOUR[L.theme] || "#9fa8da";
+export const catColour = (L: Layer, c: string) => { const k = L.cats.findIndex((x) => x[0] === c); return k < 0 ? themeColour(L) : PALETTE[k % PALETTE.length]; };
+const colourExpr = (L: Layer): any => L.cats.length > 1 ? ["match", ["get", "c"], ...L.cats.flatMap(([c], k) => [c, PALETTE[k % PALETTE.length]]), themeColour(L)] : themeColour(L);
+const TEXT = { "text-font": ["Noto Sans Regular"], "text-size": 10.5 } as const;
+const HALO = { "text-color": "#d5dde2", "text-halo-color": "#0b0f12", "text-halo-width": 1.3 };
+const isStreets = (L: Layer) => /^street-names?$/.test(L.id);
+const isAddress = (L: Layer) => L.geom === "Point" && /^(ADR_NO|ADDR|FULL_ADR)$/i.test(L.label || "");
 
 // draw order (bottom → top). Picking uses the same order reversed, so what you see on top is what you get.
 const ORDER: Record<string, number> = { Polygon: 0, Polyline: 1, Multipoint: 2, Point: 2 };
@@ -66,7 +73,7 @@ export async function initMap(container: string, outlines: { slug: string; label
   // tile sources are registered when a layer that uses one is first switched on, so a first visit reads no tile file it does not draw
   // draw-order anchors: record layers are added only when first switched on, and slot in below the right anchor
   map.addSource("anchor", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-  for (const a of ["anchor-line", "anchor-point", "anchor-top"]) map.addLayer({ id: a, type: "circle", source: "anchor" });
+  for (const a of ["anchor-line", "anchor-point", "anchor-top", "anchor-labels"]) map.addLayer({ id: a, type: "circle", source: "anchor" });
   // live and metro point overlays (news, court records, fires, ships): GeoJSON filled in by live.ts
   for (const [id, colour] of [["live-news", "#ffb020"], ["live-courts", "#ff7ac6"], ["live-notices", "#b98cff"], ["live-fires", "#ff3d00"], ["live-ships", "#7be0ff"]] as const) {
     map.addSource(id, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
@@ -93,21 +100,34 @@ function addLayer(L: Layer) {
   if (added.has(L.id)) return; added.add(L.id);
   for (const t of sets(L)) ensureSource(t);
   const before = ANCHOR[L.geom || "Point"];
-  const _add = map.addLayer.bind(map) as any; const add = (spec: any) => _add(spec, before);
+  const _add = map.addLayer.bind(map) as any; const add = (spec: any, under = before) => _add(spec, under);
   const col = colourExpr(L), vis = { visibility: "none" as const }, minzoom = L.minzoom ?? 9;
+  const boundary = clientTheme(L) === "boundaries" && L.geom === "Polygon" && L.n <= 400 && !!L.label;
   sets(L).forEach((ts, k) => {
     const src = "ts-" + ts, sl = L.id, b = k ? `${L.id}@${k}` : L.id;
     if (L.geom === "Polygon") {
       const parcels = L.id === M.parcels.layer;
-      add({ id: `${b}~f`, type: "fill", source: src, "source-layer": sl, minzoom, layout: vis, paint: { "fill-color": col, "fill-opacity": parcels ? 0 : L.theme === "property" && /ward|suburb|district|region/i.test(L.name) ? .04 : L.n > 5000 ? .16 : .2 } });
+      add({ id: `${b}~f`, type: "fill", source: src, "source-layer": sl, minzoom, layout: vis, paint: { "fill-color": col, "fill-opacity": parcels ? 0 : boundary ? .04 : L.n > 5000 ? .16 : .2 } });
       add({ id: `${b}~l`, type: "line", source: src, "source-layer": sl, minzoom, layout: vis, paint: { "line-color": parcels ? "#aab4bb" : col, "line-width": ["interpolate", ["linear"], ["zoom"], 11, .4, 16, parcels ? 1 : 1.6], "line-opacity": parcels ? .55 : .9 } });
-      if (parcels) add({ id: `${b}~t`, type: "symbol", source: src, "source-layer": sl, minzoom: 16, layout: { ...vis, "text-field": ["get", "n"], "text-font": ["Noto Sans Regular"], "text-size": 10 }, paint: { "text-color": "#c3ccd2", "text-halo-color": "#0b0f12", "text-halo-width": 1.3 } });
+      // parcel house numbers from z16; boundary names ("Ward 23") from the layer's own zoom to street scale, so the first screen is not empty
+      if (parcels) add({ id: `${b}~t`, type: "symbol", source: src, "source-layer": sl, minzoom: 16, layout: { ...vis, ...TEXT, "text-field": ["get", "n"], "text-size": 10 }, paint: { ...HALO, "text-color": "#c3ccd2" } }, "anchor-labels");
+      else if (boundary) add({ id: `${b}~t`, type: "symbol", source: src, "source-layer": sl, minzoom, maxzoom: 15, layout: { ...vis, ...TEXT, "text-size": 12,
+        "text-field": /^wards?$/.test(L.id) ? ["concat", "Ward ", ["get", "n"]] : ["get", "n"] }, paint: { ...HALO, "text-color": "#aeb8f0" } }, "anchor-labels");
     } else if (L.geom === "Polyline") {
-      add({ id: `${b}~l`, type: "line", source: src, "source-layer": sl, minzoom, layout: { ...vis, "line-cap": "round" }, paint: { "line-color": col, "line-width": ["interpolate", ["linear"], ["zoom"], 11, .8, 16, 2.4] } });
+      const streets = isStreets(L);
+      add({ id: `${b}~l`, type: "line", source: src, "source-layer": sl, minzoom, layout: { ...vis, "line-cap": "round" }, paint: { "line-color": streets ? "#8a99a3" : col,
+        "line-width": streets ? ["interpolate", ["linear"], ["zoom"], 11, .4, 16, 1.2] : ["interpolate", ["linear"], ["zoom"], 11, .8, 16, 2.4], "line-opacity": streets ? .35 : 1 } });
+      if (streets) add({ id: `${b}~t`, type: "symbol", source: src, "source-layer": sl, minzoom: Math.max(14, minzoom), layout: { ...vis, ...TEXT, "symbol-placement": "line", "text-field": ["get", "n"], "text-size": 11 }, paint: HALO }, "anchor-labels");
     } else {
-      add({ id: `${b}~p`, type: "circle", source: src, "source-layer": sl, minzoom, layout: vis, paint: {
+      // address points are the base layer: small grey dots, so the facilities a view is about stay readable
+      if (isAddress(L)) add({ id: `${b}~p`, type: "circle", source: src, "source-layer": sl, minzoom, layout: vis, paint: {
+        "circle-color": "#8a99a3", "circle-opacity": ["interpolate", ["linear"], ["zoom"], 14, .35, 17, .8], "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 1, 17, 2.6] } });
+      else add({ id: `${b}~p`, type: "circle", source: src, "source-layer": sl, minzoom, layout: vis, paint: {
         "circle-color": col, "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, L.n > 2000 ? 1.6 : 3, 16, L.n > 2000 ? 4.5 : 7],
         "circle-stroke-color": "#0b0f12", "circle-stroke-width": L.n > 2000 ? .4 : 1 } });
+      // house numbers on address points from z16; names on smaller named point layers from z14
+      if (isAddress(L)) add({ id: `${b}~t`, type: "symbol", source: src, "source-layer": sl, minzoom: 16, layout: { ...vis, ...TEXT, "text-field": ["get", "n"], "text-size": 10, "text-offset": [0, -.9] }, paint: HALO }, "anchor-labels");
+      else if (L.label && L.n <= 3000) add({ id: `${b}~t`, type: "symbol", source: src, "source-layer": sl, minzoom: Math.max(14, minzoom), layout: { ...vis, ...TEXT, "text-field": ["get", "n"], "text-offset": [0, 1.1], "text-anchor": "top", "text-optional": true }, paint: HALO }, "anchor-labels");
     }
   });
 }
@@ -117,8 +137,12 @@ export function setVisible(id: string, on: boolean) {
   on ? visible.add(id) : visible.delete(id);
   if (on && L && sets(L).length) addLayer(L);
   if (on && id === "service-requests") addHeat();
-  const all = L ? [...ids(L), ...(id === M.parcels.layer ? sets(L).map((_, k) => `${k ? `${id}@${k}` : id}~t`) : []), ...(id === "service-requests" ? ["service-requests-density~h"] : [])] : [id + "~p"];
+  const all = L ? [...ids(L), ...sets(L).map((_, k) => `${k ? `${id}@${k}` : id}~t`), ...(id === "service-requests" ? ["service-requests-density~h"] : [])] : [id + "~p"];
   for (const lid of all) if (map.getLayer(lid)) map.setLayoutProperty(lid, "visibility", on ? "visible" : "none");
+  // house numbers never twice: parcel numbers hide while an address layer is on
+  const P = layerById.get(M.parcels.layer); if (!P) return;
+  const addressOn = [...visible].some((v) => { const A = layerById.get(v); return !!A && isAddress(A); });
+  sets(P).forEach((_, k) => { const t = `${k ? `${P.id}@${k}` : P.id}~t`; if (map.getLayer(t)) map.setLayoutProperty(t, "visibility", visible.has(P.id) && !addressOn ? "visible" : "none"); });
 }
 
 /** time filter for layers whose tiles carry a month ("d": YYYY-MM): service requests */

@@ -1,6 +1,6 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./styles.css";
-import { loadManifest, M, layerById, parcels, getJSON, DP, DISTRICT, METRO, districtUrl, DataIndex, Districts, Layer } from "./data";
+import { loadManifest, M, layerById, parcels, getJSON, DP, DISTRICT, METRO, districtUrl, DataIndex, Districts, Layer, record, val } from "./data";
 import { initMap, map, setVisible, visible, setBase, THEME_COLOUR, catColour, setMonthRange } from "./map";
 import { inspectPoint, bindInspector, openRecord, openPlot, showStart } from "./inspector";
 import { bindDock, renderTabs, openTab, setLabourFilter, addOwnerTab } from "./dock";
@@ -11,79 +11,93 @@ import { track } from "./access/activity";
 import { user, signOut, isOwner } from "./access/auth";
 import { ACCESS } from "./access/config";
 import { OVERLAYS, showOverlay, overlayStatus } from "./live";
-import { openSupplier, openTender, openFlag, openDepartment, suppliers, bindMoney } from "./money";
+import { openSupplier, openTender, openFlag, openDepartment, suppliers, bindMoney, hidePersons } from "./money";
 import { bindWatch } from "./util";
 import { t, esc, fmt, setLang, LANG } from "./i18n";
+import { THEME_ORDER, THEME_HINT, themeName, themeLayers, quickViews, basics, buildCatalog, nameOf, alsoFrom, clientTheme, isBase, fieldLabel, legendValue } from "./catalog";
 
 const $ = (s: string) => document.querySelector(s) as HTMLElement;
-// first visit: plots, police, fire and wards; phones skip the zoning and heritage fills (the heaviest polygons) until asked for
-const DEFAULT_ON = innerWidth <= 900 ? ["land-parcels", "police-stations", "fire-stations", "wards"] : ["land-parcels", "zoning", "heritage-inventory", "police-stations", "fire-stations", "wards"];
-const PRESETS: [string, string[]][] = [
-  ["Property check", ["land-parcels", "zoning", "servitudes", "heritage-inventory", "split-zoning", "home-owners-associations-gv-2021"]],
-  ["Safety and justice", ["police-stations", "fire-stations", "health-care-facilities", "live-courts"]],
-  ["Complaints", ["service-requests", "wards", "official-suburb"]],
-  ["Heritage", ["heritage-inventory", "heritage-audit-areas", "formal-national-heritage-resources-act-nhra-protection", "land-parcels"]],
-  ["Nature", ["wetlands", "dunes", "terrestrial-biodiversity-network", "indigenous-vegetation-current-extent", "open-watercourses"]],
-  ["Live", ["live-news", "live-fires", "live-ships"]],
-];
 let IDX: DataIndex | null = null, DIS: Districts | null = null;
 let monthFrom = "", monthTo = "";
 const overlayOn = new Set<string>();
 
-function swatch(L: Layer) { return `<span class="sw ${L.geom === "Point" ? "pt" : L.geom === "Polyline" ? "ln" : ""}" style="background:${THEME_COLOUR[L.theme] || "#9fa8da"}"></span>`; }
-const layerRow = (l: Layer) => `<label class="lr" title="${esc(l.description || l.name)}"><input type="checkbox" data-l="${l.id}" ${visible.has(l.id) ? "checked" : ""}>${swatch(l)}<span class="nm">${esc(l.name)}</span><span class="n">${fmt(l.n)}</span></label>`;
+function swatch(L: Layer) { return `<span class="sw ${L.geom === "Point" ? "pt" : L.geom === "Polyline" ? "ln" : ""}" style="background:${THEME_COLOUR[clientTheme(L)] || "#9fa8da"}"></span>`; }
+const zoomNow = () => { try { return map.getZoom(); } catch { return 99; } };
+const notDrawn = (L: Layer) => visible.has(L.id) && zoomNow() < (L.minzoom ?? 9);
+function layerRow(L: Layer) {
+  const copies = alsoFrom.get(L.id) || [];
+  const tip = [L.name !== nameOf(L) ? `City name: ${L.name}` : "", L.description || "", copies.length ? `Also published as: ${copies.map((c) => c.name).join("; ")}` : ""].filter(Boolean).join("\n");
+  return `<label class="lr" title="${esc(tip || L.name)}"><input type="checkbox" data-l="${L.id}" ${visible.has(L.id) ? "checked" : ""}>${swatch(L)}<span class="nm">${esc(nameOf(L))}${notDrawn(L) ? `<br><small class="dim">not drawn at this scale</small>` : ""}</span><span class="n">${fmt(L.n)}</span></label>`;
+}
 const overlayRow = (id: string) => { const O = OVERLAYS.find((o) => o.id === id)!; const st = overlayStatus(id);
   return `<label class="lr" title="${esc(O.note)}"><input type="checkbox" data-o="${O.id}" ${overlayOn.has(O.id) ? "checked" : ""}><span class="sw pt" style="background:${THEME_COLOUR[O.theme]}"></span><span class="nm">${esc(O.name)}${st ? `<br><small class="dim">${esc(st)}</small>` : ""}</span></label>`; };
-const GROUPS: [string, string, string][] = [["money", "Money and tenders", "Geld en tenders"], ["justice", "Justice", "Justisie"], ["notices", "Notices and gazettes", "Kennisgewings en koerante"],
-  ["property", "Property and planning", "Eiendom en beplanning"], ["safety", "Safety", "Veiligheid"], ["utilities", "Utilities and infrastructure", "Nutsdienste en infrastruktuur"],
-  ["community", "Community and City services", "Gemeenskap en Stadsdienste"], ["environment", "Environment", "Omgewing"], ["heritage", "Heritage", "Erfenis"], ["live", "Live", "Regstreeks"]];
 
 function renderLeft(filter = "") {
-  const f = filter.toLowerCase();
-  const groups = (M.themes.length ? M.themes.map((x) => [x.id, x.en, x.af] as [string, string, string]) : GROUPS);
-  const body = groups.map(([id, en, af]) => {
-    const ls = M.layers.filter((l) => l.theme === id && (l.tilesets?.length || l.tileset) && (!f || l.name.toLowerCase().includes(f))).sort((a, b) => a.name.localeCompare(b.name));
-    const ovs = OVERLAYS.filter((o) => o.theme === id && (!f || o.name.toLowerCase().includes(f))).map((o) => o.id);
-    const extra = id === "money" ? `<div class="note" style="padding-left:14px">City awards, bids, quotations, eTenders, land sales, supplier profiles and pattern flags are city-wide: <button class="mini" data-tab="money">open Money</button></div>`
-      : id === "notices" ? `<div class="note" style="padding-left:14px">Every Western Cape Provincial Gazette notice naming Cape Town: <button class="mini" data-tab="notices">open Notices</button></div>` : "";
-    if (!ls.length && !ovs.length && !extra) return "";
-    const on = ls.filter((l) => visible.has(l.id)).length + ovs.filter((o) => overlayOn.has(o)).length;
-    let inner = ovs.map(overlayRow).join("");
-    if (id === "utilities") {   // hundreds of networks: nested by service
-      const subs = [...new Set(ls.map((l) => l.sub || "Other"))].sort();
-      inner += subs.map((s) => { const sl = ls.filter((l) => (l.sub || "Other") === s); const so = sl.filter((l) => visible.has(l.id)).length;
-        return `<details class="theme sub" ${f || so ? "open" : ""}><summary>${esc(s)}<span class="c">${so ? so + "/" : ""}${sl.length}</span></summary>${sl.map(layerRow).join("")}</details>`; }).join("");
-    } else inner += ls.map(layerRow).join("");
-    if (id === "community" && layerById.has("service-requests")) inner += timeSlider();
-    return `<details class="theme" ${f || on ? "open" : ""}><summary><span class="sw" style="background:${THEME_COLOUR[id] || "#9fa8da"}"></span>${esc(LANG === "af" ? af : en)}<span class="c">${on ? on + "/" : ""}${ls.length + ovs.length}</span></summary>${extra}${inner}</details>`;
+  const f = filter.trim();
+  const body = THEME_ORDER.map((id) => {
+    const { main, more } = themeLayers(id, f);
+    const ovs = OVERLAYS.filter((o) => o.theme === id && (!f || o.name.toLowerCase().includes(f.toLowerCase()))).map((o) => o.id);
+    const extra = id === "money" ? `<div class="note gi">Awards, bids, quotations, eTenders, land sales, supplier profiles and pattern flags, city-wide: <button class="mini" data-tab="money">open Money</button></div>`
+      : id === "notices" ? `<div class="note gi">Western Cape Provincial Gazette notices naming Cape Town: <button class="mini" data-tab="notices">open Notices</button></div>` : "";
+    if (!main.length && !more.length && !ovs.length && !extra) return "";
+    const all = [...main, ...more];
+    const on = all.filter((l) => visible.has(l.id)).length + ovs.filter((o) => overlayOn.has(o)).length;
+    const folded = more.length ? `<details class="more" ${f || more.some((l) => visible.has(l.id)) ? "open" : ""}><summary>+ ${more.length} specialist layer${more.length === 1 ? "" : "s"}</summary>${more.map(layerRow).join("")}</details>` : "";
+    const slider = id === "complaints" && layerById.has("service-requests") ? timeSlider() : "";
+    return `<details class="theme" ${f || on ? "open" : ""}><summary><span class="sw" style="background:${THEME_COLOUR[id] || "#9fa8da"}"></span><span class="tn">${esc(themeName(id, LANG))}<small class="hint">${esc(THEME_HINT[id] || "")}</small></span><span class="c">${on ? on + "/" : ""}${all.length + ovs.length}</span></summary>${extra}${ovs.map(overlayRow).join("")}${main.map(layerRow).join("")}${folded}${slider}</details>`;
   }).join("");
+  const active = [...[...visible].filter((id) => layerById.has(id)).map((id) => [id, nameOf(layerById.get(id))]), ...[...overlayOn].map((id) => [id, OVERLAYS.find((o) => o.id === id)?.name || id])];
+  const qv = DISTRICT ? quickViews() : [];
   $("#left").innerHTML = `<div class="phoneonly toolbar"><select id="district2" aria-label="Planning district">${districtOptions()}</select><div class="seg" id="base2"><button data-base="map">Map</button><button data-base="sat">Satellite</button></div><button class="tb" data-lang2="1">${LANG === "en" ? "Afrikaans" : "English"}</button></div>
+    ${qv.length ? `<div class="caps" style="margin:2px 0 6px">${t("presets")}</div><div class="qvs">${qv.map(([n, h], k) => `<button class="qv" data-qv="${k}"><b>${esc(n)}</b><span>${esc(h)}</span></button>`).join("")}</div>` : ""}
+    <div class="activebox"><div class="caps">Active layers <span class="dim">${active.length}</span></div>
+      <div class="chips">${active.map(([id, n]) => `<span class="lchip">${esc(n)}<button data-off="${esc(id)}" aria-label="Remove ${esc(n)}">×</button></span>`).join("") || `<span class="dim sm">None</span>`}</div>
+      ${DISTRICT ? `<div class="links sm"><button class="mini" data-basics="1">Base layers</button><button class="mini" data-clear="1">Clear</button></div>` : ""}</div>
     <input class="lsearch" id="lfind" placeholder="${esc(t("findlayer"))}" value="${esc(filter)}" aria-label="${esc(t("findlayer"))}">
-    ${DISTRICT ? `<div class="caps" style="margin:2px 0 6px">${t("presets")}</div><div class="presets">${PRESETS.map(([n], k) => `<button data-preset="${k}">${esc(n)}</button>`).join("")}<button data-preset="none">Clear</button></div>` : ""}
     ${body}
-    <p class="note">${DISTRICT ? `${fmt(M.layers.length)} map layers and ${fmt(M.tables.length)} record tables for ${esc(M.district.label || M.district.name)}.` : "Metro overview. Choose a planning district on the map or in the list above for its plots and map layers."} Sources and what was left out are under Sources.</p>`;
+    <p class="note">${DISTRICT ? `${fmt(M.layers.length)} City layers and ${fmt(M.tables.length)} record tables for ${esc(M.district.label || M.district.name)}; copies the City publishes more than once are shown once.` : "Metro overview. Select a planning district on the map or in the list above for its erven and layers."} Sources and exclusions are listed under Sources.</p>`;
   const inp = $("#lfind") as HTMLInputElement; inp.oninput = () => { renderLeft(inp.value); const n = $("#lfind") as HTMLInputElement; n.focus(); n.setSelectionRange(n.value.length, n.value.length); };
   ($("#district2") as HTMLSelectElement).onchange = (e) => goDistrict((e.target as HTMLSelectElement).value);
-  legend();
+  legend(); scaleNotice();
 }
 function timeSlider() {
   const L = layerById.get("service-requests")!; const months = (L as any).months as string[] | undefined;
   const ms = months || Array.from({ length: 48 }, (_, k) => { const d = new Date(2023, k, 1); return d.toISOString().slice(0, 7); }).filter((m) => m <= new Date().toISOString().slice(0, 7));
   monthFrom ||= ms[0]; monthTo ||= ms[ms.length - 1];
-  return `<div class="slider" style="padding-left:14px"><div class="caps">Service requests: time</div>
+  return `<div class="slider gi"><div class="caps">Service requests: time</div>
     <label class="sm">From <input type="month" id="m-from" min="${ms[0]}" max="${ms[ms.length - 1]}" value="${monthFrom}"></label>
     <label class="sm">to <input type="month" id="m-to" min="${ms[0]}" max="${ms[ms.length - 1]}" value="${monthTo}"></label></div>`;
 }
+/** legend only where colour carries meaning: not the base layers, not jurisdictions, not yes/no flags */
 function legend() {
-  const shown = [...visible].map((id) => layerById.get(id)!).filter((L) => L && L.cats.length > 1 && L.id !== M.parcels.layer).slice(-3);
-  $("#legend").innerHTML = shown.map((L) => `<div class="caps" style="margin:4px 0 3px">${esc(L.name)}</div>${L.cats.slice(0, 12).map(([c, n]) => `<div class="sm"><span class="sw ${L.geom === "Point" ? "pt" : ""}" style="display:inline-block;background:${catColour(L, c)}"></span> ${esc(c)} <span class="dim">${fmt(n)}</span></div>`).join("")}`).join("");
+  const yesNo = (L: Layer) => L.cats.every(([c]) => /^(y|n|yes|no|true|false|0|1|ja|nee)$/i.test(c));
+  const shown = [...visible].map((id) => layerById.get(id)!).filter((L) => L && L.cats.length > 1 && !isBase(L.id) && clientTheme(L) !== "boundaries" && !yesNo(L)).slice(-3);
+  $("#legend").innerHTML = shown.map((L) => { const f = L.fields.find((x) => x[0] === L.cat); const by = f ? fieldLabel(f) : "";
+    return `<div class="caps" style="margin:4px 0 0">${esc(nameOf(L))}</div>${by ? `<div class="sm dim" style="margin-bottom:3px">by ${esc(by.toLowerCase())}</div>` : ""}${L.cats.slice(0, 12).map(([c, n]) => `<div class="sm"><span class="sw ${L.geom === "Point" ? "pt" : ""}" style="display:inline-block;background:${catColour(L, c)}"></span> ${esc(legendValue(L, c, by))} <span class="dim">${fmt(n)}</span></div>`).join("")}`; }).join("");
+}
+/** a notice on the map when an active layer is too detailed to draw at this zoom; clicking it goes to street scale */
+function scaleNotice() {
+  const el = document.getElementById("scalenote"); if (!el) return;
+  const hidden = [...visible].map((id) => layerById.get(id)!).filter((L) => L && zoomNow() < (L.minzoom ?? 9));
+  el.hidden = !hidden.length;
+  el.textContent = hidden.length ? `${hidden.slice(0, 3).map((L) => nameOf(L)).join(", ")}${hidden.length > 3 ? ` and ${hidden.length - 3} more` : ""}: drawn from street scale. Go to street scale or query an erf or address.` : "";
 }
 function toggle(id: string, on: boolean) {
   if (id.startsWith("live-")) { on ? overlayOn.add(id) : overlayOn.delete(id); showOverlay(id, on); }
   else setVisible(id, on);
   saveView();
 }
-function saveView() { localStorage.setItem(`cm-layers-${DISTRICT || "metro"}`, JSON.stringify([...visible, ...overlayOn])); }
+const VIEW_KEY = `cm-layers-v2-${DISTRICT || "metro"}`;
+function saveView() { try { localStorage.setItem(VIEW_KEY, JSON.stringify([...visible, ...overlayOn])); } catch { /* storage blocked */ } }
+function savedView(): string[] | null { try { return JSON.parse(localStorage.getItem(VIEW_KEY) || "null"); } catch { return null; } }
+function clearAll() { for (const id of [...visible]) setVisible(id, false); for (const id of [...overlayOn]) toggle(id, false); }
+function applyQuickView(k: number) {
+  const [name, , ids] = quickViews()[k];
+  clearAll();
+  for (const id of [...basics().filter((b) => !/^wards?$/.test(b)), ...ids]) toggle(id, true);   // erven, streets and addresses stay on underneath
+  if (name !== "Property Search" && zoomNow() > 15) map.easeTo({ zoom: 14, duration: 600 });
+  saveView(); renderLeft();
+}
 
 const districtOptions = () => `<option value="">Metro overview</option>${(IDX?.districts || []).map((d) => `<option value="${d.slug}" ${d.slug === DISTRICT ? "selected" : ""} ${d.built ? "" : "disabled"}>${esc(d.label)}${d.built ? "" : " (not built yet)"}</option>`).join("")}`;
 function goDistrict(slug: string, hash = "") { if (slug === DISTRICT && !hash) return; location.href = districtUrl(slug, hash); }
@@ -106,7 +120,7 @@ async function search(q: string) {
   }
   if (ql.length >= 3) {
     const S = await suppliers().catch(() => null);
-    const hide = localStorage.getItem("cm-hide-persons") === "1";
+    const hide = hidePersons();
     if (S) { let n = 0; for (const r of S.rows) if (String(r[1]).toLowerCase().includes(ql) && !(hide && r[13])) { out.push({ l: String(r[1]), s: `supplier · ${fmt(r[2] + r[4] + r[6] + r[7])} records`, go: () => openSupplier(r[0]) }); if (++n >= 8) break; } }
   }
   for (const L of M.layers) if (L.name.toLowerCase().includes(ql)) out.push({ l: L.name, s: `layer · ${fmt(L.n)}`, go: () => { toggle(L.id, true); renderLeft(); } });
@@ -163,18 +177,19 @@ async function boot() {
   $("#fresh").innerHTML = `${t("fresh")} <b>${esc((M.built || "").slice(0, 10))}</b>`;
   clock();
   await initMap("map", DIS?.districts || []);
-  const saved = JSON.parse(localStorage.getItem(`cm-layers-${DISTRICT || "metro"}`) || "null") as string[] | null;
-  for (const id of (saved || (DISTRICT ? DEFAULT_ON : ["live-news"]))) { if (layerById.has(id)) setVisible(id, true); else if (OVERLAYS.some((o) => o.id === id)) { overlayOn.add(id); showOverlay(id, true); } }
+  buildCatalog();
+  const saved = savedView();   // key bumped to v2: earlier saved states do not override the new defaults
+  for (const id of (saved || (DISTRICT ? basics() : ["live-news"]))) { if (layerById.has(id)) setVisible(id, true); else if (OVERLAYS.some((o) => o.id === id)) { overlayOn.add(id); showOverlay(id, true); } }
   renderLeft(); bindInspector(); bindDock(); bindSearch(); bindMoney($("#right"), $("#dockbody")); bindWatch($("#right")); bindWatch($("#dockbody"));
   document.addEventListener("overlay-status", () => renderLeft(($("#lfind") as HTMLInputElement)?.value || ""));
   $("#left").addEventListener("change", (e) => { const c = e.target as HTMLInputElement;
-    if (c.dataset.l || c.dataset.o) { toggle((c.dataset.l || c.dataset.o)!, c.checked); legend(); }
+    if (c.dataset.l || c.dataset.o) { toggle((c.dataset.l || c.dataset.o)!, c.checked); renderLeft(($("#lfind") as HTMLInputElement)?.value || ""); }
     if (c.id === "m-from" || c.id === "m-to") { monthFrom = ($("#m-from") as HTMLInputElement).value; monthTo = ($("#m-to") as HTMLInputElement).value; setMonthRange(monthFrom, monthTo); } });
   $("#left").addEventListener("click", (e) => { const el = e.target as HTMLElement;
-    const b = el.closest("[data-preset]") as HTMLElement | null;
-    if (b) { for (const id of [...visible]) setVisible(id, false); for (const id of [...overlayOn]) toggle(id, false);
-      if (b.dataset.preset !== "none") for (const id of PRESETS[+b.dataset.preset!][1]) if (layerById.has(id) || id.startsWith("live-")) toggle(id, true);
-      saveView(); renderLeft(); }
+    const q = el.closest("[data-qv]") as HTMLElement | null; if (q) applyQuickView(+q.dataset.qv!);
+    const off = el.closest("[data-off]") as HTMLElement | null; if (off) { e.preventDefault(); toggle(off.dataset.off!, false); renderLeft(($("#lfind") as HTMLInputElement)?.value || ""); }
+    if (el.closest("[data-basics]")) { for (const id of basics()) toggle(id, true); renderLeft(); }
+    if (el.closest("[data-clear]")) { clearAll(); saveView(); renderLeft(); }
     const tb = el.closest("[data-tab]") as HTMLElement | null; if (tb) { openTab(tb.dataset.tab!); document.body.classList.remove("leftopen"); }
     const bb = el.closest("#base2 button") as HTMLElement | null; if (bb) setBase(bb.dataset.base as any); if (el.closest("[data-lang2]")) $("#lang").click(); });
   map.on("click", (e) => {
@@ -184,10 +199,20 @@ async function boot() {
     inspectPoint(e.lngLat);
   });
   let hover: string | number | undefined;
+  // hovering an erf at street scale: erf number, address, suburb and zoning in the status bar
+  let hovErf = -1; const erfLine = new Map<number, string>();
+  const showErf = async (i: number) => { if (!erfLine.has(i)) { const r = await record(M.parcels.layer, i); const v = (k: string) => val(r, k);
+      erfLine.set(i, r ? [`Erf ${v("PRTY_NMBR") ?? "?"}`, [v("ADR_NO"), v("STR_NAME"), v("LU_STR_NAME_TYPE")].filter((x) => x != null && x !== "").join(" "), v("OFC_SBRB_NAME") || v("ALT_NAME"), v("ZONING")].filter(Boolean).join(" · ") : "");
+    } if (hovErf === i) $("#hud").textContent = erfLine.get(i) || ""; };
   map.on("mousemove", (e) => { $("#hud").textContent = `${e.lngLat.lat.toFixed(5)}, ${e.lngLat.lng.toFixed(5)} · z${map.getZoom().toFixed(1)}`;
     const fs = map.queryRenderedFeatures([[e.point.x - 3, e.point.y - 3], [e.point.x + 3, e.point.y + 3]]);
+    if (DISTRICT && map.getZoom() >= 14) { const p = map.queryRenderedFeatures(e.point).find((f) => f.layer.type === "fill" && f.layer.id.split("~")[0].split("@")[0] === M.parcels.layer);
+      hovErf = p ? Number(p.properties.i) : -1; if (p) void showErf(hovErf); } else hovErf = -1;
     map.getCanvas().style.cursor = fs.some((f) => f.layer.id.includes("~") && !f.layer.id.endsWith("~t")) || (!DISTRICT && fs.some((f) => f.layer.id === "districts-fill")) ? "pointer" : "";
     if (!DISTRICT) { const d = fs.find((f) => f.layer.id === "districts-fill"); if (hover != null) map.setFeatureState({ source: "districts", id: hover }, { hover: false }); hover = d?.id; if (hover != null) map.setFeatureState({ source: "districts", id: hover }, { hover: true }); } });
+  // what is drawn depends on zoom: refresh the "not drawn at this scale" marks and the map notice when the zoom settles
+  let zt: any; map.on("zoomend", () => { clearTimeout(zt); zt = setTimeout(() => { const lf = $("#lfind") as HTMLInputElement | null; if (document.activeElement !== lf) renderLeft(lf?.value || ""); else scaleNotice(); }, 150); });
+  $("#scalenote").onclick = () => map.easeTo({ zoom: 15.5, duration: 700 });
   $("#base").onclick = (e) => { const b = (e.target as HTMLElement).closest("button"); if (!b) return; setBase(b.dataset.base as any); $("#base").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); };
   $("#menu").onclick = () => document.body.classList.toggle("leftopen");
   $("#closeinspect").onclick = () => document.body.classList.remove("inspect");
