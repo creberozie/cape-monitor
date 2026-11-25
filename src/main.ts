@@ -14,7 +14,7 @@ import { OVERLAYS, showOverlay, overlayStatus } from "./live";
 import { openSupplier, openTender, openFlag, openDepartment, suppliers, bindMoney, hidePersons } from "./money";
 import { bindWatch } from "./util";
 import { t, esc, fmt, setLang, LANG } from "./i18n";
-import { THEME_ORDER, THEME_HINT, themeName, themeLayers, quickViews, basics, buildCatalog, nameOf, alsoFrom, clientTheme, isBase, fieldLabel, legendValue } from "./catalog";
+import { canonical, THEME_ORDER, THEME_HINT, themeName, themeLayers, quickViews, basics, buildCatalog, nameOf, alsoFrom, clientTheme, isBase, fieldLabel, legendValue } from "./catalog";
 
 const $ = (s: string) => document.querySelector(s) as HTMLElement;
 let IDX: DataIndex | null = null, DIS: Districts | null = null;
@@ -113,44 +113,78 @@ function applyQuickView(k: number) {
 const districtOptions = () => `<option value="">Sector: Metro overview</option>${(IDX?.districts || []).map((d) => `<option value="${d.slug}" ${d.slug === DISTRICT ? "selected" : ""} ${d.built ? "" : "disabled"}>Sector: ${esc(d.label)}${d.built ? "" : " (not built yet)"}</option>`).join("")}`;
 function goDistrict(slug: string, hash = "") { if (slug === DISTRICT && !hash) return; location.href = districtUrl(slug, hash); }
 
-// search: plots by erf or address, layers, records in small layers, suppliers, tenders, districts and suburbs
+// search, city-wide: erven, street addresses, suburbs, named places, suppliers, tenders, layers. Best match first.
+const TYPES = /\b(street|st|road|rd|avenue|ave|av|drive|dr|way|crescent|cres|close|cl|lane|ln|place|pl|boulevard|blvd|circle|court|ct|terrace|tce|highway|hwy|walk|square|sq|link|mews|grove|gr)\b\.?/g;
+const norm = (x: string) => x.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+const title = (x: string) => x.toLowerCase().replace(/(^|[\s(\-/])\S/g, (c) => c.toUpperCase());
+const shardKey = (x: string) => (x.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 2) || "_").padEnd(2, "_");
+const SI = "data/search/";
+const label = (d: string) => DIS?.districts.find((x) => x.slug === d)?.label || d;
+function openErfAt(d: string, i: number) { if (d === DISTRICT) openPlot(i); else goDistrict(d, `e=${i}`); }
+function openPlaceAt(d: string, lid: string, i: number) { if (d === DISTRICT) { toggle(lid, true); renderLeft(); openRecord(lid, i); } else goDistrict(d, `r=${lid}:${i}`); }
+type Hit = { l: string; s: string; go: () => void; score: number };
 async function search(q: string) {
-  const out: { l: string; s: string; go: () => void }[] = []; const ql = q.toLowerCase().trim(); if (ql.length < 2) return out;
+  const out: Hit[] = []; const ql = norm(q); if (ql.length < 2) return out;
+  const add = (h: Hit) => out.push(h);
   const ref = q.toUpperCase().replace(/\s/g, "").match(/^0*(\d{1,3}[A-Z]\/20\d\d\/\d\d)$/);
-  if (ref) out.push({ l: `Tender ${ref[1]}`, s: "City tender dossier", go: () => openTender(ref[1]) });
-  for (const d of DIS?.districts || []) if (d.label.toLowerCase().includes(ql)) out.push({ l: d.label, s: "planning district", go: () => goDistrict(d.slug) });
-  for (const [n, s] of Object.entries(DIS?.suburbs || {})) if (n.toLowerCase().startsWith(ql) && out.length < 12) out.push({ l: n.replace(/\b\w+/g, (w) => w[0] + w.slice(1).toLowerCase()), s: `suburb · ${DIS!.districts.find((d) => d.slug === s.d)?.label}`,
-    go: () => s.d === DISTRICT ? map.flyTo({ center: s.c, zoom: 15 }) : goDistrict(s.d, `@${s.c[0]},${s.c[1]},15`) });
-  if (DISTRICT && /\d/.test(ql)) {
-    const erf = ql.match(/^(?:erf\s*)?(\d{1,6})\b\s*(.*)$/);
-    const P = await parcels(); const rest = erf ? erf[2] : ql;
-    for (const r of P.rows) {
-      const hay = `${r.addr} ${r.sub}`.toLowerCase();
-      if ((erf && r.erf === erf[1] && (!rest || hay.includes(rest))) || (!erf && hay.includes(ql))) { out.push({ l: `Erf ${r.erf}${r.addr ? " · " + r.addr : ""}`, s: r.sub, go: () => openPlot(r.i) }); if (out.length > 20) break; }
+  if (ref) add({ l: `Tender ${ref[1]}`, s: "City tender dossier", go: () => openTender(ref[1]), score: 100 });
+  // erf: "erf 12819", "12819", "12819 milnerton"
+  const em = ql.match(/^(?:erf\s*)?([0-9]+(?:\s?re)?|[a-z]{1,3}[0-9]+(?:-[0-9a-z]+)?)\s*(.*)$/);
+  // address: "4 longchamp way", "12 long street gardens"
+  const am = ql.match(/^(\d+[a-z]?)\s+([a-z].*)$/);
+  const jobs: Promise<void>[] = [];
+  if (em && /\d/.test(em[1]) && (/^erf/.test(ql) || !am)) jobs.push((async () => {
+    const erf = em[1].replace(/\s/g, "").toUpperCase(); const rest = em[2];
+    const rows = await getJSON<any[][]>(`${SI}e/${erf.slice(-2).padStart(2, "0").replace("/", "_")}.json`).catch(() => []);
+    for (const [e, ad, sub, d, i] of rows) if (String(e).toUpperCase() === erf && (!rest || norm(`${sub} ${ad} ${label(d)}`).includes(rest)))
+      add({ l: `Erf ${e}${ad ? " · " + title(ad) : ""}`, s: `${title(sub)} · ${label(d)}`, go: () => openErfAt(d, i), score: 90 + (d === DISTRICT ? 1 : 0) });
+  })());
+  const streetQ = (am ? am[2] : ql).replace(TYPES, " ").replace(/\s+/g, " ").trim();
+  const TY: Record<string, string> = { st: "street", rd: "road", ave: "avenue", av: "avenue", dr: "drive", cres: "crescent", cl: "close", ln: "lane", pl: "place", blvd: "boulevard", ct: "court", tce: "terrace", hwy: "highway", sq: "square", gr: "grove" };
+  const qType = ((am ? am[2] : ql).match(TYPES) || []).map((x) => x.replace(".", "")).map((x) => TY[x] || x)[0] || "";
+  const typeBonus = (ty: string) => !qType ? 0 : norm(String(ty)) === qType ? 3 : -2;
+  if (streetQ.length >= 2 && /^[a-z]/.test(streetQ)) jobs.push((async () => {
+    const rows = await getJSON<any[][]>(`${SI}s/${shardKey(streetQ)}.json`).catch(() => []);
+    const words = streetQ.split(" "); const seen = new Set<string>();
+    for (const [st, no, ty, sub, e, d, i] of rows) {
+      const stn = norm(String(st)); const rest = words.filter((w) => !stn.split(" ").includes(w));
+      if (!stn.startsWith(words[0])) continue;
+      const nameOk = stn === words.slice(0, stn.split(" ").length).join(" ") || stn.startsWith(streetQ);
+      if (!nameOk) continue;
+      const subOk = rest.every((w) => norm(`${sub} ${label(d)}`).includes(w));
+      if (!subOk) continue;
+      if (am) { if (String(no).toLowerCase() !== am[1]) continue;
+        add({ l: `${no} ${title(st)} ${title(ty)}`.trim(), s: `Erf ${e} · ${title(sub)} · ${label(d)}`, go: () => openErfAt(d, i), score: 95 + typeBonus(ty) + (stn === words.slice(0, stn.split(" ").length).join(" ") ? 2 : 0) }); }
+      else { const k = `${st}|${ty}|${sub}`; if (seen.has(k)) continue; seen.add(k);
+        add({ l: `${title(st)} ${title(ty)}`.trim(), s: `street · ${title(sub)} · ${label(d)}`, go: () => openErfAt(d, i), score: 70 + typeBonus(ty) + (stn === streetQ ? 5 : 0) }); }
     }
-  }
-  if (ql.length >= 3) {
-    const S = await suppliers().catch(() => null);
-    const hide = hidePersons();
-    if (S) { let n = 0; for (const r of S.rows) if (String(r[1]).toLowerCase().includes(ql) && !(hide && r[13])) { out.push({ l: String(r[1]), s: `supplier · ${fmt(r[2] + r[4] + r[6] + r[7])} records`, go: () => openSupplier(r[0]) }); if (++n >= 8) break; } }
-  }
-  for (const L of M.layers) if (L.name.toLowerCase().includes(ql)) out.push({ l: L.name, s: `layer · ${fmt(L.n)}`, go: () => { toggle(L.id, true); renderLeft(); } });
-  for (const L of M.layers) {
-    if (!L.label || L.n > 3000 || L.theme === "utilities" || out.length >= 40) continue;
-    const li = L.fields.findIndex((x) => x[0] === L.label); const words = ql.split(/\s+/).filter((w) => w.length > 1);
-    for (let s = 0; s < Math.ceil(L.n / 2000) && out.length < 40; s++) {
-      const rows = await getJSON<any[][]>(`${DP}attrs/${L.id}/${s}.json`);
-      rows.forEach((r, k) => { const hay = `${r[li] ?? ""} ${L.name}`.toLowerCase(); if (words.every((w) => hay.includes(w.replace(/s$/, ""))) && out.length < 40) out.push({ l: String(r[li]), s: L.name, go: () => { toggle(L.id, true); renderLeft(); openRecord(L.id, s * 2000 + k); } }); });
-    }
-  }
-  return out.slice(0, 40);
+  })());
+  // named places: "table view police", "groote schuur"
+  jobs.push((async () => {
+    const P = await getJSON<any[][]>(`${SI}places.json`).catch(() => []); const words = ql.split(" ").map((w) => w.replace(/s$/, ""));
+    const seen = new Set<string>();
+    for (const [n, ln, d, lid, i] of P) { const nn = norm(String(n)), hay = `${nn} ${norm(String(ln))}`;
+      if (words.every((w) => hay.includes(w)) && !seen.has(`${nn}|${ln}|${d}`) && seen.add(`${nn}|${ln}|${d}`)) add({ l: title(String(n)), s: `${ln} · ${label(d)}`, go: () => openPlaceAt(d, lid, i), score: (nn === ql ? 88 : nn.startsWith(ql) ? 80 : words.every((w) => nn.includes(w)) ? 66 : words.some((w) => nn.includes(w)) ? 84 : 76) + (d === DISTRICT ? 1 : 0) }); }
+  })());
+  for (const d of DIS?.districts || []) if (norm(d.label).includes(ql)) add({ l: d.label, s: "sector", go: () => goDistrict(d.slug), score: norm(d.label) === ql ? 99 : 75 });
+  for (const [n, sb] of Object.entries(DIS?.suburbs || {})) { const nn = norm(n); if (!nn.startsWith(ql) && !ql.startsWith(nn + " ")) continue;
+    add({ l: title(n), s: `suburb · ${label(sb.d)}`, go: () => sb.d === DISTRICT ? map.flyTo({ center: sb.c, zoom: 15 }) : goDistrict(sb.d, `@${sb.c[0]},${sb.c[1]},15`), score: nn === ql ? 98 : ql.startsWith(nn + " ") ? 64 : 72 - Math.min(10, nn.length - ql.length) }); }
+  if (ql.length >= 3) jobs.push((async () => {
+    const S = await suppliers().catch(() => null); if (!S) return; const hide = hidePersons(); let n = 0;
+    for (const r of S.rows) { const nn = norm(String(r[1])); if (nn.includes(ql) && !(hide && r[13])) { add({ l: String(r[1]), s: `supplier · ${fmt(r[2] + r[4] + r[6] + r[7])} records`, go: () => openSupplier(r[0]), score: nn.startsWith(ql) ? 55 : 40 }); if (++n >= 8) break; } }
+  })());
+  if (DISTRICT) for (const L of M.layers) if (canonical.get(L.id) === L.id && norm(`${nameOf(L)} ${L.name}`).includes(ql)) add({ l: nameOf(L), s: `layer · ${fmt(L.n)}`, go: () => { toggle(L.id, true); renderLeft(); }, score: 50 });
+  await Promise.all(jobs);
+  return out.sort((a, b) => b.score - a.score).slice(0, 30);
 }
 function bindSearch() {
-  const q = $("#q") as HTMLInputElement, box = $("#results"); let res: Awaited<ReturnType<typeof search>> = [], tm: any, k = -1;
+  const q = $("#q") as HTMLInputElement, box = $("#results"); let res: Hit[] = [], tm: any, k = -1, seq = 0;
   q.placeholder = t("search");
-  q.oninput = () => { clearTimeout(tm); tm = setTimeout(async () => { const v = q.value; res = await search(v); if (q.value !== v) return; k = -1;
-    box.innerHTML = res.length ? res.map((r, n) => `<div class="res" role="option" data-n="${n}"><span>${esc(r.l)}</span><small>${esc(r.s)}</small></div>`).join("") : `<div class="res dim">Nothing found.</div>`; box.hidden = !v.trim(); }, 220); };
-  q.onkeydown = (e) => { if (e.key === "Enter") { (res[Math.max(0, k)])?.go(); box.hidden = true; q.blur(); } else if (e.key === "Escape") box.hidden = true;
+  const run = async () => { const v = q.value, n = ++seq; res = await search(v); if (n !== seq) return; k = res.length ? 0 : -1;
+    box.innerHTML = res.length ? res.map((r, n) => `<div class="res${n === 0 ? " on" : ""}" role="option" data-n="${n}"><span>${esc(r.l)}</span><small>${esc(r.s)}</small></div>`).join("")
+      : `<div class="res dim">No match. Try an erf number (12819), an address (4 Longchamp Way), a suburb, a place (Table View police) or a company.</div>`; box.hidden = !v.trim(); };
+  q.oninput = () => { clearTimeout(tm); seq++; res = []; k = -1; if (!q.value.trim()) { box.hidden = true; return; } box.innerHTML = `<div class="res dim">${t("loading")}</div>`; box.hidden = false; tm = setTimeout(run, 200); };
+  q.onkeydown = async (e) => { if (e.key === "Enter") { e.preventDefault(); if (!res.length || seq && box.querySelector(".dim")) { clearTimeout(tm); await run(); } res[Math.max(0, k)]?.go(); box.hidden = true; q.blur(); } else if (e.key === "Escape") box.hidden = true;
     else if (e.key === "ArrowDown" || e.key === "ArrowUp") { k = Math.max(0, Math.min(res.length - 1, k + (e.key === "ArrowDown" ? 1 : -1))); box.querySelectorAll(".res").forEach((el, n) => el.classList.toggle("on", n === k)); e.preventDefault(); } };
   box.onmousedown = (e) => { const el = (e.target as HTMLElement).closest("[data-n]") as HTMLElement | null; if (el) { e.preventDefault(); res[+el.dataset.n!].go(); box.hidden = true; q.blur(); } };
   q.onblur = () => setTimeout(() => (box.hidden = true), 150);
@@ -166,6 +200,8 @@ async function openHash() {
   if (h.startsWith("l=")) { setLabourFilter(h.slice(2)); return openTab("labour"); }
   if (h.startsWith("@")) { const [x, y, z] = h.slice(1).split(",").map(Number); if (isFinite(x) && isFinite(y)) map.jumpTo({ center: [x, y], zoom: z || 15 }); return; }
   if (!DISTRICT) return;
+  if (h.startsWith("e=")) return openPlot(+h.slice(2));
+  if (h.startsWith("r=")) { const [lid, k] = h.slice(2).split(":"); if (!layerById.has(lid)) return; toggle(lid, true); renderLeft(); return openRecord(lid, +k); }
   if (h.startsWith("p=")) { const P = await parcels(); const i = P.byKey.get(h.slice(2)); if (i != null) openPlot(i); return; }
   if (h.startsWith("f=")) { const [lid, oid] = h.slice(2).split(":"); const L = layerById.get(lid); if (!L) return; toggle(lid, true); renderLeft();
     for (let s = 0; s < Math.ceil(L.n / 2000); s++) { const rows = await getJSON<any[][]>(`${DP}attrs/${lid}/${s}.json`); const k = rows.findIndex((r) => String(r[r.length - 1]) === oid); if (k >= 0) return openRecord(lid, s * 2000 + k); } }
