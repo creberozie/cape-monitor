@@ -1,6 +1,6 @@
 """Unit tests for the ZopStopper readers (pipeline/metro/fetch_muni.py, muni.py). Fixtures are excerpts of the municipality's own
 published registers and of Treasury's restricted-supplier report. Run: python3 -m unittest discover -s pipeline/tests"""
-import json, os, sys, unittest
+import json, os, re, sys, unittest
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, os.path.join(HERE, "..")); sys.path.insert(0, os.path.join(HERE, "..", "metro"))
 os.environ["MUNI"] = "stellenbosch"
 import fetch_muni as F
@@ -98,6 +98,15 @@ class RotatedAndStrayText(unittest.TestCase):
         out, warn = F.check_names(rows)
         self.assertEqual([r["bidder"] for r in out], ["GUNDO EVOLUTION (PTY) LTD", "VK DISTRIBUTORS (PTY) LTD", "AMILA INVESTMENT (PTY) LTD", "CHLORCAPE (PTY) LTD"])
         self.assertEqual(len(warn), 3)
+
+
+class OffersReceivedRegisters(unittest.TestCase):
+    def test_numbered_offers_are_not_awards(self):
+        # March 2021 quotation register: numbered offers received, then the award date, the awardee and the amount
+        rows = F.parse_awards(fx("stb-fq-offers-2021-03.txt"), "fq")
+        first = rows[0]
+        self.assertEqual((first["ref"], first["bidder"], first["amount"], first["approved"], first["closing"]), ("FQ75/21", "MSCT BEE Services", 115000.00, "2021-02-01", None))
+        self.assertFalse(any(re.match(r"\d{1,2}\.\s", r["bidder"]) for r in rows))
 
 
 class ScannedBidRegister(unittest.TestCase):

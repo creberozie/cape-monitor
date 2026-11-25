@@ -315,6 +315,7 @@ def parse_awards(text, kind):
             if c and hx is None: hx = c.start()
         anchors = [(i, re.sub(r"\s+", " ", m.group(1)).strip()) for i, l in enumerate(lines) for m in [rx.match(l)] if m]
         if not anchors: continue
+        award_col = hx is None and any(re.search(r"(?i)award date", l) for l in lines[:25])   # older quotation registers: one date column, the award date
         if hx is None:   # a page without the header: the closing-date column is where the first date on a numbered line sits
             for i, _ in anchors:
                 d = next((x for x, t in chunks(lines[i]) if classify(t) == "date"), None)
@@ -353,9 +354,10 @@ def parse_awards(text, kind):
             for x, t in cs:
                 k = classify(t)
                 if k == "date":   # at the closing-date column: closing date; to its right: date approved, then completion
-                    if x <= hx + 4:
+                    if x <= hx + 4 and not award_col:
                         if not prev["closing"]: prev["closing"] = iso(t)
                     else: prev["dates"].append(iso(t))
+                elif k == "text" and re.match(r"\d{1,2}\.\s", t): continue   # a numbered offer ('1. BEE Online Advisory'): offers received, not the award
                 elif k == "text" and x >= hx - 1 and line_bidder is None and len(re.sub(r"[^A-Za-z]", "", t)) >= 2 and not re.fullmatch(r"(?i)\d+ (?:years?|months?)", t):
                     p = pending[1] if pending and pending[0] == i - 1 else None
                     if (p is not None and not m and not p["level"] and len(t.split()) <= 4

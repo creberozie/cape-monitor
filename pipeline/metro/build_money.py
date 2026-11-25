@@ -643,10 +643,16 @@ if RS:
         k = re.sub(r"[^a-z0-9]+", "-", norm(r["name"]).lower()).strip("-")[:60]
         if k in REG.by and any(REG.by[k]["refs"].values()):
             S = REG.by[k]; recs = [["awards", i] for i in S["refs"]["awards"]] + [["rfq", i] for i in S["refs"]["rfq"]] + [["etenders", i] for i in S["refs"]["et"]] + [["bids", i] for i in S["refs"]["bids"]]
+            # where the municipality's records fall against the restriction period: the first thing a reader needs to know
+            dates = sorted(d for d in [awards[i][0] for i in S["refs"]["awards"]] + [rfq[i][0] for i in S["refs"]["rfq"]] + [et_rows[i][0] for i in S["refs"]["et"]]
+                           + [bids[i][0] for i in S["refs"]["bids"]] if d)
+            inside = [d for d in dates if r["from"] and r["to"] and r["from"] <= d <= r["to"]]
+            timing = (f"Of the {len(dates)} dated records here ({dates[0]} to {dates[-1]}), {len(inside)} fall inside the restriction period"
+                      + (f" (first {inside[0]})." if inside else "; the others are before or after it.")) if dates else "The records here carry no date."
             flag("restricted", f"{S['names'].most_common(1)[0][0]}: same name as '{r['name']}' on Treasury's restricted list",
                  f"NAME MATCH ONLY. Treasury's Restricted Supplier and Tender Defaulter Report (generated {RS.get('generated')}) lists '{r['name']}' (registration or ID number {r['reg'] or 'not given'}): "
                  f"{r['type']}, reason '{r['reason']}', restricted {r['from']} to {r['to']} by {r['by']}. The records here name a supplier with the same normalised name; they do not show "
-                 "a registration number, so it may be a different entity. Check the registration number on the CSD before relying on this.",
+                 "a registration number, so it may be a different entity. Check the registration number on the CSD before relying on this. " + timing,
                  recs, [["supplier", k]], basis={"text": "National Treasury: Restricted Supplier and Tender Defaulter Report", "url": RS["url"]})
 
 for f in flags:
