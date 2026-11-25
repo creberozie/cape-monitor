@@ -2,7 +2,7 @@
 // Profiles (supplier, tender, department, flag) open in the right-hand panel; lists and tables in the bottom panel.
 import { getJSON, METRO } from "./data";
 import { esc, fmt, money as rand } from "./i18n";
-import { exportCSV, exportJSON, watchButton, markSeen, updateCount, bars, columns, short } from "./util";
+import { exportCSV, exportTable, exportJSON, watchButton, markSeen, updateCount, bars, columns, short } from "./util";
 
 const $ = (s: string) => document.querySelector(s) as HTMLElement;
 const MP = METRO + "money/";
@@ -85,7 +85,7 @@ export async function tableView(tid: string, host: HTMLElement, opts: { filter?:
   let tm: any; (host.querySelector(".tv-q") as HTMLInputElement).oninput = (e) => { clearTimeout(tm); tm = setTimeout(() => { v.q = (e.target as HTMLInputElement).value; rerender().then(() => { const el = host.querySelector(".tv-q") as HTMLInputElement; el.focus(); el.setSelectionRange(el.value.length, el.value.length); }); }, 250); };
   (host.querySelector(".tv-g") as HTMLSelectElement).onchange = (e) => { v.group = +(e.target as HTMLSelectElement).value; rerender(); };
   const ys = host.querySelector(".tv-y") as HTMLSelectElement | null; if (ys) ys.onchange = () => { v.year = ys.value; rerender(); };
-  (host.querySelector(".tv-x") as HTMLElement).onclick = () => exportCSV(`${t.id}${v.year ? "-" + v.year : ""}${v.q ? "-filtered" : ""}`, t.fields.map((f) => f[1]),
+  (host.querySelector(".tv-x") as HTMLElement).onclick = () => exportTable(`${t.id}${v.year ? "-" + v.year : ""}${v.q ? "-filtered" : ""}`, t.fields.map((f) => f[1]),
     rows.map((r) => r.map((x, k) => t.fields[k][0] === "sup" || t.fields[k][0] === "bidders" ? (Array.isArray(x) ? x : x ? [x] : []).map((s: string) => names.get(s) || s).join("; ") : x)),
     `${t.name}. Source: ${t.source} ${t.url}, fetched ${t.retrieved}. Exported from Cape Monitor ${new Date().toISOString().slice(0, 10)}.`);
   host.querySelectorAll("th[data-sort]").forEach((th) => (th as HTMLElement).onclick = () => { const k = +(th as HTMLElement).dataset.sort!; v.dir = v.sort === k ? -v.dir : -1; v.sort = k; rerender(); });
@@ -141,7 +141,7 @@ async function supplierList(el: HTMLElement) {
     ${rows.slice(0, 300).map((r) => `<tr class="click" data-sup="${esc(r[0])}"><td>${esc(r[1])}${r[13] ? ' <span class="pill person" title="Possibly a private individual">person?</span>' : ""}</td><td class="mono">${fmt(r[2])}</td><td class="mono">${r[3] ? short(r[3]) : ""}</td><td class="mono dim">${r[12] ? short(r[12]) : ""}</td><td class="mono">${fmt(r[4])}</td><td class="mono">${r[5] ? short(r[5]) : ""}</td><td class="mono">${fmt(r[6])}</td><td class="mono">${fmt(r[7])}</td><td class="mono">${r[8] || ""}</td><td class="mono">${r[11] ? `<span class="flagc">${r[11]}</span>` : ""}</td><td class="mono dim">${esc(r[9] || "")}${r[10] && r[10] !== r[9] ? "–" + esc(r[10]) : ""}</td></tr>`).join("")}</tbody></table></div>`;
   let tm: any; (el.querySelector(".sq") as HTMLInputElement).oninput = (e) => { clearTimeout(tm); tm = setTimeout(() => { supQ = (e.target as HTMLInputElement).value; supplierList(el).then(() => { const i = el.querySelector(".sq") as HTMLInputElement; i.focus(); i.setSelectionRange(i.value.length, i.value.length); }); }, 200); };
   el.querySelectorAll("[data-ss]").forEach((th) => (th as HTMLElement).onclick = () => { supSort = +(th as HTMLElement).dataset.ss!; supplierList(el); });
-  (el.querySelector(".sx") as HTMLElement).onclick = () => exportCSV("suppliers", S.fields, rows, "Cape Monitor supplier index built from City of Cape Town Open Data Portal, City bid registers and the eTender portal");
+  (el.querySelector(".sx") as HTMLElement).onclick = () => exportTable("suppliers", S.fields, rows, "Cape Monitor supplier index built from City of Cape Town Open Data Portal, City bid registers and the eTender portal");
 }
 
 let flagFilter = "";
@@ -153,7 +153,7 @@ async function flagList(el: HTMLElement) {
     ${list.slice(0, 300).map((f) => `<div class="feeditem click" data-flag="${esc(f.id)}"><b>${esc(f.title)}</b><div class="meta">${esc(F.kinds[f.kind])} · ${f.records.length} record${f.records.length === 1 ? "" : "s"}${f.value ? " · " + short(f.value) : ""} · ${f.subjects.filter((s) => s[0] === "supplier").map((s) => esc(names.get(s[1]) || s[1])).join(", ")}</div><div class="sm mu">${esc(f.text)}</div></div>`).join("")}
     ${list.length > 300 ? `<div class="note">First 300 of ${fmt(list.length)} shown; export has all.</div>` : ""}`;
   (el.querySelector(".fk") as HTMLSelectElement).onchange = (e) => { flagFilter = (e.target as HTMLSelectElement).value; flagList(el); };
-  (el.querySelector(".fx") as HTMLElement).onclick = () => exportCSV("pattern-flags", ["id", "kind", "title", "text", "value", "suppliers", "records"],
+  (el.querySelector(".fx") as HTMLElement).onclick = () => exportTable("pattern-flags", ["id", "kind", "title", "text", "value", "suppliers", "records"],
     list.map((f) => [f.id, F.kinds[f.kind], f.title, f.text, f.value ?? "", f.subjects.filter((s) => s[0] === "supplier").map((s) => names.get(s[1]) || s[1]), f.records.map((r) => r.join(":"))]), F.note);
 }
 
@@ -193,6 +193,7 @@ export async function openSupplier(id: string) {
   if (!P || !ix) { R().innerHTML = `<div class="card"><div class="empty">No supplier profile "${esc(id)}" in this build.</div></div>`; return; }
   const F = await flagsData(); const flags = F.flags.filter((f) => P.flags.includes(f.id));
   const J = await getJSON<any>(METRO + "justice.json").catch(() => null);
+  const REG = await getJSON<any>(METRO + "registry.json").catch(() => null); const reg = REG?.records?.[id];
   const cases = (J?.items || []).filter((c: any) => c.suppliers?.includes(id));
   const name = ix[1]; const n = Object.values(P.refs as Record<string, number[]>).reduce((s, v) => s + v.length, 0);
   updateCount("supplier", id, n); markSeen("supplier", id, n);
@@ -212,9 +213,15 @@ export async function openSupplier(id: string) {
       ${phones.length || P.contacts?.length ? `<div class="sm">Contact details published on eTender awards: ${P.contacts.map(esc).join(", ")}${phones.length ? ` · numbers ending ${phones.map((p) => esc(p.slice(-4))).join(", ")}` : ""}</div>` : ""}
       <div class="links">${watchButton("supplier", id, name, n)}<button class="mini" data-share="s=${esc(id)}">Share link</button><button class="mini" data-expjson="1">Export profile (JSON)</button></div>
       <div class="links sm"><span class="dim">Look up:</span><a href="https://www.saflii.org/cgi-bin/sinosrch-adw.cgi?query=${q}&method=boolean&meta=%2Fsaflii" target="_blank" rel="noopener">SAFLII judgments ↗</a>
+        <a href="https://www.saflii.org/cgi-bin/sinosrch-adw.cgi?query=${q}&method=boolean&meta=%2Fsaflii&mask_path=za%2Fcases%2FZALCCT+za%2Fcases%2FZALAC+za%2Fcases%2FZALCJHB+za%2Fcases%2FZALCD+za%2Fcases%2FZALCPE" target="_blank" rel="noopener">SAFLII labour courts ↗</a>
         <a href="${esc(m.registers.cipc)}" target="_blank" rel="noopener">CIPC / BizPortal ↗</a><a href="${esc(m.registers.csd)}" target="_blank" rel="noopener">Central Supplier Database ↗</a>
         <a href="${esc(m.registers.restricted)}" target="_blank" rel="noopener">Treasury restricted suppliers ↗</a></div>
       <div class="note">${esc(IDENTITY_NOTE)}</div><div class="note">Totals add every published decision that names this supplier; a decision shared with others is counted in full for each, never divided. Fixed values and rates-based budgets (estimates of spend, not amounts paid) are kept apart; both are as published, including any capture errors in the source. Directors are not in these sources: CIPC records need a CIPC search.</div></div>
+    <h3>Company register</h3>${reg ? `<table class="kv">${[["Registration number", reg.reg_no], ["Number printed in published records", (reg.printed_reg_no || []).join(", ")], ["Status", reg.status], ["Registration date", reg.reg_date],
+        ["Registered address", reg.address], ["Directors", (reg.directors || []).map((d: any) => typeof d === "string" ? d : [d.name, d.role, d.appointed].filter(Boolean).join(", ")).join("; ")], ["Source", reg.source ? `${reg.source} (retrieved ${String(reg.retrieved || "").slice(0, 10)})` : ""]]
+        .filter(([, v]) => v).map(([l, v]) => `<tr><td>${esc(l)}</td><td>${esc(v)}</td></tr>`).join("")}</table>${(reg.printed_in || []).map((h: any) => `<div class="sm dim">Printed in ${esc(h.table)} record: "${esc(h.text)}"</div>`).join("")}
+        <div class="note">A CIPC number has the form YYYY/NNNNNN/NN; the first part is the year of registration.</div>`
+      : `<div class="note">Not in Cape Monitor's register cache yet. Search the register yourself: <a href="https://www.bizportal.gov.za/" target="_blank" rel="noopener">CIPC BizPortal ↗</a> (login required, about 20 searches a day) or <a href="https://b2bhint.com/en/country/search-south-africa-company--16" target="_blank" rel="noopener">B2BHint ↗</a>.</div>`}
     ${flags.length ? `<h3>Pattern flags<span class="c">${flags.length}</span></h3>${flags.map((f) => `<div class="row" data-flag="${esc(f.id)}"><span class="t">${esc(f.title)}</span><small>${esc(F.kinds[f.kind])}</small></div>`).join("")}<div class="note">${esc(F.note)}</div>` : ""}
     ${network(id, name, P.cobid || [], [...co], sharePhone as string[], names)}
     ${P.refs.awards ? `<h3>City award decisions<span class="c">${P.refs.awards.length}</span></h3>${await rowsTable("awards", P.refs.awards, ["date", "ref", "decision", "reason", "code", "desc", "value_text", "budget_text", "sup"])}` : ""}

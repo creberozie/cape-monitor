@@ -97,7 +97,16 @@ async function showPlot(i: number, f: any, s: number, hits: { layer: string; i: 
       ...(F?.items || []).filter(hit).map((n: any) => `<div class="row"><a class="t" href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a><small>${esc(n.feed)} · ${esc(String(n.date).slice(0, 10))}</small></div>`)];
     return items.join("");
   };
-  const [z, r2, pl, rq, sa, ne, nm] = await Promise.all([zoneRows(D.zones), zoneRows(D.records), plans(), reqs(), sales(), near(), named()]);
+  const businesses = async () => {   // company-register addresses matched to this plot's street address (same normalisation as the pipeline)
+    const R = await getJSON<any>(METRO + "registry.json").catch(() => null); if (!R?.address_index) return "";
+    const na = (s: string) => s.toUpperCase().replace(/,/g, " ").replace(/\bROAD\b/g, "RD").replace(/\bSTREET\b/g, "ST").replace(/\bAVENUE\b/g, "AVE").replace(/\bDRIVE\b/g, "DR")
+      .replace(/\bCRESCENT\b/g, "CRES").replace(/\bCLOSE\b/g, "CL").replace(/\bLANE\b/g, "LN").replace(/\bBOULEVARD\b/g, "BLVD").replace(/\bPLACE\b/g, "PL").replace(/[^A-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+    const street = na(`${[v("ADR_NO"), v("STR_NAME"), v("LU_STR_NAME_TYPE")].filter(Boolean).join(" ")}`); if (!/^\d/.test(street)) return "";
+    const subs = [v("OFC_SBRB_NAME"), v("ALT_NAME")].filter(Boolean).map((x: any) => na(String(x)));
+    const ids = Object.entries(R.address_index as Record<string, string[]>).filter(([a]) => a.startsWith(street + " ") && subs.some((sb) => a.includes(sb))).flatMap(([, x]) => x);
+    return [...new Set(ids)].map((sid) => `<div class="row" data-sup="${esc(sid)}"><span class="t">${esc(R.records[sid]?.name || sid)}</span><small>${esc(R.records[sid]?.reg_no || "")} · ${esc(R.records[sid]?.status || "")}</small></div>`).join("");
+  };
+  const [z, r2, pl, rq, sa, ne, nm, bz] = await Promise.all([zoneRows(D.zones), zoneRows(D.records), plans(), reqs(), sales(), near(), named(), businesses()]);
   if (s !== seq) return;
   const others = hits.filter((h) => h.layer !== P.id);
   $("#right").innerHTML = `<div class="card primary"><div class="kicker">${t("plot")} · ${esc(v("OFC_SBRB_NAME") || v("ALT_NAME") || "")}</div>
@@ -107,6 +116,7 @@ async function showPlot(i: number, f: any, s: number, hits: { layer: string; i: 
     ${v("ZONING") ? `<span class="pill">${esc(v("ZONING"))}</span>` : ""}${v("LU_LGL_STS_DSCR") ? `<span class="pill">${esc(v("LU_LGL_STS_DSCR"))}</span>` : ""}
     <div class="links"><a href="${P.url}/query?where=SL_LAND_PRCL_KEY%3D${encodeURIComponent(key)}&outFields=*&returnGeometry=false&f=html" target="_blank" rel="noopener">${t("cityrec")} ↗</a><button class="mini" data-share="p=${esc(key)}">${t("share")}</button>
       ${watchButton("plot", `${DISTRICT}|${key}`, `Erf ${v("PRTY_NMBR")} ${v("OFC_SBRB_NAME") || ""}`, (D.plans?.length || 0) + (D.requests?.length || 0) + (D.sales?.length || 0), DISTRICT)}<button class="mini" data-dl="1">Export dossier (JSON)</button></div></div>
+    ${bz ? `<h3>Registered businesses at this address</h3>${bz}<div class="note">Company-register addresses matched to this plot's street number, street and suburb.</div>` : ""}
     ${nm ? `<h3>Gazette notices, court records and news naming this erf</h3>${nm}<div class="note">Matched by erf number and suburb (or allotment) name as published in the notice, title or summary.</div>` : ""}
     ${pl ? `<h3>${t("plans")}<span class="c">${new Set(D.plans).size}</span></h3>${pl}` : `<h3>${t("plans")}<span class="c">0</span></h3><div class="empty">${t("none")} (2014 onward)</div>`}
     ${rq ? `<h3>${t("requests")}<span class="c">${fmt(D.requests!.length)}</span></h3>${rq}` : ""}
@@ -149,7 +159,7 @@ export async function openPlot(i: number) {
 /** the record's real shape, from the loaded map tiles (pieces from neighbouring tiles are merged into one multi-shape) */
 function outline(layerId: string, i: number): { geometry: GeoJSON.Geometry } | null {
   const L = layerById.get(layerId); if (!L?.tileset) return null;
-  const fs = tileSources(L).flatMap((s) => map.querySourceFeatures(s, { sourceLayer: layerId, filter: ["==", ["get", "i"], i] }));
+  const fs = tileSources(L).filter((s) => map.getSource(s)).flatMap((s) => map.querySourceFeatures(s, { sourceLayer: layerId, filter: ["==", ["get", "i"], i] }));
   if (!fs.length) return null;
   if (fs.length === 1) return { geometry: fs[0].geometry };
   const polys = fs.flatMap((f) => f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.type === "MultiPolygon" ? f.geometry.coordinates : []);
