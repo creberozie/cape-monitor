@@ -38,10 +38,13 @@ jobs:
       - { uses: actions/cache/restore@v4, with: { path: public/data/d/helderberg, key: "good-helderberg-x", restore-keys: "good-helderberg-" } }
       - { uses: actions/cache/restore@v4, with: { path: public/data/metro, key: "good-metro-x", restore-keys: "good-metro-" } }
       - { uses: actions/cache/restore@v4, with: { path: public/data/muni, key: "good-muni-x", restore-keys: "good-muni-" } }   # ZopStopper (/watch/)
-      - name: ZopStopper starting data, used only when no data run has saved any yet
+      - name: ZopStopper data shipped with the branch, used when it is newer than the data run's saved copy
         run: |
-          if [ ! -f public/data/muni/stellenbosch/money/money.json ] && [ -f pipeline/seed/muni-stellenbosch.tar.gz ]; then
-            mkdir -p public/data && tar -xzf pipeline/seed/muni-stellenbosch.tar.gz -C public/data && echo "::notice::ZopStopper: using the starting data in pipeline/seed"
+          if [ -f pipeline/seed/muni-stellenbosch.tar.gz ]; then
+            T=$(mktemp -d); tar -xzf pipeline/seed/muni-stellenbosch.tar.gz -C "$T"
+            built() { python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['built'])" "$1" 2>/dev/null || echo 0; }
+            S=$(built "$T/muni/stellenbosch/money/money.json"); C=$(built public/data/muni/stellenbosch/money/money.json)
+            if [[ "$S" > "$C" ]]; then rm -rf public/data/muni; mkdir -p public/data; mv "$T/muni" public/data/muni; echo "::notice::ZopStopper: branch data ($S) is newer than saved data ($C)"; fi
           fi
       - name: Hold back if there is no data for this branch yet
         id: hasdata

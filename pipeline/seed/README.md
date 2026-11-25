@@ -1,3 +1,3 @@
-Starting data for ZopStopper (/watch/), built from the public sources by `MUNI=stellenbosch` (fetch_muni.py, build_money.py,
-build_muni.py) on 25 Nov 2026. The deploy workflow unpacks it only when no data run has saved Stellenbosch data yet; once the
-data workflow saves its own (cache key good-muni-*), this file is not used and can be deleted.
+ZopStopper (/watch/) data built from the public sources by `MUNI=stellenbosch` (fetch_muni.py, build_money.py, build_muni.py).
+The deploy workflow uses it when it is newer than the data workflow's saved copy (cache key good-muni-*). Once the data workflow
+runs with the current code, its copy is newer and this file is not used; it can then be deleted.
