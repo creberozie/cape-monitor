@@ -1,0 +1,97 @@
+name: Data
+# Weekly (Monday 03:23 SAST) every source is fetched again: the eight planning districts in parallel, plus the metro-wide
+# money, courts, notices and feeds. Once a day (05:41 SAST) the fast-moving metro sources (open tenders, awards, feeds,
+# this year's gazettes) are refreshed. Daily rather than three-hourly keeps a private repository inside GitHub's free
+# Actions minutes; if the repository is made public (unlimited minutes) this can go back to "41 */3 * * *".
+# Data runs on schedule or when started by hand (Actions > Data > Run workflow). On working branches a change to the metro
+# pipeline rebuilds only the metro data; districts never rebuild on a push. Each part that succeeds is saved as that part's "last good" data; a part that fails keeps
+# its last good data, so the live site never loses a district because one source was down. Then the site is deployed.
+on:
+  schedule:
+    - cron: "23 1 * * 1"      # full refresh
+    - cron: "41 3 * * *"      # metro quick refresh, daily
+  workflow_dispatch:
+    inputs:
+      scope: { description: "full or metro", default: "full" }
+  push:   # working branches: a change to the metro pipeline rebuilds the metro data (districts never rebuild there).
+    # main: a change to this file or the metro pipeline runs a full refresh, because saved data belongs to the branch that
+    # made it, so production needs its own (this is what fills production after a merge).
+    branches: ["claude/**", "main"]
+    paths: ["pipeline/metro/**", ".github/workflows/data.yml"]
+permissions: { contents: write }
+concurrency:
+  group: "data-${{ github.ref }}"
+  cancel-in-progress: false
+env:
+  FULL: ${{ (github.event_name == 'schedule' && github.event.schedule == '23 1 * * 1') || (github.event_name == 'workflow_dispatch' && inputs.scope != 'metro') || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
+jobs:
+  district:
+    if: ${{ (github.event_name == 'schedule' && github.event.schedule == '23 1 * * 1') || (github.event_name == 'workflow_dispatch' && inputs.scope != 'metro') || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        district: [blaauwberg, table-bay, tygerberg, northern, southern, cape-flats, mitchells-plain-khayelitsha, helderberg]
+    env: { CM_DISTRICT: "${{ matrix.district }}", CM_WORKERS: "8" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install shapely pmtiles && npm ci
+      - name: Fetch the district from the City's GIS and Open Data Portal
+        run: |
+          set -o pipefail
+          mkdir -p logs
+          ( python3 -I pipeline/catalogue.py && python3 -I pipeline/fetch_city.py --refresh && python3 -I pipeline/fetch_extra.py --refresh ) 2>&1 | tee logs/fetch-${{ matrix.district }}.log
+      - name: Build tiles, dossiers and statistics
+        run: |
+          set -o pipefail
+          python3 -I pipeline/build.py 2>&1 | tee logs/build-${{ matrix.district }}.log
+          python3 -I pipeline/check.py district ${{ matrix.district }} | tee -a logs/build-${{ matrix.district }}.log
+      - name: Save as last good data for this district
+        uses: actions/cache/save@v4
+        with: { path: "public/data/d/${{ matrix.district }}", key: "good-${{ matrix.district }}-${{ github.run_id }}" }
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: "log-${{ matrix.district }}", path: logs, retention-days: 14 }
+
+  metro:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: sudo apt-get install -y poppler-utils >/dev/null && pip install shapely
+      # the raw downloads (PDF text, the eTender archive) are kept between runs: published PDFs do not change,
+      # and the eTender portal drops old records that earlier runs kept
+      - uses: actions/cache/restore@v4
+        with: { path: pipeline/cache/metro, key: "metro-raw-${{ github.run_id }}", restore-keys: "metro-raw-" }
+      - name: Unit tests (labour, company register, private-individual rule)
+        run: python3 -m unittest discover -s pipeline/tests
+      - name: Fetch and build metro-wide data
+        env:   # optional licensed company-register provider; empty secrets leave that part switched off
+          REGISTRY_API_URL: ${{ secrets.REGISTRY_API_URL }}
+          REGISTRY_API_KEY: ${{ secrets.REGISTRY_API_KEY }}
+        run: |
+          mkdir -p logs
+          python3 -I pipeline/metro/run.py ${{ env.FULL == 'true' && 'full' || 'quick' }} 2>&1 | tee logs/metro.log
+          python3 -I pipeline/check.py metro | tee -a logs/metro.log
+      - uses: actions/cache/save@v4
+        if: always()
+        with: { path: pipeline/cache/metro, key: "metro-raw-${{ github.run_id }}" }
+      - uses: actions/cache/save@v4
+        with: { path: public/data/metro, key: "good-metro-${{ github.run_id }}" }
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: log-metro, path: logs, retention-days: 14 }
+
+  deploy:
+    needs: [district, metro]
+    if: ${{ always() }}
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit
+    with: { data_run: "${{ github.run_id }}", district_result: "${{ needs.district.result }}", metro_result: "${{ needs.metro.result }}" }

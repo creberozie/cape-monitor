@@ -16,10 +16,12 @@ from shapely.strtree import STRtree
 from shapely.prepared import prep
 
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(HERE)
-OUT = os.path.join(HERE, "out"); CITY = os.path.join(HERE, "cache", "city"); EXTRA = os.path.join(HERE, "cache", "extra")
-PUB = os.path.join(ROOT, "public", "data"); TMP = os.path.join(HERE, "tmp")
 sys.path.insert(0, HERE)
-from themes import THEMES
+from themes import THEMES, util_sub, theme_for
+from common import paths
+PP = paths(); SLUG = PP["slug"]
+OUT = PP["out"]; CITY = PP["city"]; EXTRA = PP["extra"]; PUB = PP["pub"]; TMP = PP["tmp"]
+MAX_TILE_BYTES = 24 * 1024 * 1024   # Cloudflare Pages serves files up to 25 MiB; bigger tile sets are split by area
 
 SHARD = 2000
 NOW = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
@@ -74,7 +76,7 @@ def write_pos(lid, gs):
 # ---------------------------------------------------------------- City GIS layers
 layers, tilejobs, geoms = [], collections.defaultdict(list), {}
 tables, feeds = [], []
-for c in sel["chosen"]:
+for c in sorted(sel["chosen"], key=lambda c: -len(c["fields"])):   # richest copy first, so duplicates with fewer fields are the ones dropped
     if not c["id"]:
         c = {**c, "id": "city-of-cape-town-boundary", "name": "City of Cape Town boundary", "_file": ".json"}
     path = os.path.join(CITY, c.get("_file") or c["id"] + ".json")
@@ -82,6 +84,14 @@ for c in sel["chosen"]:
         sel["skipped"].append({"name": c["name"], "service": c["service"], "url": c["url"], "n": c["n"], "why": "download failed this run"}); continue
     raw = json.load(open(path))
     feats = raw["features"]
+    c = {**c, "theme": theme_for(c["service"], c["name"])}   # themes may change without a new download
+    # an exact duplicate: the same records (every value, ignoring record numbers and geometry) as a layer already kept
+    import hashlib
+    skip = {"OBJECTID", "OBJECTID_1", "FID", "_area", "GlobalID"}
+    sig = hashlib.sha1(json.dumps(sorted(json.dumps({k: v for k, v in f["p"].items() if k not in skip and v is not None}, sort_keys=True, default=str) for f in feats)).encode()).hexdigest()
+    dup = None if c["name"] in ("Land Parcels", "Erven") or len(feats) < 20 else next((l for l in layers if l.get("_sig") == sig and l["geom"] == c["geom"]), None)
+    if dup:
+        sel["skipped"].append({"name": c["name"], "service": c["service"], "url": c["url"], "n": c["n"], "why": f"duplicate of '{dup['name']}' (identical records)"}); continue
     if c["geom"] and not any(f["g"] for f in feats):   # the City publishes some layers without positions
         c = {**c, "geom": None, "no_geometry": True}
     fields = [f for f in raw["fields"] if f[0] not in ("OBJECTID", "OBJECTID_1", "FID")]
@@ -96,6 +106,7 @@ for c in sel["chosen"]:
     meta = {"id": lid, "name": c["name"], "theme": c["theme"], "geom": c["geom"], "n": len(rows), "server_count": raw.get("server_count"),
             "fields": [[f[0], f[1]] for f in fields] + [["_oid", "City record number (OBJECTID)"]], "label": label, "cat": cat, "cats": cats,
             "url": c["url"], "retrieved": raw["retrieved"], "description": c["description"], "custodian": c["copyright"], "source": "City of Cape Town GIS"}
+    if c["theme"] == "utilities": meta["sub"] = util_sub(c["name"])
     if c["geom"]:
         g = c["geom"]
         n = len(rows)
@@ -115,7 +126,7 @@ for c in sel["chosen"]:
         tables.append({"id": lid, "name": c["name"], "n": len(rows), "fields": meta["fields"], "url": c["url"], "retrieved": raw["retrieved"], "theme": c["theme"],
                        "note": "The City publishes this layer without map positions, so it is listed as a table." if c.get("no_geometry") else None})
     else:
-        layers.append(meta)
+        meta["_sig"] = sig; layers.append(meta)
     print(f"{lid}: {len(rows)} ({c['theme']}) label={label} cat={cat}", flush=True)
 
 # ---------------------------------------------------------------- extra: service requests as a tiled point layer + area stats
@@ -138,7 +149,7 @@ if sr:
         "d": (r["p"].get("Created_On_Date") or "")[:7]}} for i, r in enumerate(rows)]}
     fp = os.path.join(TMP, "service-requests.geojson"); json.dump(fc, open(fp, "w"))
     tilejobs["complaints"].append({"id": "service-requests", "file": fp, "minzoom": 13, "maxzoom": 15})
-    layers.append({"id": "service-requests", "name": "Service requests (C3 notifications) since January 2023", "theme": "complaints", "geom": "Point",
+    layers.append({"id": "service-requests", "name": "Service requests (C3 notifications) since January 2023", "theme": "community", "geom": "Point",
                    "n": len(rows), "fields": fields, "label": "C3_Complaint_Type", "cat": "C3_Complaint_Type", "cats": types.most_common(24),
                    "url": sr["url"], "retrieved": sr["retrieved"], "source": "City of Cape Town Open Data Portal", "tileset": "complaints", "minzoom": 13,
                    "description": "Every fault and complaint logged with the City (water, electricity, roads, refuse, sewer and more), with the date it was logged, changed and completed. Point positions are as published by the City."})
@@ -154,6 +165,7 @@ if sr:
 
 # ---------------------------------------------------------------- heritage research register as map layers
 her = os.path.join(HERE, "heritage", "timeflyer.json")
+if SLUG != "blaauwberg": her = os.path.join(HERE, "heritage", f"none-{SLUG}.json")   # the research register covers Blaauwberg only
 if os.path.exists(her):
     H = json.load(open(her))
     def add_points(lid, name, items, fields, row, desc):
@@ -184,9 +196,42 @@ SKIP_TILES = os.environ.get("CM_SKIP_TILES") == "1"   # development: reuse the t
 json.dump(jobs, open(os.path.join(TMP, "jobs.json"), "w"))
 if not SKIP_TILES: subprocess.run(["node", "--max-old-space-size=8000", os.path.join(HERE, "tile.mjs"), os.path.join(TMP, "jobs.json")], check=True)
 bounds = list(DGEOM.bounds)
-for j in jobs:
+def pack(j):
     json.dump({"bounds": bounds, "vector_layers": [{"id": L["id"], "minzoom": L["minzoom"], "maxzoom": L["maxzoom"], "fields": {}} for L in j["layers"]]}, open(os.path.join(j["out"], "meta.json"), "w"))
-    if not SKIP_TILES: subprocess.run([sys.executable, "-I", os.path.join(HERE, "pack_pmtiles.py"), j["out"], os.path.join(PUB, "tiles", j["tileset"] + ".pmtiles"), j["tileset"]], check=True)
+    dest = os.path.join(PUB, "tiles", j["tileset"] + ".pmtiles")
+    if not SKIP_TILES: subprocess.run([sys.executable, "-I", os.path.join(HERE, "pack_pmtiles.py"), j["out"], dest, j["tileset"]], check=True)
+    return os.path.getsize(dest) if os.path.exists(dest) else 0
+split_sets = {}   # tileset -> [part tilesets]
+for j in jobs:
+    size = pack(j)
+    if size <= MAX_TILE_BYTES or len(j["layers"]) != 1:
+        if size > MAX_TILE_BYTES: raise SystemExit(f"{j['tileset']}: {size} bytes with several layers; give its big layer its own tile set")
+        continue
+    # one heavy layer: split its features into west-to-east strips, one tile set each
+    L = j["layers"][0]; fc = json.load(open(L["file"]))
+    k = math.ceil(size / (MAX_TILE_BYTES * 0.8)) + 1
+    def cx(f):
+        xs = []
+        def w(c):
+            if isinstance(c[0], (int, float)): xs.append(c[0])
+            else: [w(x) for x in c]
+        w(f["geometry"]["coordinates"]); return sum(xs) / len(xs)
+    feats = sorted(fc["features"], key=cx); n = math.ceil(len(feats) / k); parts = []
+    os.remove(os.path.join(PUB, "tiles", j["tileset"] + ".pmtiles"))
+    for p in range(k):
+        ts = f"{j['tileset']}-part{p + 1}"; fp = L["file"].replace(".geojson", f".part{p + 1}.geojson")
+        json.dump({"type": "FeatureCollection", "features": feats[p * n:(p + 1) * n]}, open(fp, "w"))
+        pj = {"tileset": ts, "out": os.path.join(TMP, "tiles-" + ts), "layers": [{**L, "file": fp}]}
+        json.dump([pj], open(os.path.join(TMP, "jobs-part.json"), "w"))
+        if not SKIP_TILES: subprocess.run(["node", "--max-old-space-size=8000", os.path.join(HERE, "tile.mjs"), os.path.join(TMP, "jobs-part.json")], check=True)
+        sz = pack(pj)
+        if sz > MAX_TILE_BYTES: raise SystemExit(f"{ts}: still {sz} bytes after splitting into {k}")
+        parts.append(ts)
+    split_sets[j["tileset"]] = parts
+    print(j["tileset"], "split into", parts, flush=True)
+for l in layers:
+    if l.get("tileset") in split_sets: l["tilesets"] = split_sets[l["tileset"]]
+    elif l.get("tileset"): l["tilesets"] = [l["tileset"]]
 
 # ---------------------------------------------------------------- joins
 by_name = {l["name"].lower(): l["id"] for l in layers}
@@ -224,7 +269,7 @@ def link_polys(layer_id, section):
 
 # zoning, heritage and planning overlays that cover the plot
 for l in layers:
-    if l["geom"] == "Polygon" and l["id"] != PARCELS and l["n"] < 120000 and l["theme"] in ("property", "heritage", "safety", "environment", "boundaries", "economy"):
+    if l["geom"] == "Polygon" and l["id"] != PARCELS and l["n"] < 120000 and l["theme"] in ("property", "heritage", "safety", "environment", "community"):
         link_polys(l["id"], "zones")
         print("joined", l["id"], flush=True)
 # heritage inventory by parcel key
@@ -242,7 +287,7 @@ if her_finds := [f for f in json.load(open(her))["finds"]] if os.path.exists(her
             pi = pf.get(str(key))
             if pi is not None: D[pi]["records"].append(["research-finds", k])
 for l in layers:
-    if l["geom"] == "Point" and l["id"] in geoms and l["id"] != "service-requests" and l["n"] < 20000 and l["theme"] != "infra":
+    if l["geom"] == "Point" and l["id"] in geoms and l["id"] != "service-requests" and l["n"] < 20000 and l["theme"] != "utilities":
         for i, f in enumerate(geoms[l["id"]]):
             if f["g"] and f["g"]["type"] == "Point":
                 pi = parcel_at(Point(f["g"]["coordinates"]))
@@ -363,7 +408,7 @@ for kind in ("suburb", "ward"):
 dump(out_areas, "areas.json")
 
 # ---------------------------------------------------------------- city-wide tables and incident tables
-for sid in ("rfq-awards", "tender-awards", "crashes", "fire-incidents", "business-licences", "certificates-acceptability", "homeless-shelters"):
+for sid in ():   # city-wide tables (awards, quotations, crashes, fire incidents, licences) are built once by pipeline/metro
     t = extra(sid)
     if not t: continue
     fields = [[f[0], f[1]] for f in t["fields"] if f[0] not in ("ObjectId", "FID")]; keys = [f[0] for f in fields]
@@ -371,25 +416,7 @@ for sid in ("rfq-awards", "tender-awards", "crashes", "fire-incidents", "busines
     for s in range(0, len(rows), 10000): dump(rows[s:s + 10000], "tables", f"{sid}-{s // 10000}.json")
     tables.append({"id": sid, "name": t["title"], "n": len(rows), "fields": fields, "url": t["url"], "retrieved": t["retrieved"], "shards": math.ceil(len(rows) / 10000), "scope": "city-wide"})
 
-# ---------------------------------------------------------------- feeds, tagged with places in the district
-sub_lid = lid_for("Official Suburb", "Official Planning Suburbs")
-places = sorted({str(f["p"].get("OFC_SBRB_NAME")).title() for f in geoms.get(sub_lid, []) if f["p"].get("OFC_SBRB_NAME")}, key=len, reverse=True)
-extra_places = ["Blaauwberg", "Blouberg", "Bloubergstrand", "Melkbos", "Melkbosstrand", "Atlantis", "Mamre", "Table View", "Parklands", "Big Bay", "Sunningdale",
-                "Koeberg", "Duynefontein", "Philadelphia", "Klein Dassenberg", "Witsand", "Robben Island", "West Coast", "Cape Town", "Western Cape", "Dunoon", "Du Noon"]
-gaz = sorted(set(places + extra_places), key=len, reverse=True)
-items = []
-for sid in ("news24", "iol-wc", "dailymaverick", "gitoc", "gitoc-assassination"):
-    f = extra(sid)
-    if not f: continue
-    feeds.append({"id": sid, "name": f["title"], "n": len(f["items"]), "url": f["url"], "retrieved": f["retrieved"]})
-    for it in f["items"]:
-        txt = f"{it['title']} {it['summary']}"
-        tags = [p for p in gaz if re.search(r"\b" + re.escape(p) + r"\b", txt, re.I)]
-        items.append({**it, "feed": sid, "places": tags})
-dump({"built": NOW, "items": items}, "feed.json")
-
 # ---------------------------------------------------------------- heritage module (research register from TimeFlyer)
-her = os.path.join(HERE, "heritage", "timeflyer.json")
 heritage = None
 if os.path.exists(her):
     H = json.load(open(her))
@@ -397,10 +424,11 @@ if os.path.exists(her):
     heritage = {"finds": len(H.get("finds", [])), "registers": len(H.get("registers", [])), "stories": len(H.get("stories", []))}
 
 # ---------------------------------------------------------------- manifest
-manifest = {"app": "Cape Monitor", "district": {"name": district["properties"].get("PBDM_RGN_NAME"), "bounds": bounds, "geometry": district["geometry"]},
-            "built": NOW, "themes": [{"id": t, "en": en, "af": af} for t, en, af in THEMES], "layers": layers, "tables": tables, "feeds": feeds,
+manifest = {"app": "Cape Monitor", "district": {"slug": SLUG, "label": PP["label"], "name": district["properties"].get("PBDM_RGN_NAME"), "bounds": bounds, "geometry": district["geometry"]},
+            "built": NOW, "suburbs": sorted({str(f["p"].get("OFC_SBRB_NAME")).upper() for f in geoms.get(lid_for("Official Suburb", "Official Planning Suburbs") or "", []) if f["p"].get("OFC_SBRB_NAME")}), "themes": [{"id": t, "en": en, "af": af} for t, en, af in THEMES], "layers": layers, "tables": tables, "feeds": feeds,
             "parcels": {"layer": PARCELS, "shard": SHARD}, "skipped": sel["skipped"], "heritage": heritage,
-            "tilesets": sorted({l["tileset"] for l in layers if l.get("tileset")})}
+            "tilesets": sorted({t for l in layers for t in l.get("tilesets", [])})}
+for l in layers: l.pop("_sig", None)
 dump(manifest, "manifest.json")
 shutil.copy(os.path.join(OUT, "district.geojson"), os.path.join(PUB, "district.geojson"))
 print("layers", len(layers), "tables", len(tables), "feeds", len(feeds), "dossiers", sum(len(v) for v in shards.values()))

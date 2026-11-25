@@ -1,12 +1,12 @@
-"""Step 3: City Open Data Portal records (service requests, building plans, spending, sales, incidents, licences),
-news and NGO feeds. Everything lands in pipeline/cache/extra/<id>.json with retrieval time and source URL."""
+"""Step 3: City Open Data Portal records (service requests, building plans, City land sales, incidents, licences)
+for one district. City-wide money, news and NGO feeds are fetched once by pipeline/metro. Everything lands in pipeline/cache/extra/<id>.json with retrieval time and source URL."""
 import json, os, sys, csv, io, re, datetime, html, urllib.request, concurrent.futures as cf
 import xml.etree.ElementTree as ET
 sys.path.insert(0, os.path.dirname(__file__))
 from arcgis import fetch_features, spatial, UA, query_polygon, in_district
+from common import paths
 
-HERE = os.path.dirname(__file__)
-OUT = os.path.join(HERE, "out"); CACHE = os.path.join(HERE, "cache", "extra"); os.makedirs(CACHE, exist_ok=True)
+P = paths(); OUT = P["out"]; CACHE = P["extra"]
 REFRESH = "--refresh" in sys.argv
 NOW = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
 area = json.load(open(os.path.join(OUT, "district.geojson")))["features"][0]["geometry"]
@@ -18,8 +18,6 @@ ITEM = "https://www.arcgis.com/sharing/rest/content/items/{}/data"
 SOURCES = [
     ("service-requests", "Service requests (C3 notifications) Jan 2023 to present", "fs-geo", HUB + "service_requests_2023_01_02_spatial/FeatureServer/0", {}),
     ("building-plans", "Building plan approvals 2014 to 2026", "fs", HUB + "Building_Plan_Approvals_2014_to_2025/FeatureServer/0", {}),
-    ("rfq-awards", "Requests for quotations awarded 2020 to 2026", "fs", HUB + "Requests_for_Quotations_Awarded_2020_to_April_2026/FeatureServer/0", {}),
-    ("tender-awards", "Tender awards 2021 to 2026", "fs", HUB + "Tender_Awards_2021_to_2026/FeatureServer/0", {}),
     ("property-disposals", "City property disposals Jan 2025 to 2026", "fs", HUB + "Property_Disposals_Jan_2025_to_June_2026/FeatureServer/0", {}),
     ("population-2025", "Population estimates 2025 by suburb", "fs", HUB + "Population_Estimates_2026_(Suburb_Level)/FeatureServer/0", {}),
     ("crashes", "Traffic accidents (crash data)", "csv", ITEM.format("f97a738e16ee4789a4557975858075b4"), {}),
@@ -27,11 +25,6 @@ SOURCES = [
     ("business-licences", "Business licences", "csv", ITEM.format("6a8b3147a6964afa81df67a61f272de4"), {}),
     ("certificates-acceptability", "Food premises certificates of acceptability", "csv", ITEM.format("0e7ccc1a135f42bda046bba238105aa0"), {}),
     ("homeless-shelters", "Homeless shelters", "csv", ITEM.format("410b11538a0a4d7a9f06cdd505614670"), {}),
-    ("news24", "News24 South Africa", "rss", "https://feeds.capi24.com/v1/Search/articles/news24/SouthAfrica/rss", {}),
-    ("iol-wc", "IOL Western Cape", "rss", "https://iol.co.za/rss/iol/news/south-africa/western-cape", {}),
-    ("dailymaverick", "Daily Maverick", "rss", "https://www.dailymaverick.co.za/dmrss/", {}),
-    ("gitoc", "Global Initiative Against Transnational Organized Crime: analysis", "rss", "https://globalinitiative.net/feed/", {}),
-    ("gitoc-assassination", "GI-TOC Assassination Witness", "rss", "https://globalinitiative.net/initiatives/assassination-witness/feed/", {}),
 ]
 
 def fetch_url(url, timeout=180):

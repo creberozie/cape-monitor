@@ -3,12 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Cape Monitor · Blaauwberg pilot</title>
-<meta name="description" content="Cape Monitor: an intelligence desk for the City of Cape Town. Every City record, plot by plot, with service requests, building plans, City spending, safety, infrastructure, heritage and news.">
+<title>Cape Monitor · City of Cape Town</title>
+<meta name="description" content="Cape Monitor: what the City of Cape Town and those doing business with it have published, joined and sourced. Tender decisions, bids, quotations, land sales, tribunal cases and every City GIS layer, plot by plot, for all eight planning districts.">
 <meta property="og:title" content="Cape Monitor">
-<meta property="og:description" content="Tap any plot in Blaauwberg and see everything the City and other public sources hold on it.">
+<meta property="og:description" content="Every published City of Cape Town tender decision, bid and quotation, every supplier, and every plot, sourced and linked.">
 <meta name="theme-color" content="#0b0f12">
+<meta name="author" content="Compiled by Crehan de Jager">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="preload" href="basemap/style.json" as="fetch" crossorigin>
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 </head>
@@ -16,16 +18,18 @@
 <header id="top">
   <button class="tb" id="menu" aria-label="Layers">☰</button>
   <div class="brand"><span class="dot"></span>CAPE MONITOR</div>
-  <div class="chip" id="district" title="Planning district shown">—</div>
-  <div class="search"><input id="q" type="search" autocomplete="off" spellcheck="false"><div id="results" hidden></div></div>
+  <label class="sector" for="district">SECTOR:</label><select class="chip" id="district" aria-label="Planning district"><option>—</option></select>
+  <div class="search"><input id="q" type="search" autocomplete="off" spellcheck="false" aria-label="Search"><div id="results" role="listbox" hidden></div></div>
   <div class="clock" id="clock" title="South African time"></div>
   <div class="fresh" id="fresh"></div>
+  <span class="online" id="online" hidden title="People using Cape Monitor now"></span>
+  <button class="tb" id="signout" hidden>Sign out</button>
   <div class="seg" id="base"><button data-base="map" aria-pressed="true">Map</button><button data-base="sat" aria-pressed="false">Satellite</button></div>
   <button class="tb" id="lang">AF</button>
   <button class="tb" id="install" hidden>Install</button>
 </header>
 <aside id="left" class="panel"></aside>
-<main id="mapwrap"><div id="map"></div><div id="hud"></div><div id="legend"></div></main>
+<main id="mapwrap"><div id="map" role="region" aria-label="Map"></div><div id="hud"></div><div id="legend"></div><button id="scalenote" hidden></button></main>
 <aside id="right" class="panel"></aside>
 <button id="closeinspect" class="tb" aria-label="Close">✕</button>
 <section id="dock">
@@ -33,7 +37,7 @@
   <div id="dockbody"></div>
 </section>
 <div id="toast" hidden></div>
-<div id="boot"><div class="brand big"><span class="dot"></span>CAPE MONITOR</div><div id="bootmsg">Loading…</div></div>
+<div id="boot"><div class="brand big"><span class="dot"></span>CAPE MONITOR</div><div id="bootmsg">Loading…</div><div class="credit">Compiled by Crehan de Jager</div></div>
 <script type="module" src="./src/main.ts"></script>
 </body>
 </html>

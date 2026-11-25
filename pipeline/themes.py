@@ -1,18 +1,39 @@
 """How City layers are grouped in the app, and which ones are left out (with the reason, so nothing is dropped silently)."""
 import re
 
-THEMES = [  # id, English, Afrikaans
+THEMES = [  # id, English, Afrikaans: the layer groups shown in the app (the app splits the folded ones below by City service)
     ("property", "Property and planning", "Eiendom en beplanning"),
-    ("complaints", "Service requests and City activity", "Diensversoeke en Stadsaktiwiteit"),
-    ("safety", "Safety and emergency", "Veiligheid en nood"),
-    ("infra", "Infrastructure and utilities", "Infrastruktuur en nutsdienste"),
+    ("community", "Public Facilities", "Openbare Fasiliteite"),
+    ("safety", "Security", "Sekuriteit"),
+    ("justice", "Law and Order", "Wet en Orde"),
     ("transport", "Transport and roads", "Vervoer en paaie"),
-    ("community", "Community facilities", "Gemeenskapsfasiliteite"),
-    ("economy", "Economy and tourism", "Ekonomie en toerisme"),
-    ("environment", "Environment and water", "Omgewing en water"),
-    ("heritage", "Heritage and history", "Erfenis en geskiedenis"),
-    ("boundaries", "Boundaries and areas", "Grense en gebiede"),
+    ("complaints", "Complaints and Incident Reports", "Insidentverslae"),
+    ("environment", "Natural environment", "Natuurlike omgewing"),
+    ("heritage", "Historical Record", "Historiese Rekord"),
+    ("boundaries", "Jurisdictions", "Jurisdiksies"),
+    ("economy", "Trade and Commerce", "Handel"),
+    ("infra", "Installations and Utilities", "Installasies en Nutsdienste"),
+    ("utilities", "Installations and Utilities", "Installasies en Nutsdienste"),
+    ("money", "Money and tenders", "Geld en tenders"),
+    ("notices", "Notices and gazettes", "Kennisgewings en koerante"),
+    ("live", "Live", "Regstreeks"),
 ]
+# the pilot's finer subjects, folded into the groups above
+FOLD = {"boundaries": "property", "complaints": "community", "infra": "utilities", "transport": "utilities", "economy": "community"}
+# utilities are hundreds of pipe, cable and road layers: grouped by network so the list stays short
+UTIL_SUB = [(r"water(?!course)|reservoir|hydrant|valve|meter|bulk|pump", "Water"), (r"sewer|sewage|waste ?water|effluent|treatment", "Sewer"),
+            (r"electric|substation|cable|power|lighting|street ?light|transformer|kiosk|load ?shed|minisub", "Electricity"),
+            (r"storm|drain|culvert|catchment|retention|detention|canal", "Stormwater"), (r"telecom|fibre|fiber|broadband|duct|wi-?fi|mast", "Telecoms"),
+            (r"road|street|rail|myciti|taxi|parking|speed|pedestrian|intersection|traffic|bus|transport|route|bridge|cycle", "Roads and transport"),
+            (r"refuse|landfill|drop off|recycl|solid waste", "Refuse")]
+
+
+def util_sub(name):
+    for pat, sub in UTIL_SUB:
+        if re.search(pat, name, re.I):
+            return sub
+    return "Other"
+
 
 BY_SERVICE = {
     "Land_Administration": "property", "Land_Parcel_Zonning": "property", "Open_Data_Service_Zonning": "property", "Spatial_Planning": "property",
@@ -43,13 +64,13 @@ EXCLUDE = [
 
 
 def theme_for(service, name):
-    if service in BY_SERVICE:
-        return BY_SERVICE[service]
-    n = name.lower()
-    for pat, t in KEYWORDS:
-        if re.search(pat, n):
-            return t
-    return "property"
+    if re.search(r"police|saps|court|magistrat|prison|correctional", name, re.I):
+        return "justice"
+    t = BY_SERVICE.get(service)
+    if not t:
+        n = name.lower()
+        t = next((t for pat, t in KEYWORDS if re.search(pat, n)), "property")
+    return FOLD.get(t, t)
 
 
 def excluded(name):
