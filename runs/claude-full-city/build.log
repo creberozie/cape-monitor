@@ -17,16 +17,14 @@ transforming...
 rendering chunks...
 computing gzip size...
 dist/index.html                     2.57 kB │ gzip:   1.11 kB
-dist/assets/index-3bGtNYTq.css     84.74 kB │ gzip:  13.73 kB
+dist/assets/index-aEIL-X5a.css     84.75 kB │ gzip:  13.73 kB
 dist/assets/dist-DwhOg3L3.js      217.56 kB │ gzip:  56.25 kB
-dist/assets/index-DhiRjlSK.js   1,208.05 kB │ gzip: 340.67 kB
+dist/assets/index-DZ4lkHcr.js   1,208.05 kB │ gzip: 340.67 kB
 
-[32m✓ built in 1m 1s[39m
-[33m[33m[PLUGIN_TIMINGS] [0mJavaScript callbacks ran for 60.5s of this 60.9s build (99%).
+[32m✓ built in 59.06s[39m
+[33m[33m[PLUGIN_TIMINGS] [0mJavaScript callbacks ran for 58.7s of this 59.0s build (99%).
 The slowest callbacks, timed inside each callback (the wait before a callback starts is excluded, the time it awaits is included):
-  - plugin vite:prepare-out-dir renderStart (99%, 60.4s, 1 call)
-1 callback is listed without a time. Its calls overlapped, so the time inside one call includes work from other calls. To find its cost, profile the build with `node --cpu-prof`:
-  - plugin vite:css transform (2 calls)
+  - plugin vite:prepare-out-dir renderStart (99%, 58.6s, 1 call)
 See https://rolldown.rs/reference/InputOptions.checks#bundlertimings for more details.
 [39m
 168 tile files moved under dist/t/
