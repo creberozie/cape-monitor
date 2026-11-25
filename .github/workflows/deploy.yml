@@ -73,7 +73,10 @@ jobs:
           npx playwright install --with-deps chromium >/dev/null
           npm run test:unit 2>&1 | tee logs/unit.log || true
           # a second build with the wall on (fake Supabase address; the tests stand in for Supabase) served locally for the account tests
-          npm run build:gated >/dev/null 2>&1 && (npx wrangler pages dev dist-gated --port 8789 --inspector-port 9231 >/dev/null 2>&1 &) && sleep 15
+          npm run build:gated > logs/gated.log 2>&1 || echo "gated build failed" >> logs/gated.log
+          nohup npx wrangler pages dev dist-gated --port 8789 --inspector-port 9231 >> logs/gated.log 2>&1 &
+          for i in $(seq 1 60); do curl -s -o /dev/null http://localhost:8789/ && break; sleep 3; done
+          curl -s -o /dev/null -w "gated server: HTTP %{http_code}\n" http://localhost:8789/ | tee -a logs/gated.log
           GATED_URL=http://localhost:8789/ npx playwright test --reporter=line --trace off 2>&1 | tee logs/playwright.log || true
           npx --yes lighthouse@12 "${{ steps.pages.outputs.url }}" --only-categories=performance,accessibility,best-practices --form-factor=mobile \
             --chrome-flags="--headless=new --no-sandbox" --output=json --output-path=logs/lighthouse.json --quiet || true
