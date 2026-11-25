@@ -46,9 +46,25 @@ test("money panels, supplier profile, flag and tender dossier", async ({ page })
 
 test("justice, feed, watchlist and sources panels", async ({ page }) => {
   const e = errors(page); await page.goto("./"); await expect(page.locator("#boot")).toHaveCount(0, { timeout: 30000 });
-  for (const t of ["justice", "feed", "watchlist", "sources"]) { await tab(page, t); await expect(page.locator("#dockbody")).not.toBeEmpty(); await noOverflow(page, "#dockbody"); }
+  for (const t of ["justice", "labour", "notices", "feed", "watchlist", "sources"]) { await tab(page, t); await expect(page.locator("#dockbody")).not.toBeEmpty(); await noOverflow(page, "#dockbody"); }
   await tab(page, "sources"); await expect(page.locator("#dockbody")).toContainText("Not added, and why");
   expect(e).toEqual([]);
+});
+
+test("labour tab: statutory rates, filters, shareable #l= link", async ({ page }) => {
+  const e = errors(page); await page.goto("./#l=mibco:Circular::"); await expect(page.locator("#boot")).toHaveCount(0, { timeout: 30000 });
+  await expect(page.locator("#dockbody")).toContainText("R30,23", { timeout: 20000 });
+  await expect(page.locator("#lb-c")).toHaveValue("mibco"); await expect(page.locator("#lb-k")).toHaveValue("Circular");
+  await page.locator("#lb-c").selectOption(""); await expect(page).toHaveURL(/#l=:Circular/);
+  await noOverflow(page, "#dockbody");
+  expect(e).toEqual([]);
+});
+
+test("free tier by default; ?preview_tier=pro shows the Pro preview chip", async ({ page }) => {
+  await page.goto("./"); await expect(page.locator("#boot")).toHaveCount(0, { timeout: 30000 });
+  await expect(page.locator("text=PRO preview")).toHaveCount(0);
+  await page.goto("./?preview_tier=pro"); await expect(page.locator("#boot")).toHaveCount(0, { timeout: 30000 });
+  if (!phone(page)) await expect(page.locator("text=PRO preview")).toBeVisible();
 });
 
 test("district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link", async ({ page, request }) => {

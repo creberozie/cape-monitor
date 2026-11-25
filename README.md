@@ -22,6 +22,12 @@ original. Pattern flags are labelled as patterns in published data, with the rec
 
 **Justice**: Competition Tribunal decided cases tagged to suppliers and suburbs; police stations and other justice layers per district;
 SAFLII search link on every supplier.
+**Labour**: statutory minimum wages copied from the Government Gazette (GN R.7083, GG 54075, binding 1 March 2026); collective
+agreements, wage schedules, circulars and exemptions as published by MEIBC, MIBCO, NBCRFLI and SALGBC; Labour Research Service
+publications. Employer names in document titles are matched to supplier profiles, each with a SAFLII labour-courts search link.
+**Company register**: registration numbers printed in published records; a licensed provider can be configured with the
+`REGISTRY_API_URL` and `REGISTRY_API_KEY` secrets (up to 200 suppliers a day, flagged first, results kept between runs).
+Plot dossiers list registered businesses whose register address matches the plot's address.
 **Notices**: Western Cape Provincial Gazette, notice by notice, with the erven and suburbs each names, linked from plot dossiers.
 **Districts**: every City GIS layer with records in the district, building plans, service requests, City sales and the plot dossier.
 **Live**: news and NGO feeds tagged to suburbs; NASA FIRMS fires; AIS ships (needs an aisstream.io key).
@@ -59,5 +65,8 @@ Local: `npm ci && pip install shapely pmtiles`, then `CM_DISTRICT=blaauwberg npm
   on screen within about 3 s on 4G and no layer styles built until a layer is switched on. Accessibility and best practices score 100.
 - **Live ships (AIS)** are not active: they need a persistent listener (Cloudflare Durable Object) and an aisstream.io key.
 - **Language.** Map, layers and plot dossiers are in English and Afrikaans; Money, Justice and Notices panels are English only for now.
+- **Tiers.** `src/auth/entitlements.ts` defines free and Pro. Every record is free to view; Pro adds exports of more than 500
+  rows, watchlist alert rules and the weekly brief. `?preview_tier=pro` previews Pro in one browser tab. Accounts (Clerk or
+  Supabase) and PayFast billing plug in through `setSession()` once the server verifies payment.
 - **Actions minutes.** In a private repository GitHub allows 2 000 free minutes a month; the metro refresh therefore runs daily, not
   three-hourly. A public repository has no minute limit.

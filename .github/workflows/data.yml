@@ -65,7 +65,12 @@ jobs:
       # and the eTender portal drops old records that earlier runs kept
       - uses: actions/cache/restore@v4
         with: { path: pipeline/cache/metro, key: "metro-raw-${{ github.run_id }}", restore-keys: "metro-raw-" }
+      - name: Unit tests (labour, company register, private-individual rule)
+        run: python3 -m unittest discover -s pipeline/tests
       - name: Fetch and build metro-wide data
+        env:   # optional licensed company-register provider; empty secrets leave that part switched off
+          REGISTRY_API_URL: ${{ secrets.REGISTRY_API_URL }}
+          REGISTRY_API_KEY: ${{ secrets.REGISTRY_API_KEY }}
         run: |
           mkdir -p logs
           python3 -I pipeline/metro/run.py ${{ env.FULL == 'true' && 'full' || 'quick' }} 2>&1 | tee logs/metro.log

@@ -11,3 +11,6 @@ dist-pack2
 dist-gz
 __pycache__
 .wrangler
+test-results
+playwright-report
+.wrangler
