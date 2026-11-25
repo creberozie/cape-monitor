@@ -564,7 +564,9 @@ def parse_deviations(text):
         d["number"] = re.sub(r"\s+", " ", re.sub(r"\s*/\s*", "/", d["number"].split("  ")[0])).replace("D/SM", "D/SM ").replace("  ", " ")
         d["number"] = re.match(r"D/SM ?\d{1,3}/\d\d", d["number"]).group(0).replace("D/SM", "D/SM ").replace("  ", " ") if re.match(r"D/SM ?\d{1,3}/\d\d", d["number"]) else d["number"]
         dm = re.search(r"(20\d\d)[/-](\d\d)[/-](\d\d)", d["date"])
-        d["date"] = f"{dm.group(1)}-{dm.group(2)}-{dm.group(3)}" if dm else (iso(d["date"]) or d["date"] or None)
+        dw = re.search(r"(\d{1,2})\s*([A-Za-z]{3})[a-z]*\s*(20\d\d)", d["date"])
+        d["date"] = (f"{dm.group(1)}-{dm.group(2)}-{dm.group(3)}" if dm else f"{dw.group(3)}-{MON[dw.group(2).lower()]:02d}-{int(dw.group(1)):02d}" if dw and dw.group(2).lower() in MON
+                     else iso(d["date"]) or None)
         d["price_text"] = d.pop("price")
         pm = re.search(r"R\s?(\d{1,3}(?:[ \u00a0]\d{3})+|\d+)(?:[,.](\d{2}))?", d["price_text"])
         d["price"] = float(re.sub(r"\D", "", pm.group(1)) + ("." + pm.group(2) if pm.group(2) else "")) if pm else None
