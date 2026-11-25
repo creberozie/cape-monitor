@@ -3,8 +3,8 @@ name: Data
 # money, courts, notices and feeds. Once a day (05:41 SAST) the fast-moving metro sources (open tenders, awards, feeds,
 # this year's gazettes) are refreshed. Daily rather than three-hourly keeps a private repository inside GitHub's free
 # Actions minutes; if the repository is made public (unlimited minutes) this can go back to "41 */3 * * *".
-# Data runs only on schedule or when started by hand (Actions > Data > Run workflow), never on a push, so code changes
-# do not refetch every source. Each part that succeeds is saved as that part's "last good" data; a part that fails keeps
+# Data runs on schedule or when started by hand (Actions > Data > Run workflow). On working branches a change to the metro
+# pipeline rebuilds only the metro data; districts never rebuild on a push. Each part that succeeds is saved as that part's "last good" data; a part that fails keeps
 # its last good data, so the live site never loses a district because one source was down. Then the site is deployed.
 on:
   schedule:
@@ -13,6 +13,9 @@ on:
   workflow_dispatch:
     inputs:
       scope: { description: "full or metro", default: "full" }
+  push:   # working branches only: a change to the metro pipeline rebuilds the metro data (districts never rebuild on push)
+    branches: ["claude/**"]
+    paths: ["pipeline/metro/**", ".github/workflows/data.yml"]
 permissions: { contents: write }
 concurrency:
   group: "data-${{ github.ref }}"
