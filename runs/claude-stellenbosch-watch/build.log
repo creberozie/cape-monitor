@@ -27,14 +27,14 @@ dist/assets/gate-DEkOjPjQ.js       50.04 kB │ gzip:  17.53 kB
 dist/assets/dist-DwhOg3L3.js      217.56 kB │ gzip:  56.25 kB
 dist/assets/main-Q_GVB8qg.js    1,187.29 kB │ gzip: 334.79 kB
 
-[32m✓ built in 1m 6s[39m
-[33m[33m[PLUGIN_TIMINGS] [0mJavaScript callbacks ran for 65.4s of this 65.8s build (99%).
+[32m✓ built in 1m 3s[39m
+[33m[33m[PLUGIN_TIMINGS] [0mJavaScript callbacks ran for 62.2s of this 62.6s build (99%).
 The slowest callbacks, timed inside each callback (the wait before a callback starts is excluded, the time it awaits is included):
-  - plugin vite:prepare-out-dir renderStart (99%, 65.3s, 1 call)
+  - plugin vite:prepare-out-dir renderStart (99%, 62.1s, 1 call)
 1 callback is listed without a time. Its calls overlapped, so the time inside one call includes work from other calls. To find its cost, profile the build with `node --cpu-prof`:
   - plugin vite:build-html transform (2 calls)
 See https://rolldown.rs/reference/InputOptions.checks#bundlertimings for more details.
 [39m
 168 tile files moved under dist/t/
-dist: 12266 files
+dist: 12535 files
 check ok

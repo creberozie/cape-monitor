@@ -10,7 +10,7 @@ districts with data: ['blaauwberg', 'table-bay', 'tygerberg', 'northern', 'south
   helderberg: manifest ok (243 layers); tiles community range request -> HTTP 206, 127 bytes
   basemap range request -> HTTP 206 127
   data/metro/money/money.json 200 5417
-  live/news 200 17202
+  live/news 200 17198
   watch page 200 2266
-  watch data missing: Expecting value: line 1 column 1 (char 0)
+  watch data 200 {'suppliers': 2981, 'flags': 33, 'tenders': 1311, 'awards': 1857, 'rfq': 1020, 'bids': 1868, 'docs': 966}
 SMOKE OK
