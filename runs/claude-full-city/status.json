@@ -1,10 +1,10 @@
 {
- "run": "45567105669",
+ "run": "45567419991",
  "branch": "claude/full-city",
- "sha": "27a8ed0af14ac3151007561900d7230ef0024343",
- "at": "2026-11-25T07:29:49Z",
+ "sha": "466bbe8db917943c32131d3d0cbc067edabaf7d1",
+ "at": "2026-11-25T08:10:29Z",
  "url": "https://claude-full-city.cape-monitor.pages.dev",
  "deploy_job": "success",
- "district_jobs": "",
- "metro_job": ""
+ "district_jobs": "skipped",
+ "metro_job": "success"
 }
