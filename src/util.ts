@@ -1,5 +1,6 @@
 // Small shared helpers: downloads (CSV and JSON exports), the watchlist kept in this browser, and chart pieces.
 import { esc, fmt } from "./i18n";
+import { exportLimit, can, FREE_EXPORT_ROWS, proNote } from "./auth/entitlements";
 
 const csvCell = (v: any) => { if (v == null) return ""; const s = Array.isArray(v) ? v.join("; ") : typeof v === "object" ? JSON.stringify(v) : String(v); return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
 export function download(name: string, text: string, type = "text/csv") {
@@ -11,6 +12,18 @@ export function exportCSV(name: string, header: string[], rows: any[][], source 
   const lines = [...(source ? [`# ${source.replace(/\n/g, " ")}`] : []), header.map(csvCell).join(","), ...rows.map((r) => r.map(csvCell).join(","))];
   download(name.replace(/[^\w.-]+/g, "_") + ".csv", "﻿" + lines.join("\r\n"));
 }
+/** a table export: on the free tier the first FREE_EXPORT_ROWS rows, with a note saying so in the file and on screen */
+export function exportTable(name: string, header: string[], rows: any[][], source = "") {
+  const n = exportLimit(rows.length);
+  const cut = n < rows.length;
+  exportCSV(name, header, rows.slice(0, n), source + (cut ? ` First ${FREE_EXPORT_ROWS} of ${rows.length} rows (free tier); every row is visible in the app.` : ""));
+  if (cut) toast(proNote("bulkExport") + ` This file has the first ${FREE_EXPORT_ROWS} of ${fmt(rows.length)} rows.`);
+}
+export function toast(msg: string) {
+  const t = document.getElementById("toast"); if (!t) return;
+  t.textContent = msg; t.hidden = false; clearTimeout((t as any)._tm); (t as any)._tm = setTimeout(() => (t.hidden = true), 6000);
+}
+export { can };
 export const exportJSON = (name: string, obj: any) => download(name.replace(/[^\w.-]+/g, "_") + ".json", JSON.stringify(obj, null, 1), "application/json");
 
 // ---------------------------------------------------------------- watchlist (this browser only)
