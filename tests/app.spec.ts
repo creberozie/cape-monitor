@@ -1,4 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
+import { mockSupabase, enter } from "./mock-supabase";
 // Every panel, the click logic and the share links, on desktop (1600), tablet (768) and phone (360).
 
 const errors = (p: Page) => { const e: string[] = []; p.on("pageerror", (x) => e.push(x.message)); p.on("console", (m) => { if (m.type() === "error" && !/favicon|Failed to load resource/.test(m.text())) e.push(m.text()); }); return e; };
@@ -15,8 +16,10 @@ async function noOverflow(p: Page, sel: string) {
   expect(bad, `overflow in ${sel}`).toEqual([]);
 }
 
+test.beforeEach(async ({ page }) => { await mockSupabase(page); });   // only used when a deployment has the wall on
+
 test("metro overview loads, lists districts and has no errors", async ({ page }) => {
-  const e = errors(page); await page.goto("./");
+  const e = errors(page); await page.goto("./"); await enter(page);
   await expect(page.locator("#boot")).toHaveCount(0, { timeout: 30000 });
   await expect(page.locator("#district")).toBeVisible({ visible: !phone(page) });
   await expect(page.locator("#right, #dockbody").first()).toBeAttached();
@@ -26,7 +29,7 @@ test("metro overview loads, lists districts and has no errors", async ({ page })
 });
 
 test("money panels, supplier profile, flag and tender dossier", async ({ page }) => {
-  const e = errors(page); await page.goto("./"); await expect(page.locator("#boot")).toHaveCount(0, { timeout: 30000 });
+  const e = errors(page); await page.goto("./"); await enter(page); await expect(page.locator("#boot")).toHaveCount(0, { timeout: 30000 });
   await tab(page, "money"); await expect(page.locator("#msub .kpis")).toBeVisible({ timeout: 20000 });
   for (const s of ["suppliers", "flags", "awards", "bids", "rfq", "etenders", "departments", "land", "docs"]) {
     await page.locator(`[data-sub=${s}]`).click(); await page.waitForTimeout(1500);
@@ -40,19 +43,19 @@ test("money panels, supplier profile, flag and tender dossier", async ({ page })
   await page.locator("[data-sub=flags]").click(); await page.locator("#msub [data-flag]").first().click();
   await expect(page.locator("#right .kicker").first()).toContainText("Pattern in published data", { timeout: 20000 });
   await expect(page.locator("#right table.t tbody tr").first()).toBeVisible();
-  await page.goto("./#t=46Q/2023/24"); await expect(page.locator("#right h2").first()).toContainText("46Q/2023/24", { timeout: 30000 });
+  await page.goto("./#t=46Q/2023/24"); await enter(page); await expect(page.locator("#right h2").first()).toContainText("46Q/2023/24", { timeout: 30000 });
   expect(e).toEqual([]);
 });
 
 test("justice, feed, watchlist and sources panels", async ({ page }) => {
-  const e = errors(page); await page.goto("./"); await expect(page.locator("#boot")).toHaveCount(0, { timeout: 30000 });
+  const e = errors(page); await page.goto("./"); await enter(page); await expect(page.locator("#boot")).toHaveCount(0, { timeout: 30000 });
   for (const t of ["justice", "labour", "notices", "feed", "watchlist", "sources"]) { await tab(page, t); await expect(page.locator("#dockbody")).not.toBeEmpty(); await noOverflow(page, "#dockbody"); }
   await tab(page, "sources"); await expect(page.locator("#dockbody")).toContainText("Not added, and why");
   expect(e).toEqual([]);
 });
 
 test("labour tab: statutory rates, filters, shareable #l= link", async ({ page }) => {
-  const e = errors(page); await page.goto("./#l=mibco:Circular::"); await expect(page.locator("#boot")).toHaveCount(0, { timeout: 30000 });
+  const e = errors(page); await page.goto("./#l=mibco:Circular::"); await enter(page); await expect(page.locator("#boot")).toHaveCount(0, { timeout: 30000 });
   await expect(page.locator("#dockbody")).toContainText("R30,23", { timeout: 20000 });
   await expect(page.locator("#lb-c")).toHaveValue("mibco"); await expect(page.locator("#lb-k")).toHaveValue("Circular");
   await page.locator("#lb-c").selectOption(""); await expect(page).toHaveURL(/#l=:Circular/);
@@ -61,16 +64,16 @@ test("labour tab: statutory rates, filters, shareable #l= link", async ({ page }
 });
 
 test("free tier by default; ?preview_tier=pro shows the Pro preview chip", async ({ page }) => {
-  await page.goto("./"); await expect(page.locator("#boot")).toHaveCount(0, { timeout: 30000 });
+  await page.goto("./"); await enter(page); await expect(page.locator("#boot")).toHaveCount(0, { timeout: 30000 });
   await expect(page.locator("text=PRO preview")).toHaveCount(0);
-  await page.goto("./?preview_tier=pro"); await expect(page.locator("#boot")).toHaveCount(0, { timeout: 30000 });
+  await page.goto("./?preview_tier=pro"); await enter(page); await expect(page.locator("#boot")).toHaveCount(0, { timeout: 30000 });
   if (!phone(page)) await expect(page.locator("text=PRO preview")).toBeVisible();
 });
 
 test("district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link", async ({ page, request }) => {
   const idx = await (await request.get("data/index.json")).json(); const d = idx.districts.find((x: any) => x.built);
   test.skip(!d, "no district built yet");
-  const e = errors(page); await page.goto(`./?d=${d.slug}`); await expect(page.locator("#boot")).toHaveCount(0, { timeout: 40000 });
+  const e = errors(page); await page.goto(`./?d=${d.slug}`); await enter(page); await expect(page.locator("#boot")).toHaveCount(0, { timeout: 40000 });
   if (phone(page)) await page.locator("#menu").click();
   await expect(page.locator("#left details.theme").first()).toBeVisible();
   await noOverflow(page, "#left");
