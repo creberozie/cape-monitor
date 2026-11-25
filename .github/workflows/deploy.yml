@@ -1,4 +1,5 @@
 name: Deploy
+# Every deploy: last good data of each part, build, size and count checks, tiles moved under /t/ for range requests.
 # Builds the site from the last good data of every district and of the metro set, deploys it to Cloudflare Pages
 # (site + live functions), then tests the deployed site and writes a plain status report to the ci-status branch.
 # main deploys to production; any other branch to a preview URL. If the build or checks fail nothing is deployed.
