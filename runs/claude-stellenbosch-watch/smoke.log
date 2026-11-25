@@ -11,6 +11,6 @@ districts with data: ['blaauwberg', 'table-bay', 'tygerberg', 'northern', 'south
   basemap range request -> HTTP 206 127
   data/metro/money/money.json 200 5417
   live/news 200 17202
-  watch page 200 2306
+  watch page 200 2266
   watch data missing: Expecting value: line 1 column 1 (char 0)
 SMOKE OK
