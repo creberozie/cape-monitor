@@ -42,7 +42,7 @@ def load(sid):
 
 
 # ---------------------------------------------------------------- names
-from names import norm, SUFFIX
+from names import norm, SUFFIX, looks_like_person
 
 
 def split_vendors(raw):
@@ -79,11 +79,14 @@ def money_val(v):
 
 
 # ---------------------------------------------------------------- suppliers registry
+# words that are never a supplier on their own: price-column leftovers in the bid registers and fragments of split vendor lists
+GENERIC = {"RATES", "VARIOUS", "VARIOUS RATES", "BLANK", "SERVICES", "MAINTENANCE", "ATTORNEYS", "SCHEDULE", "SUBMISSION", "AUTOMOTIVE", "TRADING",
+           "PROJECTS", "CONSTRUCTION", "HOLDINGS", "INCORPORATED", "AND", "JV", "JOINT VENTURE", "CONSORTIUM", "NOT STATED", "NIL", "NONE", "N A", "TBC"}
 class Registry:
     def __init__(self): self.by = {}
     def get(self, raw):
         k = norm(raw)
-        if len(k) < 3: return None
+        if len(k) < 3 or k in GENERIC: return None
         sid = re.sub(r"[^a-z0-9]+", "-", k.lower()).strip("-")[:60]
         s = self.by.get(sid)
         if not s:
@@ -295,6 +298,7 @@ KINDS = {
     "official": "The same buyer official on several awards to one supplier",
     "phone": "Different companies sharing a published contact number",
     "single": "Tenders with a single bid",
+    "young": "Award within 12 months of company registration",
 }
 
 # repeat winners: share of a directorate's RFQ orders (count and value) going to one supplier
@@ -446,24 +450,29 @@ for sid, idx in single.items():
         flag("single", f"{REG.by[sid]['names'].most_common(1)[0][0]}: sole bidder on {len(idx)} City tenders", "Tenders where the published opening register lists one bid only.",
              [["bids", i] for i in idx], [["supplier", sid]])
 
+# award within 12 months of registration: only where a registration date came from a company-register source (registry.json),
+# never from the year inside a registration number
+REG_PATH = os.path.join(ROOT, "public", "data", "metro", "registry.json")
+if os.path.exists(REG_PATH):
+    regs = json.load(open(REG_PATH)).get("records", {})
+    for sid, rec in regs.items():
+        d = str(rec.get("reg_date") or "")[:10]
+        if not re.match(r"\d{4}-\d{2}-\d{2}$", d) or sid not in REG.by: continue
+        early = [i for i in REG.by[sid]["refs"]["awards"] if awards[i][0] and str(awards[i][3] or "").startswith(("Award", "Preferred", "Deviation")) and 0 <= days(d, awards[i][0]) <= 365]
+        early += [("rfq", i) for i in REG.by[sid]["refs"]["rfq"] if rfq[i][0] and 0 <= days(d, rfq[i][0]) <= 365]
+        if early:
+            recs = [["awards", i] if isinstance(i, int) else list(i) for i in early]
+            flag("young", f"{REG.by[sid]['names'].most_common(1)[0][0]}: {len(recs)} award(s) or order(s) within 12 months of registration",
+                 f"Registered {d} according to {rec.get('source', 'the company register')} (retrieved {str(rec.get('retrieved', ''))[:10]}). New companies win work lawfully; this lists the records.",
+                 recs, [["supplier", sid]])
+
 for f in flags:
     for kind, sid in f["subjects"]:
         if kind == "supplier" and sid in REG.by: REG.by[sid].setdefault("flags", []).append(f["id"])
 
 # ================================================================ write suppliers, departments, flags
-BUSINESS = re.compile(r"\b(PTY|LTD|CC|INC|LIMITED|TRADING|PROJECTS?|CONSTRUCTION|SERVICES?|ENTERPRISES?|HOLDINGS|GROUP|SOLUTIONS|CONSULT\w*|ENGINEER\w*|"
-                      r"SUPPL\w*|INVESTMENTS?|DEVELOPMENTS?|PROPERTIES|PROPERTY|TRUST|ASSOCIATES|AND SONS|CATERERS?|SECURITY|TRANSPORT|MUNICIPALITY|"
-                      r"DEPARTMENT|COUNCIL|UNIVERSITY|COLLEGE|SCHOOL|CHURCH|FOUNDATION|ASSOCIATION|COMPANY|CORPORATION|AGENCY|BANK|T/A|JV|NPC|SOC|"
-                      r"CLUB|CENTRE|CENTER|MINISTRY|STUDIO|SYSTEMS|TECHNOLOG\w*|ELECTRICAL|PLUMBING|MOTORS|SA|AFRICA)\b", re.I)
-EXTRA_BUSINESS = re.compile(r"\b(INCORPORATED|ATTORNEYS|NOTARIES|CONVEYANCERS|MAINTENANCE|MANAGEMENT|FACILITIES|SOFTWARE|TRAINING|PARTNERS|"
-                            r"AUDITORS|ARCHITECTS|PLANNERS|AUTOMATION|INNOVATIONS|MECHANICAL|DIVISION|VENTURE|PUMPS|IT|OCC)\b", re.I)
 def likely_person(s):
-    """Conservative label for a private individual, used only to mark and optionally hide; never to remove a record:
-    a City land buyer whose name has no business word, or a personal title followed by two to four name words."""
-    n = s["names"].most_common(1)[0][0].replace("’", "'")
-    if BUSINESS.search(n) or EXTRA_BUSINESS.search(n) or re.search(r"\d|&amp|\(", n): return False
-    if s["refs"].get("land") and not s["refs"].get("awards") and not s["refs"].get("rfq"): return True
-    return bool(re.match(r"^(MR|MRS|MS|MISS|DR|PROF)\.?\s+[A-Z][A-Za-z'.-]*(\s+[A-Z][A-Za-z'.-]+){1,3}$", n, re.I))
+    return looks_like_person(s["names"].most_common(1)[0][0], land_only=bool(s["refs"].get("land")) and not s["refs"].get("awards") and not s["refs"].get("rfq"))
 
 active = [s for s in REG.by.values() if any(s["refs"].values())]
 index = []
