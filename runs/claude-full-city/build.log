@@ -1,4 +1,4 @@
-data index: [('blaauwberg', '2026-11-24'), ('table-bay', '2026-11-24'), ('tygerberg', '2026-11-24'), ('northern', '2026-11-25'), ('southern', '2026-11-24'), ('cape-flats', '2026-11-24'), ('mitchells-plain-khayelitsha', '2026-11-24'), ('helderberg', '2026-11-24')] metro 2026-11-25T07:22:33+00:00
+data index: [('blaauwberg', '2026-11-24'), ('table-bay', '2026-11-24'), ('tygerberg', '2026-11-24'), ('northern', '2026-11-25'), ('southern', '2026-11-24'), ('cape-flats', '2026-11-24'), ('mitchells-plain-khayelitsha', '2026-11-24'), ('helderberg', '2026-11-24')] metro 2026-11-25T16:13:56+00:00
 
 > cape-monitor@1.0.0 prebuild
 > npm run vendor
@@ -16,15 +16,16 @@ transforming...
 ✓ 71 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/index.html                     2.68 kB │ gzip:   1.15 kB
-dist/assets/index-CW534KuH.css     87.87 kB │ gzip:  14.31 kB
+dist/index.html                     2.77 kB │ gzip:   1.18 kB
+dist/assets/index-DbP1xlJY.css     86.99 kB │ gzip:  14.17 kB
 dist/assets/dist-DwhOg3L3.js      217.56 kB │ gzip:  56.25 kB
-dist/assets/index-HBUhr-dg.js   1,228.74 kB │ gzip: 348.46 kB
+dist/assets/index-CHxtN0tJ.js   1,227.51 kB │ gzip: 348.11 kB
 
-[32m✓ built in 58.63s[39m
-[33m[33m[PLUGIN_TIMINGS] [0mJavaScript callbacks ran for 58.2s of this 58.6s build (99%).
+[32m✓ built in 30.66s[39m
+[33m[33m[PLUGIN_TIMINGS] [0mJavaScript callbacks ran for 28.9s of this 30.6s build (94%).
 The slowest callbacks, timed inside each callback (the wait before a callback starts is excluded, the time it awaits is included):
-  - plugin vite:prepare-out-dir renderStart (99%, 58.1s, 1 call)
+  - plugin vite:prepare-out-dir renderStart (92%, 28.1s, 1 call)
+Additional callback time came from callbacks under 1s.
 See https://rolldown.rs/reference/InputOptions.checks#bundlertimings for more details.
 [39m
 168 tile files moved under dist/t/
