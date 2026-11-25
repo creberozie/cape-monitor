@@ -8,8 +8,10 @@ py = lambda *a: [sys.executable, "-I", os.path.join(HERE, a[0]), *a[1:]]
 steps = [("districts", py("districts.py"), True)] if mode == "full" or not os.path.exists(os.path.join(ROOT, "public/data/metro/districts.json")) else []
 steps += [("money-fetch", py("fetch_money.py", *(["--refresh"] if mode == "full" else ["odp", "etenders", "--refresh"])), False),
           ("money-build", py("build_money.py"), True),
+          ("registry", py("business_registry.py"), False),
           ("feeds", py("feeds.py"), False),
           ("justice", py("justice.py", *(["--full"] if mode == "full" else [])), False),
+          ("labour", py("labour.py"), False),
           ("gazettes", py("gazettes.py", *([] if mode == "full" else [str(time.gmtime().tm_year)])), False)]
 report = []
 for name, cmd, core in steps:

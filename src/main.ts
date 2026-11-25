@@ -3,14 +3,16 @@ import "./styles.css";
 import { loadManifest, M, layerById, parcels, getJSON, DP, DISTRICT, METRO, districtUrl, DataIndex, Districts, Layer } from "./data";
 import { initMap, map, setVisible, visible, setBase, THEME_COLOUR, catColour, setMonthRange } from "./map";
 import { inspectPoint, bindInspector, openRecord, openPlot, showStart } from "./inspector";
-import { bindDock, renderTabs, openTab } from "./dock";
+import { bindDock, renderTabs, openTab, setLabourFilter } from "./dock";
+import { entitlements } from "./auth/entitlements";
 import { OVERLAYS, showOverlay, overlayStatus } from "./live";
 import { openSupplier, openTender, openFlag, openDepartment, suppliers, bindMoney } from "./money";
 import { bindWatch } from "./util";
 import { t, esc, fmt, setLang, LANG } from "./i18n";
 
 const $ = (s: string) => document.querySelector(s) as HTMLElement;
-const DEFAULT_ON = ["land-parcels", "zoning", "heritage-inventory", "police-stations", "fire-stations", "wards"];
+// first visit: plots, police, fire and wards; phones skip the zoning and heritage fills (the heaviest polygons) until asked for
+const DEFAULT_ON = innerWidth <= 900 ? ["land-parcels", "police-stations", "fire-stations", "wards"] : ["land-parcels", "zoning", "heritage-inventory", "police-stations", "fire-stations", "wards"];
 const PRESETS: [string, string[]][] = [
   ["Property check", ["land-parcels", "zoning", "servitudes", "heritage-inventory", "split-zoning", "home-owners-associations-gv-2021"]],
   ["Safety and justice", ["police-stations", "fire-stations", "health-care-facilities", "live-courts"]],
@@ -124,13 +126,14 @@ function bindSearch() {
   q.onblur = () => setTimeout(() => (box.hidden = true), 150);
 }
 
-// share links: #p=<parcel key>  #f=<layer>:<OBJECTID>  #s=<supplier>  #t=<tender>  #fl=<flag>  #dep=<n>  #@lng,lat,zoom
+// share links: #p=<parcel key>  #f=<layer>:<OBJECTID>  #s=<supplier>  #t=<tender>  #fl=<flag>  #dep=<n>  #l=<council>:<kind>:<year>:<q>  #@lng,lat,zoom
 async function openHash() {
   const h = decodeURIComponent(location.hash.slice(1));
   if (h.startsWith("s=")) return openSupplier(h.slice(2));
   if (h.startsWith("t=")) return openTender(h.slice(2));
   if (h.startsWith("fl=")) return openFlag(h.slice(3));
   if (h.startsWith("dep=")) return openDepartment(+h.slice(4));
+  if (h.startsWith("l=")) { setLabourFilter(h.slice(2)); return openTab("labour"); }
   if (h.startsWith("@")) { const [x, y, z] = h.slice(1).split(",").map(Number); if (isFinite(x) && isFinite(y)) map.jumpTo({ center: [x, y], zoom: z || 15 }); return; }
   if (!DISTRICT) return;
   if (h.startsWith("p=")) { const P = await parcels(); const i = P.byKey.get(h.slice(2)); if (i != null) openPlot(i); return; }
@@ -146,6 +149,7 @@ async function boot() {
   document.title = `Cape Monitor · ${DISTRICT ? M.district.label : "City of Cape Town"}`;
   ($("#district") as HTMLSelectElement).innerHTML = districtOptions();
   ($("#district") as HTMLSelectElement).onchange = (e) => goDistrict((e.target as HTMLSelectElement).value);
+  if (entitlements().source === "preview") $("#fresh").insertAdjacentHTML("afterend", `<span class="chip" title="Pro preview (testing only)">PRO preview</span>`);
   $("#fresh").innerHTML = `${t("fresh")} <b>${esc((M.built || "").slice(0, 10))}</b>`;
   clock();
   await initMap("map", DIS?.districts || []);

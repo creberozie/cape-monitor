@@ -116,3 +116,4 @@ a.row { color: var(--ink); text-decoration: none; }
 }
 
 .pill.person { border-color: var(--warn); color: var(--warn); } .personal label { white-space: nowrap; margin-left: 6px; }
+.tile.pro { border-color: var(--ac); margin-bottom: 8px; }
