@@ -6,7 +6,7 @@ name: Deploy
 on:
   push:
     branches: [main, "claude/**"]
-    paths: ["src/**", "functions/**", "public/**", "index.html", "watch/**", "package.json", "vite.config.ts", "tests/**", "playwright.config.ts", ".github/workflows/deploy.yml"]
+    paths: ["src/**", "functions/**", "public/**", "index.html", "watch/**", "pipeline/seed/**", "package.json", "vite.config.ts", "tests/**", "playwright.config.ts", ".github/workflows/deploy.yml"]
   workflow_dispatch: {}
   workflow_call:
     inputs:
@@ -38,6 +38,11 @@ jobs:
       - { uses: actions/cache/restore@v4, with: { path: public/data/d/helderberg, key: "good-helderberg-x", restore-keys: "good-helderberg-" } }
       - { uses: actions/cache/restore@v4, with: { path: public/data/metro, key: "good-metro-x", restore-keys: "good-metro-" } }
       - { uses: actions/cache/restore@v4, with: { path: public/data/muni, key: "good-muni-x", restore-keys: "good-muni-" } }   # ZopStopper (/watch/)
+      - name: ZopStopper starting data, used only when no data run has saved any yet
+        run: |
+          if [ ! -f public/data/muni/stellenbosch/money/money.json ] && [ -f pipeline/seed/muni-stellenbosch.tar.gz ]; then
+            mkdir -p public/data && tar -xzf pipeline/seed/muni-stellenbosch.tar.gz -C public/data && echo "::notice::ZopStopper: using the starting data in pipeline/seed"
+          fi
       - name: Hold back if there is no data for this branch yet
         id: hasdata
         run: |
