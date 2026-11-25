@@ -13,17 +13,17 @@ data index: [('blaauwberg', '2026-11-24'), ('table-bay', '2026-11-24'), ('tygerb
 
 [36mvite v8.3.8 [32mbuilding client environment for production...[36m[39m
 transforming...
-✓ 17 modules transformed.
+✓ 18 modules transformed.
 rendering chunks...
 computing gzip size...
 dist/index.html                     2.42 kB │ gzip:   1.06 kB
-dist/assets/index-C-AnkeTr.css     83.97 kB │ gzip:  13.55 kB
-dist/assets/index-C_is0o7W.js   1,187.54 kB │ gzip: 333.84 kB
+dist/assets/index-2TPJZE-i.css     84.02 kB │ gzip:  13.56 kB
+dist/assets/index-D_rKZOBQ.js   1,198.80 kB │ gzip: 337.15 kB
 
-[32m✓ built in 1m[39m
-[33m[33m[PLUGIN_TIMINGS] [0mJavaScript callbacks ran for 59.9s of this 60.3s build (99%).
+[32m✓ built in 47.84s[39m
+[33m[33m[PLUGIN_TIMINGS] [0mJavaScript callbacks ran for 47.5s of this 47.8s build (99%).
 The slowest callbacks, timed inside each callback (the wait before a callback starts is excluded, the time it awaits is included):
-  - plugin vite:prepare-out-dir renderStart (99%, 59.8s, 1 call)
+  - plugin vite:prepare-out-dir renderStart (99%, 47.4s, 1 call)
 See https://rolldown.rs/reference/InputOptions.checks#bundlertimings for more details.
 [39m
 168 tile files moved under dist/t/
