@@ -1,5 +1,5 @@
 {
- "built": "2026-11-24T23:12:15+00:00",
+ "built": "2026-11-25T00:13:36+00:00",
  "districts": [
   {
    "slug": "blaauwberg",
@@ -17,17 +17,41 @@
   {
    "slug": "table-bay",
    "label": "Table Bay",
-   "built": null
+   "built": "2026-11-24T23:55:54+00:00",
+   "bounds": [
+    18.34183,
+    -34.0098,
+    18.54379,
+    -33.78957
+   ],
+   "layers": 255,
+   "plots": 47191
   },
   {
    "slug": "tygerberg",
    "label": "Tygerberg",
-   "built": null
+   "built": "2026-11-24T23:30:41+00:00",
+   "bounds": [
+    18.52948,
+    -34.00136,
+    18.74528,
+    -33.82127
+   ],
+   "layers": 246,
+   "plots": 160931
   },
   {
    "slug": "northern",
    "label": "Northern",
-   "built": null
+   "built": "2026-11-25T00:03:36+00:00",
+   "bounds": [
+    18.5411,
+    -33.90802,
+    18.833,
+    -33.58436
+   ],
+   "layers": 238,
+   "plots": 97092
   },
   {
    "slug": "southern",
@@ -45,17 +69,41 @@
   {
    "slug": "cape-flats",
    "label": "Cape Flats",
-   "built": null
+   "built": "2026-11-24T23:07:32+00:00",
+   "bounds": [
+    18.47543,
+    -34.10603,
+    18.61354,
+    -33.94962
+   ],
+   "layers": 231,
+   "plots": 100074
   },
   {
    "slug": "mitchells-plain-khayelitsha",
    "label": "Mitchells Plain / Khayelitsha",
-   "built": null
+   "built": "2026-11-24T23:10:06+00:00",
+   "bounds": [
+    18.55836,
+    -34.07559,
+    18.75177,
+    -33.94933
+   ],
+   "layers": 232,
+   "plots": 220267
   },
   {
    "slug": "helderberg",
    "label": "Helderberg",
-   "built": null
+   "built": "2026-11-24T23:49:28+00:00",
+   "bounds": [
+    18.71541,
+    -34.27033,
+    19.00482,
+    -33.99994
+   ],
+   "layers": 243,
+   "plots": 68309
   }
  ],
  "metro": "2026-11-24T21:51:16+00:00"

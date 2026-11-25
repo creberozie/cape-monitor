@@ -1,0 +1,39 @@
+8 districts, 778 suburbs
+== districts: ok (65s)
+odp-tender-awards     1000/17967
+odp-tender-awards     11000/17967
+odp-rfq-awards     1000/91748
+odp-rfq-awards     11000/91748
+odp-rfq-awards     21000/91748
+odp-rfq-awards     31000/91748
+odp-rfq-awards     41000/91748
+odp-rfq-awards     51000/91748
+odp-rfq-awards     61000/91748
+odp-rfq-awards     71000/91748
+odp-rfq-awards     81000/91748
+odp-rfq-awards     91000/91748
+odp → [('odp-tender-awards', '17967 rows'), ('odp-rfq-awards', '91748 rows'), ('odp-property-disposals', '130 rows')] (26s)
+docs+registers → 3386 tenders, 32048 bids; 14 increase registers; 0 PDFs failed (16s)
+etenders Open {'portal_total': 2185, 'read': 2185} kept so far 382
+etenders Awarded {'portal_total': 37349, 'read': 37349} kept so far 7932
+etenders Closed {'portal_total': 112456, 'read': 11500} kept so far 9676
+etenders Cancelled {'portal_total': 23270, 'read': 25930} kept so far 12866
+etenders → 12866 Western Cape tenders kept; 23 unreadable 100-record pages (2734s)
+== money-fetch: ok (2776s)
+money: {'awards': 3818, 'rfq': 91748, 'bids': 32048, 'etenders': 12866, 'land': 130, 'docs': 750} suppliers 27180 flags Counter({'split': 1247, 'phone': 665, 'official': 260, 'cobid': 178, 'notlowest': 49, 'repeat': 36, 'growth': 26, 'deviation': 18, 'single': 17, 'near': 2}) tenders 3879
+== money-build: ok (9s)
+news24 20 
+iol-wc 30 
+capetownetc 10 
+citizen 75 
+dailymaverick 50 
+gitoc 12 
+gitoc-assassination 12 
+209 items kept, 5 name a Cape Town suburb
+== feeds: ok (1s)
+171 pages; 3414 Competition Tribunal cases; 344 name a City supplier; 26 name a Cape Town suburb
+== justice: ok (659s)
+620 gazettes; 1013 notices kept; 605 City of Cape Town; 714 name an erf; 3 failed
+== gazettes: ok (402s)
+metro money: {'suppliers': 27180, 'flags': 2498, 'tenders': 3879, 'awards': 3818, 'rfq': 91748, 'bids': 32048, 'etenders': 12866, 'land': 130, 'docs': 750}
+check ok

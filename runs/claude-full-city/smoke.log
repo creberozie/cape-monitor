@@ -1,8 +1,13 @@
 page 200 2427
-districts with data: ['blaauwberg', 'southern']
-  blaauwberg: manifest ok (253 layers); tiles community range request -> HTTP 206, 127 bytes
-  southern: manifest ok (250 layers); tiles community range request -> HTTP 206, 127 bytes
-  basemap range request -> HTTP 206 127
+districts with data: ['blaauwberg', 'table-bay', 'tygerberg', 'northern', 'southern', 'cape-flats', 'mitchells-plain-khayelitsha', 'helderberg']
+  blaauwberg: manifest ok (253 layers); tiles community range request -> HTTP 200, 228495 bytes
+  table-bay: manifest ok (255 layers); tiles community range request -> HTTP 200, 255471 bytes
+  tygerberg: manifest ok (246 layers); tiles community range request -> HTTP 200, 522857 bytes
+  northern: manifest ok (238 layers); tiles community range request -> HTTP 200, 308156 bytes
+  southern: manifest ok (250 layers); tiles community range request -> HTTP 200, 411260 bytes
+  cape-flats: manifest ok (231 layers); tiles community range request -> HTTP 200, 364309 bytes
+  mitchells-plain-khayelitsha: manifest ok (232 layers); tiles community range request -> HTTP 200, 566270 bytes
+  helderberg: manifest ok (243 layers); tiles community range request -> HTTP 200, 192082 bytes
   data/metro/money/money.json 200 5230
   live/news 200 17385
-SMOKE OK
+SMOKE: range requests not honoured
