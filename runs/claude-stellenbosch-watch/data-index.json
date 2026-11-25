@@ -1,0 +1,110 @@
+{
+ "built": "2026-11-25T23:51:30+00:00",
+ "districts": [
+  {
+   "slug": "blaauwberg",
+   "label": "Blaauwberg",
+   "built": "2026-11-25T17:17:39+00:00",
+   "bounds": [
+    18.34132,
+    -33.91808,
+    18.61024,
+    -33.47128
+   ],
+   "layers": 253,
+   "plots": 67118
+  },
+  {
+   "slug": "table-bay",
+   "label": "Table Bay",
+   "built": "2026-11-25T17:16:55+00:00",
+   "bounds": [
+    18.34183,
+    -34.0098,
+    18.54379,
+    -33.78957
+   ],
+   "layers": 255,
+   "plots": 47191
+  },
+  {
+   "slug": "tygerberg",
+   "label": "Tygerberg",
+   "built": "2026-11-25T17:59:56+00:00",
+   "bounds": [
+    18.52948,
+    -34.00136,
+    18.74528,
+    -33.82127
+   ],
+   "layers": 246,
+   "plots": 160897
+  },
+  {
+   "slug": "northern",
+   "label": "Northern",
+   "built": "2026-11-25T17:30:13+00:00",
+   "bounds": [
+    18.5411,
+    -33.90802,
+    18.833,
+    -33.58436
+   ],
+   "layers": 238,
+   "plots": 97092
+  },
+  {
+   "slug": "southern",
+   "label": "Southern",
+   "built": "2026-11-25T17:26:08+00:00",
+   "bounds": [
+    18.30722,
+    -34.35834,
+    18.50142,
+    -33.94235
+   ],
+   "layers": 250,
+   "plots": 92949
+  },
+  {
+   "slug": "cape-flats",
+   "label": "Cape Flats",
+   "built": "2026-11-25T17:34:43+00:00",
+   "bounds": [
+    18.47543,
+    -34.10603,
+    18.61354,
+    -33.94962
+   ],
+   "layers": 231,
+   "plots": 100076
+  },
+  {
+   "slug": "mitchells-plain-khayelitsha",
+   "label": "Mitchells Plain / Khayelitsha",
+   "built": "2026-11-25T17:35:42+00:00",
+   "bounds": [
+    18.55836,
+    -34.07559,
+    18.75177,
+    -33.94933
+   ],
+   "layers": 232,
+   "plots": 220261
+  },
+  {
+   "slug": "helderberg",
+   "label": "Helderberg",
+   "built": "2026-11-25T17:16:19+00:00",
+   "bounds": [
+    18.71541,
+    -34.27033,
+    19.00482,
+    -33.99994
+   ],
+   "layers": 243,
+   "plots": 68309
+  }
+ ],
+ "metro": "2026-11-25T19:14:01+00:00"
+}
