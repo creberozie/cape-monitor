@@ -29,5 +29,5 @@ for p in ("data/metro/money/money.json", "live/news"):
 s, h, b = get("watch/"); print("  watch page", s, len(b)); ok &= s == 200 and b"Stellenbosch Watch" in b
 try:
     s, h, b = get("data/muni/stellenbosch/money/money.json"); print("  watch data", s, json.loads(b)["counts"])
-except SystemExit as e: print("  watch data missing:", e)
+except (SystemExit, ValueError, KeyError) as e: print("  watch data missing:", str(e)[:100])
 print("SMOKE OK" if ok else "SMOKE: range requests not honoured"); sys.exit(0 if ok else 1)
