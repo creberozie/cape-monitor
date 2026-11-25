@@ -63,15 +63,10 @@ export async function initMap(container: string, outlines: { slug: string; label
   map.addLayer({ id: "districts-fill", type: "fill", source: "districts", paint: { "fill-color": "#38d39f", "fill-opacity": DISTRICT ? 0 : ["case", ["boolean", ["feature-state", "hover"], false], .14, .05] } });
   map.addLayer({ id: "districts-line", type: "line", source: "districts", paint: { "line-color": ["case", ["==", ["get", "cur"], 1], "#38d39f", "#5d6b74"], "line-width": ["case", ["==", ["get", "cur"], 1], 1.8, 1], "line-dasharray": [3, 2] } });
   if (!DISTRICT) map.addLayer({ id: "districts-label", type: "symbol", source: "districts", layout: { "text-field": ["get", "label"], "text-font": ["Noto Sans Medium"], "text-size": 13 }, paint: { "text-color": "#dfe6ea", "text-halo-color": "#0b0f12", "text-halo-width": 1.5 } });
-  for (const t of M.tilesets) map.addSource("ts-" + t, { type: "vector", url: tiles(`${DP}tiles/${t}.pmtiles`) });
+  // tile sources are registered when a layer that uses one is first switched on, so a first visit reads no tile file it does not draw
   // draw-order anchors: record layers are added only when first switched on, and slot in below the right anchor
   map.addSource("anchor", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
   for (const a of ["anchor-line", "anchor-point", "anchor-top"]) map.addLayer({ id: a, type: "circle", source: "anchor" });
-  if (layerById.has("service-requests")) {
-    map.addLayer({ id: "service-requests-density~h", type: "heatmap", source: "ts-" + layerById.get("service-requests")!.tileset, "source-layer": "service-requests-density", maxzoom: 13.5, layout: { visibility: "none" },
-      paint: { "heatmap-weight": ["interpolate", ["linear"], ["get", "v"], 0, 0, 400, 1], "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 8, 10, 13, 30], "heatmap-opacity": .75,
-        "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"], 0, "rgba(0,0,0,0)", .2, "#3b1f5c", .45, "#a1245b", .7, "#ff5d5d", 1, "#ffe08a"] } });
-  }
   // live and metro point overlays (news, court records, fires, ships): GeoJSON filled in by live.ts
   for (const [id, colour] of [["live-news", "#ffb020"], ["live-courts", "#ff7ac6"], ["live-notices", "#b98cff"], ["live-fires", "#ff3d00"], ["live-ships", "#7be0ff"]] as const) {
     map.addSource(id, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
@@ -84,10 +79,19 @@ export async function initMap(container: string, outlines: { slug: string; label
   return map;
 }
 
+function addHeat() {
+  if (!layerById.has("service-requests") || map.getLayer("service-requests-density~h")) return;
+    ensureSource(layerById.get("service-requests")!.tileset!);
+    map.addLayer({ id: "service-requests-density~h", type: "heatmap", source: "ts-" + layerById.get("service-requests")!.tileset, "source-layer": "service-requests-density", maxzoom: 13.5, layout: { visibility: "none" },
+      paint: { "heatmap-weight": ["interpolate", ["linear"], ["get", "v"], 0, 0, 400, 1], "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 8, 10, 13, 30], "heatmap-opacity": .75,
+        "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"], 0, "rgba(0,0,0,0)", .2, "#3b1f5c", .45, "#a1245b", .7, "#ff5d5d", 1, "#ffe08a"] } });
+  }
 const added = new Set<string>();
+function ensureSource(t: string) { if (!map.getSource("ts-" + t)) map.addSource("ts-" + t, { type: "vector", url: tiles(`${DP}tiles/${t}.pmtiles`) }); }
 const ANCHOR: Record<string, string> = { Polygon: "anchor-line", Polyline: "anchor-point", Point: "anchor-top", Multipoint: "anchor-top" };
 function addLayer(L: Layer) {
   if (added.has(L.id)) return; added.add(L.id);
+  for (const t of sets(L)) ensureSource(t);
   const before = ANCHOR[L.geom || "Point"];
   const _add = map.addLayer.bind(map) as any; const add = (spec: any) => _add(spec, before);
   const col = colourExpr(L), vis = { visibility: "none" as const }, minzoom = L.minzoom ?? 9;
@@ -112,6 +116,7 @@ export function setVisible(id: string, on: boolean) {
   const L = layerById.get(id);
   on ? visible.add(id) : visible.delete(id);
   if (on && L && sets(L).length) addLayer(L);
+  if (on && id === "service-requests") addHeat();
   const all = L ? [...ids(L), ...(id === M.parcels.layer ? sets(L).map((_, k) => `${k ? `${id}@${k}` : id}~t`) : []), ...(id === "service-requests" ? ["service-requests-density~h"] : [])] : [id + "~p"];
   for (const lid of all) if (map.getLayer(lid)) map.setLayoutProperty(lid, "visibility", on ? "visible" : "none");
 }
