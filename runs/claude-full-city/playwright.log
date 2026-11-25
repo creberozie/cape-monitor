@@ -13,8 +13,8 @@ Running 27 tests using 2 workers
 [10/27] [tablet] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier
 [11/27] [desktop] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
 [12/27] [desktop] › tests/app.spec.ts:57:1 › labour tab: statutory rates, filters, shareable #l= link
-[13/27] [tablet] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
-[14/27] [desktop] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
+[13/27] [desktop] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
+[14/27] [tablet] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
 [15/27] [desktop] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
 [16/27] [tablet] › tests/app.spec.ts:57:1 › labour tab: statutory rates, filters, shareable #l= link
 [17/27] [tablet] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
@@ -22,128 +22,10 @@ Running 27 tests using 2 workers
 [19/27] [phone] › tests/access.spec.ts:7:1 › gated: sign-up signs straight in, shows the online count, logs actions
 [20/27] [phone] › tests/access.spec.ts:23:1 › gated: owners get the Users tab, others do not
 [21/27] [phone] › tests/access.spec.ts:29:1 › open: no wall, straight into the app, nothing overflows
-[22/27] (retries) [phone] › tests/access.spec.ts:29:1 › open: no wall, straight into the app, nothing overflows (retry #1)
-  1) [phone] › tests/access.spec.ts:29:1 › open: no wall, straight into the app, nothing overflows ─
-
-    Error: expect(received).toBe(expected) // Object.is equality
-
-    Expected: 0
-    Received: 5
-
-      32 |   await expect(page.locator("#gate")).toHaveCount(0);
-      33 |   const over = await page.evaluate(() => [...document.querySelectorAll("#top *, #tabs *")].filter((el) => { const r = el.getBoundingClientRect(); return r.width && r.right > innerWidth + 1; }).length);
-    > 34 |   expect(over).toBe(0);
-         |                ^
-      35 |   // no label is squeezed narrower than its text (the tab bar scrolls instead)
-      36 |   const squeezed = await page.$$eval("#tabs button", (bs) => bs.filter((b) => b.scrollWidth > b.clientWidth + 1).map((b) => b.textContent));
-      37 |   expect(squeezed).toEqual([]);
-        at /home/runner/work/cape-monitor/cape-monitor/tests/access.spec.ts:34:16
-
-    Error Context: test-results/access-open-no-wall-straight-into-the-app-nothing-overflows-phone/error-context.md
-
-    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
-
-    Error: expect(received).toBe(expected) // Object.is equality
-
-    Expected: 0
-    Received: 5
-
-      32 |   await expect(page.locator("#gate")).toHaveCount(0);
-      33 |   const over = await page.evaluate(() => [...document.querySelectorAll("#top *, #tabs *")].filter((el) => { const r = el.getBoundingClientRect(); return r.width && r.right > innerWidth + 1; }).length);
-    > 34 |   expect(over).toBe(0);
-         |                ^
-      35 |   // no label is squeezed narrower than its text (the tab bar scrolls instead)
-      36 |   const squeezed = await page.$$eval("#tabs button", (bs) => bs.filter((b) => b.scrollWidth > b.clientWidth + 1).map((b) => b.textContent));
-      37 |   expect(squeezed).toEqual([]);
-        at /home/runner/work/cape-monitor/cape-monitor/tests/access.spec.ts:34:16
-
-    Error Context: test-results/access-open-no-wall-straight-into-the-app-nothing-overflows-phone-retry1/error-context.md
-
-
-[23/27] [phone] › tests/app.spec.ts:21:1 › metro overview loads, lists districts and has no errors
-[24/27] [phone] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier
-[25/27] [phone] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
-[26/27] [phone] › tests/app.spec.ts:57:1 › labour tab: statutory rates, filters, shareable #l= link
-[27/27] [phone] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
-[28/27] [phone] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
-[29/27] (retries) [tablet] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link (retry #1)
-  2) [tablet] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link 
-
-    Test timeout of 90000ms exceeded.
-
-    Error: locator.click: Test timeout of 90000ms exceeded.
-    Browser logs:
-
-    <launching> /home/runner/.cache/ms-playwright/chromium_headless_shell-1255/chrome-headless-shell-linux64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,HttpsUpgrades,HttpsFirstBalancedModeAutoEnable,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,AvoidCorsURLLoaderRestartOnRedirect,TcpPortRandomizationWin,OptimizationHints,NetworkTimeServiceQuerying,AimEnabled,PreconnectToSearch,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface,SkipListAccountsWithoutGaiaCookies --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --enable-unsafe-swiftshader --edge-skip-compat-layer-relaunch --disable-stack-profiler --disable-infobars --disable-sync --do-not-de-elevate --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/tmp/playwright_chromiumdev_profile-XhaGON --remote-debugging-pipe --no-startup-window
-    <launched> pid=3371
-    [pid=3371][err] [1125/072103.786458:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
-    [pid=3371][err] [1125/072103.789937:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
-    [pid=3371][err] [1125/072103.789951:WARNING:dbus/object_proxy.cc:439] Failed to connect to NameOwnerChanged signal for object: /org/freedesktop/portal/desktop
-    [pid=3371][err] [1125/072103.789960:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
-    [pid=3371][err] [1125/072103.789966:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
-    [pid=3371][err] [1125/072103.809247:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: 
-    [pid=3371][err] [1125/072103.809508:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
-    [pid=3371][err] [1125/072103.816033:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: 
-    [pid=3371][err] [1125/072103.845970:WARNING:media/gpu/vaapi/vaapi_wrapper.cc:1651] drmGetDevices2() has not found any devices
-    [pid=3371][err] [1125/072103.851143:WARNING:sandbox/policy/linux/sandbox_linux.cc:406] InitializeSandbox() called with multiple threads in process gpu-process.
-    [pid=3371][err] [1125/072104.420836:ERROR:gpu/command_buffer/service/gl_utils.cc:431] [.WebGL-0x21a4003a6e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-    [pid=3371][err] [1125/072104.428669:INFO:CONSOLE:0] "[.WebGL-0x21a4003a6e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels", source: http://localhost:8789/ (0)
-    [pid=3371][err] [1125/072104.468250:ERROR:gpu/command_buffer/service/gl_utils.cc:431] [.WebGL-0x21a4003a6e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-    [pid=3371][err] [1125/072104.523762:INFO:CONSOLE:0] "[.WebGL-0x21a4003a6e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels", source: http://localhost:8789/ (0)
-    [pid=3371][err] [1125/072104.536481:ERROR:gpu/command_buffer/service/gl_utils.cc:431] [.WebGL-0x21a4003a6e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-    [pid=3371][err] [1125/072104.572455:INFO:CONSOLE:0] "[.WebGL-0x21a4003a6e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels", source: http://localhost:8789/ (0)
-    [pid=3371][err] [1125/072104.594933:ERROR:gpu/command_buffer/service/gl_utils.cc:431] [.WebGL-0x21a4003a6e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
-    [pid=3371][err] [1125/072104.620963:INFO:CONSOLE:0] "[.WebGL-0x21a4003a6e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)", source: http://localhost:8789/ (0)
-    [pid=3371] <gracefully close start>
-    Call log:
-      - waiting for locator('#tabs [data-tab=brief]')
-        - locator resolved to <button class="on" data-tab="brief">Brief</button>
-      - attempting click action
-        - waiting for element to be visible, enabled and stable
-        - element is visible, enabled and stable
-        - scrolling into view if needed
-        - done scrolling
-        - <span>map layers</span> from <aside id="right" class="panel">…</aside> subtree intercepts pointer events
-      - retrying click action
-        - waiting for element to be visible, enabled and stable
-        - element is visible, enabled and stable
-        - scrolling into view if needed
-        - done scrolling
-        - <a rel="noopener" target="_blank" href="https://citymaps.capetown.gov.za/agsext/rest/services/Theme_Based/Land_Administration/MapServer/7/query?where=SL_LAND_PRCL_KEY%3D408013&outFields=*&returnGeometry=false&f=html">City record ↗</a> from <aside id="right" class="panel">…</aside> subtree intercepts pointer events
-      - retrying click action
-        - waiting 20ms
-        2 × waiting for element to be visible, enabled and stable
-          - element is visible, enabled and stable
-          - scrolling into view if needed
-          - done scrolling
-          - <a rel="noopener" target="_blank" href="https://citymaps.capetown.gov.za/agsext/rest/services/Theme_Based/Land_Administration/MapServer/7/query?where=SL_LAND_PRCL_KEY%3D408013&outFields=*&returnGeometry=false&f=html">City record ↗</a> from <aside id="right" class="panel">…</aside> subtree intercepts pointer events
-        - retrying click action
-          - waiting 100ms
-        148 × waiting for element to be visible, enabled and stable
-            - element is visible, enabled and stable
-            - scrolling into view if needed
-            - done scrolling
-            - <a rel="noopener" target="_blank" href="https://citymaps.capetown.gov.za/agsext/rest/services/Theme_Based/Land_Administration/MapServer/7/query?where=SL_LAND_PRCL_KEY%3D408013&outFields=*&returnGeometry=false&f=html">City record ↗</a> from <aside id="right" class="panel">…</aside> subtree intercepts pointer events
-          - retrying click action
-            - waiting 500ms
-        - waiting for element to be visible, enabled and stable
-
-
-       7 | async function tab(p: Page, name: string) {
-       8 |   if (phone(p) && await p.locator("body.inspect").count()) await p.locator("#closeinspect").click();   // on phones the dossier sheet covers the tabs
-    >  9 |   await p.locator(`#tabs [data-tab=${name}]`).click(); await p.waitForTimeout(1200);
-         |                                               ^
-      10 | }
-      11 | /** nothing may stick out of its card, tab or panel: every element's right edge stays inside its scroll container */
-      12 | async function noOverflow(p: Page, sel: string) {
-        at tab (/home/runner/work/cape-monitor/cape-monitor/tests/app.spec.ts:9:47)
-        at /home/runner/work/cape-monitor/cape-monitor/tests/app.spec.ts:87:66
-
-    Error Context: test-results/app-district-map-layer-pan-546b8-area-dossier-and-share-link-tablet/error-context.md
-
-
-  1 failed
-    [phone] › tests/access.spec.ts:29:1 › open: no wall, straight into the app, nothing overflows ──
-  1 flaky
-    [tablet] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link 
-  25 passed (2.6m)
+[22/27] [phone] › tests/app.spec.ts:21:1 › metro overview loads, lists districts and has no errors
+[23/27] [phone] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier
+[24/27] [phone] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
+[25/27] [phone] › tests/app.spec.ts:57:1 › labour tab: statutory rates, filters, shareable #l= link
+[26/27] [phone] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
+[27/27] [phone] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
+  27 passed (2.3m)
