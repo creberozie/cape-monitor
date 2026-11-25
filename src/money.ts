@@ -133,7 +133,12 @@ export async function moneyTab(host: HTMLElement, k?: string) {
 
 async function overview(el: HTMLElement) {
   const m = await moneyMeta(); const F = await flagsData();
+  const kpi0 = (v: any, l: string) => `<div class="kpi"><b>${v}</b><span>${esc(l)}</span></div>`;
+  // the figures first (from the small summary file), then the charts once the large tables have loaded
+  el.innerHTML = `<div class="kpis">${kpi0(fmt(m.counts.suppliers), "supplier profiles")}${kpi0(fmt(m.counts.awards || 0), "City award decisions")}${kpi0(fmt(m.counts.bids || 0), "bids read out at openings")}
+      ${kpi0(fmt(m.counts.rfq || 0), "City quotation orders")}${kpi0(fmt(m.counts.etenders || 0), "Western Cape eTenders")}${kpi0(fmt(m.counts.flags), "pattern flags")}</div><div class="empty">Loading charts…</div>`;
   const [rfq, aw, et] = await Promise.all([allRows("rfq"), allRows("awards"), allRows("etenders").catch(() => [])]);
+  if (!el.isConnected) return;
   const byYear = new Map<string, number>(); for (const r of rfq) if (!r[10]) byYear.set(String(r[0]).slice(0, 4), (byYear.get(String(r[0]).slice(0, 4)) || 0) + (Number(r[7]) || 0));
   const dec = new Map<string, number>(); for (const r of aw) dec.set(String(r[3] || "—"), (dec.get(String(r[3] || "—")) || 0) + 1);
   const kinds = new Map<string, number>(); for (const f of F.flags) kinds.set(f.kind, (kinds.get(f.kind) || 0) + 1);
