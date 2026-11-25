@@ -3,8 +3,8 @@ Running 30 tests using 2 workers
 
 [1/30] [desktop] › tests/app.spec.ts:21:1 › metro overview loads, lists districts and has no errors
 [2/30] [desktop] › tests/access.spec.ts:7:1 › gated: sign-up signs straight in, shows the online count, logs actions
-[3/30] [desktop] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier
-[4/30] [desktop] › tests/access.spec.ts:23:1 › gated: owners get the Users tab, others do not
+[3/30] [desktop] › tests/access.spec.ts:23:1 › gated: owners get the Users tab, others do not
+[4/30] [desktop] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier
 [5/30] [desktop] › tests/access.spec.ts:29:1 › open: no wall, straight into the app, nothing overflows
 [6/30] [tablet] › tests/access.spec.ts:7:1 › gated: sign-up signs straight in, shows the online count, logs actions
 [7/30] [tablet] › tests/access.spec.ts:23:1 › gated: owners get the Users tab, others do not
@@ -13,13 +13,13 @@ Running 30 tests using 2 workers
 [10/30] [tablet] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier
 [11/30] [desktop] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
 [12/30] [desktop] › tests/app.spec.ts:57:1 › labour tab: statutory rates, filters, shareable #l= link
-[13/30] [desktop] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
-[14/30] [tablet] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
+[13/30] [tablet] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
+[14/30] [desktop] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
 [15/30] [desktop] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
 [16/30] [tablet] › tests/app.spec.ts:57:1 › labour tab: statutory rates, filters, shareable #l= link
 [17/30] [tablet] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
-[18/30] [desktop] › tests/app.spec.ts:92:1 › search finds erven, addresses, places and suburbs city-wide; Enter opens the top match
-[19/30] [tablet] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
+[18/30] [tablet] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
+[19/30] [desktop] › tests/app.spec.ts:92:1 › search finds erven, addresses, places and suburbs city-wide; Enter opens the top match
 [20/30] [phone] › tests/access.spec.ts:7:1 › gated: sign-up signs straight in, shows the online count, logs actions
 [21/30] [tablet] › tests/app.spec.ts:92:1 › search finds erven, addresses, places and suburbs city-wide; Enter opens the top match
 [22/30] [phone] › tests/access.spec.ts:23:1 › gated: owners get the Users tab, others do not
@@ -31,4 +31,4 @@ Running 30 tests using 2 workers
 [28/30] [phone] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
 [29/30] [phone] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
 [30/30] [phone] › tests/app.spec.ts:92:1 › search finds erven, addresses, places and suburbs city-wide; Enter opens the top match
-  30 passed (2.8m)
+  30 passed (2.5m)

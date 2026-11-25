@@ -2,14 +2,12 @@
  ⛅️ wrangler 4.168.0
 ────────────────────
 ✨ Compiled Worker successfully
-Uploading... (11686/12254)
-Uploading... (11875/12254)
-Uploading... (12064/12254)
+Uploading... (12253/12254)
 Uploading... (12254/12254)
-✨ Success! Uploaded 568 files (11686 already uploaded) (8.54 sec)
+✨ Success! Uploaded 1 files (12253 already uploaded) (0.74 sec)
 
 ✨ Uploading _headers
 ✨ Uploading Functions bundle
 🌎 Deploying...
-✨ Deployment complete! Take a peek over at https://5896ad40.cape-monitor.pages.dev
+✨ Deployment complete! Take a peek over at https://fbd1877f.cape-monitor.pages.dev
 ✨ Deployment alias URL: https://claude-full-city.cape-monitor.pages.dev

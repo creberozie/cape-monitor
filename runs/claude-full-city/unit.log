@@ -6,25 +6,25 @@ TAP version 13
 # Subtest: no Supabase: always open, whatever the switch says
 ok 1 - no Supabase: always open, whatever the switch says
   ---
-  duration_ms: 2.73631
+  duration_ms: 2.02359
   type: 'test'
   ...
 # Subtest: Supabase configured: wall on by default, and when the switch is empty
 ok 2 - Supabase configured: wall on by default, and when the switch is empty
   ---
-  duration_ms: 0.230672
+  duration_ms: 0.225102
   type: 'test'
   ...
 # Subtest: one switch opens the app
 ok 3 - one switch opens the app
   ---
-  duration_ms: 0.280596
+  duration_ms: 0.297689
   type: 'test'
   ...
 # Subtest: bad URL or short key counts as not configured
 ok 4 - bad URL or short key counts as not configured
   ---
-  duration_ms: 0.199256
+  duration_ms: 0.202629
   type: 'test'
   ...
 1..4
@@ -35,100 +35,100 @@ ok 4 - bad URL or short key counts as not configured
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 125.759302
+# duration_ms 105.001029
 /home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:11: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/fixtures/council.html' mode='r' encoding='UTF-8'>
   self.page = open(os.path.join(FIX, "council.html")).read()
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
 ../home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:32: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/fixtures/lrs.json' mode='r' encoding='UTF-8'>
   items = labour.lrs_items(fetch=lambda url: open(os.path.join(FIX, "lrs.json")).read())
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-...../home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:43: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpei4srfxy/money/money.json' mode='w' encoding='UTF-8'>
+...../home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:43: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpwj793xb3/money/money.json' mode='w' encoding='UTF-8'>
   json.dump({"shard": 5000, "tables": {"awards": {"fields": [["vendor", "Vendor"], ["desc", "Desc"], ["sup", "Suppliers"]], "shards": 1}}}, open(os.path.join(m, "money.json"), "w"))
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:44: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpei4srfxy/money/t/awards-0.json' mode='w' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:44: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpwj793xb3/money/t/awards-0.json' mode='w' encoding='UTF-8'>
   json.dump([["Acme Steel Works (Pty) Ltd (2019/123456/07)", "x", ["acme-steel-works"]]], open(os.path.join(m, "t", "awards-0.json"), "w"))
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:45: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpei4srfxy/money/suppliers.json' mode='w' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:45: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpwj793xb3/money/suppliers.json' mode='w' encoding='UTF-8'>
   json.dump({"rows": [["acme-steel-works", "Acme Steel Works (Pty) Ltd", 1, 100, 0, 0], ["big-co", "Big Co", 1, 9e9, 0, 0], ["flagged-co", "Flagged Co", 1, 1, 0, 0]]}, open(os.path.join(m, "suppliers.json"), "w"))
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:46: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpei4srfxy/money/flags.json' mode='w' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:46: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpwj793xb3/money/flags.json' mode='w' encoding='UTF-8'>
   json.dump({"flags": [{"subjects": [["supplier", "flagged-co"]]}]}, open(os.path.join(m, "flags.json"), "w"))
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-./home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:43: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp3cu0d1nq/money/money.json' mode='w' encoding='UTF-8'>
+./home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:43: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp0gmt9nf1/money/money.json' mode='w' encoding='UTF-8'>
   json.dump({"shard": 5000, "tables": {"awards": {"fields": [["vendor", "Vendor"], ["desc", "Desc"], ["sup", "Suppliers"]], "shards": 1}}}, open(os.path.join(m, "money.json"), "w"))
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:44: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp3cu0d1nq/money/t/awards-0.json' mode='w' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:44: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp0gmt9nf1/money/t/awards-0.json' mode='w' encoding='UTF-8'>
   json.dump([["Acme Steel Works (Pty) Ltd (2019/123456/07)", "x", ["acme-steel-works"]]], open(os.path.join(m, "t", "awards-0.json"), "w"))
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:45: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp3cu0d1nq/money/suppliers.json' mode='w' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:45: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp0gmt9nf1/money/suppliers.json' mode='w' encoding='UTF-8'>
   json.dump({"rows": [["acme-steel-works", "Acme Steel Works (Pty) Ltd", 1, 100, 0, 0], ["big-co", "Big Co", 1, 9e9, 0, 0], ["flagged-co", "Flagged Co", 1, 1, 0, 0]]}, open(os.path.join(m, "suppliers.json"), "w"))
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:46: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp3cu0d1nq/money/flags.json' mode='w' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:46: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp0gmt9nf1/money/flags.json' mode='w' encoding='UTF-8'>
   json.dump({"flags": [{"subjects": [["supplier", "flagged-co"]]}]}, open(os.path.join(m, "flags.json"), "w"))
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:96: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp3cu0d1nq/money/suppliers.json' mode='r' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:96: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp0gmt9nf1/money/suppliers.json' mode='r' encoding='UTF-8'>
   sup = json.load(open(os.path.join(MONEY, "suppliers.json")))["rows"]
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:98: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp3cu0d1nq/money/flags.json' mode='r' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:98: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp0gmt9nf1/money/flags.json' mode='r' encoding='UTF-8'>
   flags = json.load(open(os.path.join(MONEY, "flags.json")))["flags"]
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:42: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp3cu0d1nq/money/money.json' mode='r' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:42: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp0gmt9nf1/money/money.json' mode='r' encoding='UTF-8'>
   meta = json.load(open(os.path.join(MONEY, "money.json")))
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:48: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp3cu0d1nq/money/t/awards-0.json' mode='r' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:48: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp0gmt9nf1/money/t/awards-0.json' mode='r' encoding='UTF-8'>
   for r, row in enumerate(json.load(open(os.path.join(MONEY, "t", f"{tid}-{sh}.json")))):
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:57: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp3cu0d1nq/registry.json' mode='r' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:57: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp0gmt9nf1/registry.json' mode='r' encoding='UTF-8'>
   out = json.load(open(br.OUT)); self.assertEqual(out["records"]["acme-steel-works"]["printed_reg_no"], ["2019/123456/07"])
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-./home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:43: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpxt4gjmev/money/money.json' mode='w' encoding='UTF-8'>
+./home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:43: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpah75h2qm/money/money.json' mode='w' encoding='UTF-8'>
   json.dump({"shard": 5000, "tables": {"awards": {"fields": [["vendor", "Vendor"], ["desc", "Desc"], ["sup", "Suppliers"]], "shards": 1}}}, open(os.path.join(m, "money.json"), "w"))
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:44: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpxt4gjmev/money/t/awards-0.json' mode='w' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:44: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpah75h2qm/money/t/awards-0.json' mode='w' encoding='UTF-8'>
   json.dump([["Acme Steel Works (Pty) Ltd (2019/123456/07)", "x", ["acme-steel-works"]]], open(os.path.join(m, "t", "awards-0.json"), "w"))
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:45: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpxt4gjmev/money/suppliers.json' mode='w' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:45: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpah75h2qm/money/suppliers.json' mode='w' encoding='UTF-8'>
   json.dump({"rows": [["acme-steel-works", "Acme Steel Works (Pty) Ltd", 1, 100, 0, 0], ["big-co", "Big Co", 1, 9e9, 0, 0], ["flagged-co", "Flagged Co", 1, 1, 0, 0]]}, open(os.path.join(m, "suppliers.json"), "w"))
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:46: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpxt4gjmev/money/flags.json' mode='w' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:46: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpah75h2qm/money/flags.json' mode='w' encoding='UTF-8'>
   json.dump({"flags": [{"subjects": [["supplier", "flagged-co"]]}]}, open(os.path.join(m, "flags.json"), "w"))
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:42: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpxt4gjmev/money/money.json' mode='r' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:42: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpah75h2qm/money/money.json' mode='r' encoding='UTF-8'>
   meta = json.load(open(os.path.join(MONEY, "money.json")))
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:48: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpxt4gjmev/money/t/awards-0.json' mode='r' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:48: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpah75h2qm/money/t/awards-0.json' mode='r' encoding='UTF-8'>
   for r, row in enumerate(json.load(open(os.path.join(MONEY, "t", f"{tid}-{sh}.json")))):
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-./home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:43: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpz_8ym7f5/money/money.json' mode='w' encoding='UTF-8'>
+./home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:43: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpw_1j4itl/money/money.json' mode='w' encoding='UTF-8'>
   json.dump({"shard": 5000, "tables": {"awards": {"fields": [["vendor", "Vendor"], ["desc", "Desc"], ["sup", "Suppliers"]], "shards": 1}}}, open(os.path.join(m, "money.json"), "w"))
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:44: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpz_8ym7f5/money/t/awards-0.json' mode='w' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:44: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpw_1j4itl/money/t/awards-0.json' mode='w' encoding='UTF-8'>
   json.dump([["Acme Steel Works (Pty) Ltd (2019/123456/07)", "x", ["acme-steel-works"]]], open(os.path.join(m, "t", "awards-0.json"), "w"))
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:45: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpz_8ym7f5/money/suppliers.json' mode='w' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:45: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpw_1j4itl/money/suppliers.json' mode='w' encoding='UTF-8'>
   json.dump({"rows": [["acme-steel-works", "Acme Steel Works (Pty) Ltd", 1, 100, 0, 0], ["big-co", "Big Co", 1, 9e9, 0, 0], ["flagged-co", "Flagged Co", 1, 1, 0, 0]]}, open(os.path.join(m, "suppliers.json"), "w"))
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:46: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpz_8ym7f5/money/flags.json' mode='w' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:46: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpw_1j4itl/money/flags.json' mode='w' encoding='UTF-8'>
   json.dump({"flags": [{"subjects": [["supplier", "flagged-co"]]}]}, open(os.path.join(m, "flags.json"), "w"))
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:96: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpz_8ym7f5/money/suppliers.json' mode='r' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:96: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpw_1j4itl/money/suppliers.json' mode='r' encoding='UTF-8'>
   sup = json.load(open(os.path.join(MONEY, "suppliers.json")))["rows"]
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:98: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpz_8ym7f5/money/flags.json' mode='r' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:98: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpw_1j4itl/money/flags.json' mode='r' encoding='UTF-8'>
   flags = json.load(open(os.path.join(MONEY, "flags.json")))["flags"]
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:42: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpz_8ym7f5/money/money.json' mode='r' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:42: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpw_1j4itl/money/money.json' mode='r' encoding='UTF-8'>
   meta = json.load(open(os.path.join(MONEY, "money.json")))
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:48: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpz_8ym7f5/money/t/awards-0.json' mode='r' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/metro/business_registry.py:48: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpw_1j4itl/money/t/awards-0.json' mode='r' encoding='UTF-8'>
   for r, row in enumerate(json.load(open(os.path.join(MONEY, "t", f"{tid}-{sh}.json")))):
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:69: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpz_8ym7f5/registry.json' mode='r' encoding='UTF-8'>
+/home/runner/work/cape-monitor/cape-monitor/pipeline/tests/test_metro.py:69: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpw_1j4itl/registry.json' mode='r' encoding='UTF-8'>
   out = json.load(open(br.OUT)); self.assertIn("12 MAIN RD BELLVILLE", out["address_index"])
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
 .
 ----------------------------------------------------------------------
-Ran 11 tests in 0.012s
+Ran 11 tests in 0.010s
 
 OK
 registry: 1 suppliers with register details (1 with a number printed in published records); provider not configured; 0 looked up this run
