@@ -1,4 +1,4 @@
-data index: [('blaauwberg', '2026-11-24'), ('table-bay', '2026-11-24'), ('tygerberg', '2026-11-24'), ('northern', '2026-11-25'), ('southern', '2026-11-24'), ('cape-flats', '2026-11-24'), ('mitchells-plain-khayelitsha', '2026-11-24'), ('helderberg', '2026-11-24')] metro 2026-11-24T21:51:16+00:00
+data index: [('blaauwberg', '2026-11-24'), ('table-bay', '2026-11-24'), ('tygerberg', '2026-11-24'), ('northern', '2026-11-25'), ('southern', '2026-11-24'), ('cape-flats', '2026-11-24'), ('mitchells-plain-khayelitsha', '2026-11-24'), ('helderberg', '2026-11-24')] metro 2026-11-25T01:14:59+00:00
 
 > cape-monitor@1.0.0 prebuild
 > npm run vendor
@@ -13,20 +13,20 @@ data index: [('blaauwberg', '2026-11-24'), ('table-bay', '2026-11-24'), ('tygerb
 
 [36mvite v8.3.8 [32mbuilding client environment for production...[36m[39m
 transforming...
-✓ 70 modules transformed.
+✓ 18 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/index.html                     2.57 kB │ gzip:   1.11 kB
-dist/assets/index-3bGtNYTq.css     84.74 kB │ gzip:  13.73 kB
-dist/assets/dist-DwhOg3L3.js      217.56 kB │ gzip:  56.25 kB
-dist/assets/index-DhiRjlSK.js   1,208.05 kB │ gzip: 340.67 kB
+dist/index.html                     2.42 kB │ gzip:   1.06 kB
+dist/assets/index-2TPJZE-i.css     84.02 kB │ gzip:  13.56 kB
+dist/assets/index-D_rKZOBQ.js   1,198.80 kB │ gzip: 337.15 kB
 
-[32m✓ built in 59.47s[39m
-[33m[33m[PLUGIN_TIMINGS] [0mJavaScript callbacks ran for 59.1s of this 59.5s build (99%).
+[32m✓ built in 30.44s[39m
+[33m[33m[PLUGIN_TIMINGS] [0mJavaScript callbacks ran for 30.1s of this 30.4s build (99%).
 The slowest callbacks, timed inside each callback (the wait before a callback starts is excluded, the time it awaits is included):
-  - plugin vite:prepare-out-dir renderStart (99%, 59.0s, 1 call)
+  - plugin vite:prepare-out-dir renderStart (98%, 29.9s, 1 call)
+Additional callback time came from callbacks under 1s.
 See https://rolldown.rs/reference/InputOptions.checks#bundlertimings for more details.
 [39m
 168 tile files moved under dist/t/
-dist: 11688 files
+dist: 11689 files
 check ok
