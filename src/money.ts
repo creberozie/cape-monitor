@@ -28,7 +28,8 @@ export const L = {
 export function configureMoney(root: string, labels: Partial<typeof L> = {}) { ROOTP = root; MP = root + "money/"; meta = null; view = null; Object.assign(L, labels); }
 type TableMeta = { id: string; name: string; fields: [string, string][]; n: number; shards: number; source: string; url: string; retrieved: string; note?: string };
 export interface MoneyMeta { built: string; tables: Record<string, TableMeta>; counts: Record<string, number>; buckets: number; shard: number; et_shard: number; registers: Record<string, string> }
-export interface Flag { id: string; kind: string; title: string; text: string; records: [string, number][]; subjects: [string, string][]; value?: number; basis?: { text: string; url: string } }
+export interface Flag { id: string; kind: string; title: string; text: string; records: [string, number][]; subjects: [string, string][]; value?: number; basis?: { text: string; url: string };
+  verification_status?: string; review_reason?: string; scan?: string; scan_lowest?: string; method?: string }
 let meta: MoneyMeta | null = null;
 export const moneyMeta = async () => meta ??= await getJSON<MoneyMeta>(MP + "money.json");
 const fi = (t: TableMeta, k: string) => t.fields.findIndex((f) => f[0] === k);
@@ -173,7 +174,7 @@ export async function flagList(el: HTMLElement) {
   const list = F.flags.filter((f) => !flagFilter || f.kind === flagFilter);
   el.innerHTML = `<div class="toolbar"><select class="fk" aria-label="Kind of pattern"><option value="">All patterns (${fmt(F.flags.length)})</option>${Object.entries(F.kinds).map(([k, l]) => `<option value="${k}" ${k === flagFilter ? "selected" : ""}>${esc(l)} (${F.flags.filter((f) => f.kind === k).length})</option>`).join("")}</select>
     <button class="tb fx">Export CSV</button></div><div class="note warnbox">${esc(F.note)} Thresholds used: ${F.thresholds.map((t: any) => `<a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.text)}</a>`).join("; ")}.</div>
-    ${list.slice(0, 300).map((f) => `<div class="feeditem click" data-flag="${esc(f.id)}"><b>${esc(f.title)}</b><div class="meta">${esc(F.kinds[f.kind])} · ${f.records.length} record${f.records.length === 1 ? "" : "s"}${f.value ? " · " + short(f.value) : ""} · ${f.subjects.filter((s) => s[0] === "supplier").map((s) => esc(names.get(s[1]) || s[1])).join(", ")}</div><div class="sm mu">${esc(f.text)}</div></div>`).join("")}
+    ${list.slice(0, 300).map((f) => `<div class="feeditem click" data-flag="${esc(f.id)}"><b>${esc(f.title)}</b> ${flagBadges(f)}<div class="meta">${esc(F.kinds[f.kind])} · ${f.records.length} record${f.records.length === 1 ? "" : "s"}${f.value ? " · " + short(f.value) : ""} · ${f.subjects.filter((s) => s[0] === "supplier").map((s) => esc(names.get(s[1]) || s[1])).join(", ")}</div><div class="sm mu">${esc(f.text)}</div></div>`).join("")}
     ${list.length > 300 ? `<div class="note">First 300 of ${fmt(list.length)} shown; export has all.</div>` : ""}`;
   (el.querySelector(".fk") as HTMLSelectElement).onchange = (e) => { flagFilter = (e.target as HTMLSelectElement).value; flagList(el); };
   (el.querySelector(".fx") as HTMLElement).onclick = () => exportTable("pattern-flags", ["id", "kind", "title", "text", "value", "suppliers", "records"],
@@ -234,7 +235,7 @@ export async function openSupplier(id: string) {
       <div class="facts"><div class="fact"><b>${fmt(ix[2])}</b><span>${esc(L.factAwards)}</span></div><div class="fact"><b>${ix[3] ? short(ix[3]) : "—"}</b><span>fixed values of decisions naming it</span></div><div class="fact"><b>${ix[12] ? short(ix[12]) : "—"}</b><span>rates-based budgets (estimates)</span></div><div class="fact"><b>${fmt(ix[4])}</b><span>${esc(L.factRfq)}</span></div>
         <div class="fact"><b>${ix[5] ? short(ix[5]) : "—"}</b><span>quotation value</span></div><div class="fact"><b>${fmt(ix[6])}</b><span>bids</span></div><div class="fact"><b>${esc(yearsRow)}</b><span>years active in records</span></div></div>
       ${phones.length || P.contacts?.length ? `<div class="sm">Contact details published on eTender awards: ${P.contacts.map(esc).join(", ")}${phones.length ? ` · numbers ending ${phones.map((p) => esc(p.slice(-4))).join(", ")}` : ""}</div>` : ""}
-      <div class="links">${watchButton("supplier", id, name, n)}<button class="mini" data-share="s=${esc(id)}">Share link</button><button class="mini" data-expjson="1">Export profile (JSON)</button></div>
+      <div class="links">${watchButton("supplier", id, name, n)}<button class="mini" data-share="s=${esc(id)}">Share link</button><button class="mini" data-expjson="1">Export profile (JSON)</button>${dossierButtons}</div>
       <div class="links sm"><span class="dim">Look up:</span><a href="https://www.saflii.org/cgi-bin/sinosrch-adw.cgi?query=${q}&method=boolean&meta=%2Fsaflii" target="_blank" rel="noopener">SAFLII judgments ↗</a>
         <a href="https://www.saflii.org/cgi-bin/sinosrch-adw.cgi?query=${q}&method=boolean&meta=%2Fsaflii&mask_path=za%2Fcases%2FZALCCT+za%2Fcases%2FZALAC+za%2Fcases%2FZALCJHB+za%2Fcases%2FZALCD+za%2Fcases%2FZALCPE" target="_blank" rel="noopener">SAFLII labour courts ↗</a>
         <a href="${esc(m.registers.cipc)}" target="_blank" rel="noopener">CIPC / BizPortal ↗</a><a href="${esc(m.registers.csd)}" target="_blank" rel="noopener">Central Supplier Database ↗</a>
@@ -254,14 +255,63 @@ export async function openSupplier(id: string) {
     ${P.refs.rfq ? `<h3>${esc(L.rfq)}<span class="c">${P.refs.rfq.length}</span></h3>${await rowsTable("rfq", P.refs.rfq, L.rfqCols)}` : ""}
     ${P.refs.land ? `<h3>${esc(L.land)}<span class="c">${P.refs.land.length}</span></h3>${await rowsTable("land", P.refs.land, ["approved", "erf", "area", "extent", "price", "method"])}` : ""}
     ${cases.length ? `<h3>Competition Tribunal cases naming it<span class="c">${cases.length}</span></h3>${cases.slice(0, 20).map((c: any) => `<div class="row"><a class="t" href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.parties)}</a><small>${esc(c.case)} · ${esc(c.type)} · ${esc(c.date)}</small></div>`).join("")}` : ""}`, `s=${id}`);
+  bindDossier(() => buildDossier(name, "Supplier profile", `Every published record naming ${name} (${n} records)` + (flags.length ? `; ${flags.length} pattern flag(s): ${flags.map((f) => f.title).join("; ")}` : "") + ".",
+    Object.entries(P.refs as Record<string, number[]>).map(([k, v]) => [k === "et" ? "etenders" : k, v] as [string, number[]])));
   (R().querySelector("[data-expjson]") as HTMLElement).onclick = () => exportJSON(`supplier-${id}`, { supplier: name, id, profile: P, index: Object.fromEntries(S.fields.map((f, k) => [f, ix[k]])), flags, tribunal: cases, exported: new Date().toISOString() });
+}
+
+/** labels that keep a pattern from reading as more than it is */
+export const NAME_MATCH_NOTE = "Matched by the same normalised name only (case, punctuation and suffixes such as (Pty) Ltd ignored), not by registration number. A match shows that two published records use the same name; it does not show that they are the same company.";
+export function flagBadges(f: Flag) {
+  let b = "";
+  if (f.kind === "restricted") b += `<span class="badge nm" title="${esc(NAME_MATCH_NOTE)}">NAME MATCH ONLY</span>`;
+  if (f.verification_status === "NEEDS_SCAN_REVIEW") b += `<span class="badge rv" title="The awarded price is more than 300% above the lowest price read from the scanned register: often a misread digit or a bid for part of the work. Check the scan.">NEEDS SCAN REVIEW</span>`;
+  else if (f.verification_status === "OCR_DUAL_PASS_AGREED") b += `<span class="badge ok" title="Both prices were read twice from the scanned register (full page, then the price cell alone) and the two readings agree digit for digit.">DUAL-PASS OCR</span>`;
+  return b;
+}
+function scanLinks(f: Flag) {
+  if (!f.scan) return "";
+  return `<div class="note${f.verification_status === "NEEDS_SCAN_REVIEW" ? " warnbox" : ""}">${f.verification_status === "NEEDS_SCAN_REVIEW" ? `Needs a look at the scan (${esc((f.review_reason || "").replace(/_/g, " ").toLowerCase())}). ` : ""}Scanned register: <a href="${esc(f.scan)}" target="_blank" rel="noopener">awarded bid ↗</a>${f.scan_lowest && f.scan_lowest !== f.scan ? ` · <a href="${esc(f.scan_lowest)}" target="_blank" rel="noopener">lowest bid ↗</a>` : ""}${f.method ? ` · read by ${esc(f.method)}` : ""}.</div>`;
+}
+
+// ---------------------------------------------------------------- evidence dossier: every record behind a profile or a flag, with its source
+export interface Dossier { title: string; kind: string; generated: string; summary: string; note: string; sections: { table: string; source: string; source_url: string; retrieved: string; table_note?: string; records: Record<string, any>[] }[] }
+export async function buildDossier(title: string, kind: string, summary: string, groups: [string, number[]][]): Promise<Dossier> {
+  const m = await moneyMeta(); const names = await supNames(); const sections: Dossier["sections"] = [];
+  for (const [tid, idx] of groups) {
+    const t = m.tables[tid]; if (!t || !idx.length) continue;
+    const rows = (await Promise.all(idx.map((i) => row(tid, i)))).filter(Boolean) as any[][];
+    sections.push({ table: t.name, source: t.source, source_url: t.url, retrieved: t.retrieved, ...(t.note ? { table_note: t.note } : {}),
+      records: rows.map((r) => Object.fromEntries(t.fields.map((f, k) => [f[1], f[0] === "sup" || f[0] === "bidders" ? (Array.isArray(r[k]) ? r[k] : r[k] ? [r[k]] : []).map((x: string) => names.get(x) || x) : r[k]]).filter(([, v]) => v !== null && v !== undefined && v !== ""))) });
+  }
+  return { title, kind, generated: new Date().toISOString(), summary, sections,
+    note: "Every record as published by the source named in its section, with the document it was read from. Patterns are patterns in published data, not findings. " + IDENTITY_NOTE };
+}
+export function printDossier(d: Dossier) {
+  const w = window.open("", "_blank"); if (!w) { exportJSON("evidence-dossier", d); return; }
+  const cell = (v: any) => { const s = Array.isArray(v) ? v.join("; ") : String(v); return /^https?:\/\//.test(s) ? `<a href="${esc(s)}">${esc(s)}</a>` : esc(s); };
+  w.document.write(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(d.title)}: evidence dossier</title><style>
+    body{font:12px/1.45 system-ui,sans-serif;color:#111;margin:24px;max-width:1100px} h1{font-size:20px;margin:0 0 4px} h2{font-size:14px;margin:22px 0 4px;border-bottom:1px solid #999}
+    .mu{color:#555} table{border-collapse:collapse;width:100%;margin:6px 0 14px;page-break-inside:auto} td{border:1px solid #ccc;padding:3px 5px;vertical-align:top} td:first-child{width:28%;color:#444}
+    a{color:#0645ad;word-break:break-all} .rec{page-break-inside:avoid} @media print{button{display:none}}</style></head><body>
+    <button onclick="print()">Print or save as PDF</button>
+    <h1>${esc(d.title)}</h1><div class="mu">Evidence dossier · ${esc(d.kind)} · generated ${esc(d.generated.slice(0, 16).replace("T", " "))} UTC</div>
+    <p>${esc(d.summary)}</p><p class="mu">${esc(d.note)}</p>
+    ${d.sections.map((s) => `<h2>${esc(s.table)} (${s.records.length})</h2><div class="mu">Source: <a href="${esc(s.source_url)}">${esc(s.source)}</a>, retrieved ${esc(s.retrieved.slice(0, 10))}.${s.table_note ? " " + esc(s.table_note) : ""}</div>
+      ${s.records.map((r) => `<table class="rec">${Object.entries(r).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${cell(v)}</td></tr>`).join("")}</table>`).join("")}`).join("")}
+    </body></html>`);
+  w.document.close();
+}
+const dossierButtons = `<button class="mini" data-dossier="print">Evidence dossier (print)</button><button class="mini" data-dossier="json">Evidence dossier (JSON)</button>`;
+function bindDossier(make: () => Promise<Dossier>) {
+  R().querySelectorAll("[data-dossier]").forEach((b) => (b as HTMLElement).onclick = async () => { const d = await make(); (b as HTMLElement).dataset.dossier === "json" ? exportJSON(`evidence-${d.title}`, d) : printDossier(d); });
 }
 
 /** the same normalised name in another municipality's records (ZopStopper: Cape Town) */
 function elsewhere(E: Record<string, any> | undefined) {
   if (!E) return "";
   const lab: Record<string, string> = { "cape-town": "City of Cape Town (Cape Monitor)" };
-  return `<h3>Also in other municipalities' records</h3>${Object.entries(E).map(([k, c]) => `<div class="card"><div class="kicker">${esc(lab[k] || k)}</div>
+  return `<h3>Also in other municipalities' records</h3>${Object.entries(E).map(([k, c]) => `<div class="card"><div class="kicker">${esc(lab[k] || k)} <span class="badge nm" title="${esc(NAME_MATCH_NOTE)}">NAME MATCH ONLY</span></div>
     <div class="facts"><div class="fact"><b>${fmt(c.awards)}</b><span>award decisions</span></div><div class="fact"><b>${c.award_value ? short(c.award_value) : "—"}</b><span>fixed value of decisions</span></div>
     <div class="fact"><b>${fmt(c.rfq)}</b><span>quotation orders</span></div><div class="fact"><b>${c.rfq_value ? short(c.rfq_value) : "—"}</b><span>quotation value</span></div>
     <div class="fact"><b>${fmt(c.bids)}</b><span>bids</span></div><div class="fact"><b>${esc(c.first || "—")}${c.last && c.last !== c.first ? "–" + esc(c.last) : ""}</b><span>years</span></div></div>
@@ -327,12 +377,14 @@ export async function openFlag(id: string) {
   const by = new Map<string, number[]>(); for (const [t, i] of f.records) by.set(t, [...(by.get(t) || []), i]);
   const COLS = L.flagCols;
   const names = await supNames();
-  open(`<div class="card primary flagcard"><div class="kicker">Pattern in published data · ${esc(F.kinds[f.kind])}</div><h2>${esc(f.title)}</h2><p>${esc(f.text)}</p>
+  open(`<div class="card primary flagcard"><div class="kicker">Pattern in published data · ${esc(F.kinds[f.kind])}</div><h2>${esc(f.title)}</h2><div>${flagBadges(f)}</div><p>${esc(f.text)}</p>
+      ${scanLinks(f)}${f.kind === "restricted" ? `<div class="note">${esc(NAME_MATCH_NOTE)}</div>` : ""}
       ${f.basis ? `<div class="sm">Rule: <a href="${esc(f.basis.url)}" target="_blank" rel="noopener">${esc(f.basis.text)}</a></div>` : ""}
       <div class="note warnbox">${esc(F.note)}</div>
       <div class="links">${f.subjects.filter((s) => s[0] === "supplier").map((s) => `<a href="#s=${esc(s[1])}" data-sup="${esc(s[1])}">${esc(names.get(s[1]) || s[1])}</a>`).join("")}${f.subjects.filter((s) => s[0] === "tender").map((s) => `<a href="#t=${esc(s[1])}" data-tender="${esc(s[1])}">Tender ${esc(s[1])}</a>`).join("")}
-        ${watchButton("flag", f.id, f.title, f.records.length)}<button class="mini" data-share="f=${esc(f.id)}">Share link</button></div></div>
+        ${watchButton("flag", f.id, f.title, f.records.length)}<button class="mini" data-share="f=${esc(f.id)}">Share link</button>${dossierButtons}</div></div>
     ${(await Promise.all([...by].map(async ([t, idx]) => `<h3>The records (${esc((await moneyMeta()).tables[t]?.name || t)})<span class="c">${idx.length}</span></h3>${await rowsTable(t, idx, COLS[t] || [], 200)}`))).join("")}`, `fl=${f.id}`);
+  bindDossier(() => buildDossier(f.title, `Pattern flag: ${F.kinds[f.kind]}`, f.text + (f.basis ? ` Rule: ${f.basis.text} (${f.basis.url}).` : "") + (f.verification_status ? ` Verification: ${f.verification_status}${f.review_reason ? " (" + f.review_reason + ")" : ""}; scan ${f.scan}.` : ""), [...by]));
 }
 
 /** clicks inside the right panel and the dock that open money views */

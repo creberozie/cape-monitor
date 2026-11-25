@@ -7,7 +7,7 @@ import { esc, fmt, money as rand } from "./i18n";
 import { bars, columns, short, bindWatch, exportCSV, toast } from "./util";
 import { accessGate } from "./access/gate";
 import { configureMoney, moneyMeta, tableView, supplierList, flagList, deptList, openSupplier, openTender, openFlag, openDepartment, bindMoney, suppliers, flagsData, allRows,
-  supNames, type Flag } from "./money";
+  supNames, flagBadges, type Flag } from "./money";
 
 const $ = (s: string) => document.querySelector(s) as HTMLElement;
 const ROOT = "../data/muni/stellenbosch/";
@@ -18,18 +18,18 @@ configureMoney(ROOT, {
   tender: "Stellenbosch tender or quotation", notender: "No Stellenbosch record with this number in this build.", factAwards: "tender awards", factRfq: "quotations awarded",
   bidsRead: "bids read (OCR)", refCols: ["ref", "number", "tracking"],
   supHeads: [[1, "Supplier"], [2, "Tender awards"], [3, "Value of tender awards"], [4, "Quotations"], [5, "Quotation value"], [6, "Bids read (OCR)"], [7, "eTenders"], [11, "Flags"], [14, "Also in Cape Town records"]],
-  awardCols: ["date", "ref", "desc", "value_text", "bbbee", "completion", "doc"], bidCols: ["closing", "ref", "desc", "price_text", "rank", "n_bids", "conf", "doc"],
-  rfqCols: ["date", "tracking", "group_text", "value_text", "bbbee", "doc"], tenderAwardCols: ["date", "vendor", "value_text", "bbbee", "closing", "completion", "sup", "doc"],
-  tenderBidCols: ["n", "bidder", "price_text", "rank", "hdi", "conf", "doc"],
-  flagCols: { rfq: ["date", "tracking", "group_text", "supplier", "value_text", "doc"], awards: ["date", "ref", "desc", "vendor", "value_text", "doc"],
-    bids: ["closing", "ref", "bidder", "price_text", "rank", "n_bids", "conf", "doc"], etenders: ["published", "number", "buyer", "desc", "awards", "official"] },
+  awardCols: ["date", "ref", "desc", "value_text", "bbbee", "completion", "doc", "published", "how"], bidCols: ["closing", "ref", "desc", "price_text", "rank", "n_bids", "conf", "doc", "how"],
+  rfqCols: ["date", "tracking", "group_text", "value_text", "bbbee", "doc", "published", "how"], tenderAwardCols: ["date", "vendor", "value_text", "bbbee", "closing", "completion", "sup", "doc", "published", "how"],
+  tenderBidCols: ["n", "bidder", "price_text", "rank", "hdi", "conf", "doc", "how"],
+  flagCols: { rfq: ["date", "tracking", "group_text", "supplier", "value_text", "doc", "how"], awards: ["date", "ref", "desc", "vendor", "value_text", "doc", "how"],
+    bids: ["closing", "ref", "bidder", "price_text", "rank", "n_bids", "conf", "doc", "how"], etenders: ["published", "number", "buyer", "desc", "status", "awards", "official", "how"], docs: ["month", "kind", "title", "url"] },
   tenderRef: (e: any) => { const m = String(e.tender_No || "").match(/\b(B\s*\/?\s*SM|FQ\s*\/?\s*(?:SM)?)\s*\d{1,3}\s*\/\s*\d\d\b/i); return m ? m[0] : null; },
-  refKey: (ref: string) => { const r = ref.replace(/\s/g, "").toUpperCase(); const m = r.match(/^(B\/?SM|FQ(?:\/?SM)?|RFQ)[-:/]?0*(\d+)\/(\d\d)/);
-    return m ? (m[1].startsWith("B") ? "BSM" : m[1].startsWith("FQ") ? "FQ" : "RFQ") + `${+m[2]}/${m[3]}` : r.replace(/^0+/, ""); },
+  refKey: (ref: string) => { const r = ref.replace(/\s/g, "").toUpperCase(); const m = r.match(/^(B\/?SM|FQ(?:\/?SM)?|RFQ|D\/?SM)[-_:/]?0*(\d+)[-_/](\d{4}|\d{2})(?!\d)/);   // as muni.ref_key
+    return m ? ({ B: "BSM", F: "FQ", R: "RFQ", D: "DSM" } as Record<string, string>)[m[1][0]] + `${+m[2]}/${m[3].slice(-2)}` : r.replace(/^0+/, ""); },
 });
 
 // severity: how directly a pattern points at a rule (restricted list, threshold, price) rather than at a habit (repeat, co-bidding)
-const SEV: Record<string, number> = { restricted: 1, split: 1, notlowest: 1, deviation: 2, growth: 2, near: 2, official: 2, phone: 2, single: 3, repeat: 3, cobid: 3, young: 2 };
+const SEV: Record<string, number> = { restricted: 1, split: 1, notlowest: 1, portal: 2, deviation: 2, growth: 2, near: 2, official: 2, phone: 2, retender: 2, single: 3, repeat: 3, cobid: 3, young: 2 };
 const SEVL = ["", "High", "Medium", "Low"];
 const rankFlags = (F: Flag[]) => [...F].sort((a, b) => (SEV[a.kind] || 3) - (SEV[b.kind] || 3) || (b.value || 0) - (a.value || 0) || b.records.length - a.records.length);
 
@@ -58,43 +58,33 @@ const fy = (y: number) => `${y - 1}/${String(y).slice(2)}`;
 
 async function overview(el: HTMLElement) {
   el.innerHTML = `<div class="empty">Loading…</div>`;
-  const [m, F, S, names, fin, aud] = await Promise.all([moneyMeta(), flagsData(), suppliers(), supNames(), getJSON<any>(ROOT + "finance.json").catch(() => null), getJSON<any>(ROOT + "audit.json").catch(() => null)]);
-  const [aw, fq] = await Promise.all([allRows("awards").catch(() => []), allRows("rfq").catch(() => [])]);
-  const c = m.counts; const flags = rankFlags(F.flags);
-  const devs = aw.filter((r) => String(r[3] || "").startsWith("Deviation")).sort((a, b) => String(b[0]).localeCompare(String(a[0])));
-  const top = [...S.rows].sort((a, b) => (b[3] + b[5]) - (a[3] + a[5])).filter((r) => r[3] + r[5] > 0).slice(0, 12);
-  const latest = [...aw.filter((r) => !String(r[3] || "").startsWith("Deviation")).map((r) => ({ d: r[0], ref: r[1], desc: r[5], sup: r[12]?.[0], name: r[6], v: r[7], kind: "Tender" })),
-    ...fq.map((r) => ({ d: r[0], ref: r[1], desc: r[4], sup: r[8], name: r[5], v: r[11], kind: "Quotation" }))].sort((a, b) => String(b.d).localeCompare(String(a.d))).slice(0, 14);
-  const U = fin?.uifw?.rows || []; const years = [...new Set(U.map((r: any) => r.year))].sort() as number[];
+  const O = await getJSON<any>(ROOT + "overview.json");   // one small file; the full tables load only when a section is opened
+  const c = O.counts;
+  const U = O.uifw || []; const years = [...new Set(U.map((r: any) => r.year))].sort() as number[];
   const uv = (y: number, k: string) => U.find((r: any) => r.year === y && r.item === k)?.amount;
-  const restricted = F.flags.filter((f) => f.kind === "restricted").length; const ct = S.fields.indexOf("cape_town");
   el.innerHTML = `<div class="kpis">${kpi(fmt(c.awards || 0), "tender award rows", "awards")}${kpi(fmt(c.rfq || 0), "quotations awarded", "rfq")}${kpi(fmt(c.bids || 0), "bids read out (OCR)", "bids")}
-      ${kpi(fmt(c.etenders || 0), "eTender records", "etenders")}${kpi(fmt(c.suppliers), "supplier profiles", "suppliers")}${kpi(fmt(c.flags), "pattern flags", "flags")}
-      ${kpi(fmt(restricted), "restricted-list name matches", "flags")}${ct >= 0 ? kpi(fmt(S.rows.filter((r) => r[ct]).length), "also in Cape Town records", "suppliers") : ""}</div>
+      ${kpi(fmt(c.etenders || 0), "eTender records", "etenders")}${kpi(fmt(c.suppliers), "supplier profiles", "suppliers")}${kpi(fmt(O.n_flags), "pattern flags", "flags")}
+      ${kpi(fmt(O.restricted), "restricted-list name matches", "flags")}${kpi(fmt(O.cape_town), "same name in Cape Town records", "suppliers")}</div>
     <div class="wgrid">
       <div class="tile"><div class="caps">Pattern flags, highest severity and value first</div>
-        ${flags.slice(0, 12).map((f) => `<div class="row" data-flag="${esc(f.id)}"><span class="t"><span class="sev s${SEV[f.kind] || 3}">${SEVL[SEV[f.kind] || 3]}</span>${esc(f.title)}</span><small>${f.value ? short(f.value) : fmt(f.records.length) + " rec."}</small></div>`).join("") || `<div class="empty">No pattern flags in this build.</div>`}
-        <div class="note">${esc(F.note)}</div><button class="mini" data-go="flags">All ${fmt(F.flags.length)} flags</button></div>
-      <div class="tile"><div class="caps">Largest suppliers by value of published awards and quotations</div>${bars(top.map((r) => [r[1], r[3] + r[5]] as [string, number]), 12, short, "supname")}
+        ${O.flags.map((f: any) => `<div class="row" data-flag="${esc(f.id)}"><span class="t"><span class="sev s${SEV[f.kind] || 3}">${SEVL[SEV[f.kind] || 3]}</span>${esc(f.title)} ${flagBadges(f)}</span><small>${f.value ? short(f.value) : ""}</small></div>`).join("") || `<div class="empty">No pattern flags in this build.</div>`}
+        <div class="note">${esc(O.note)}</div><button class="mini" data-go="flags">All ${fmt(O.n_flags)} flags</button></div>
+      <div class="tile"><div class="caps">Largest suppliers by value of published awards and quotations</div>${bars(O.top.map((r: any[]) => [r[1], r[2]] as [string, number]), 12, short, "supname")}
         <div class="note">Counts each published amount naming the supplier. Rates-based awards (no single total) add nothing to value; see Suppliers for counts.</div></div>
       <div class="tile wide"><div class="caps">Irregular, fruitless and unauthorised expenditure (audited, per financial year)</div>
         ${years.length ? `<div class="tscroll"><table class="t"><thead><tr><th>Year</th><th class="num">Irregular</th><th class="num">Fruitless and wasteful</th><th class="num">Unauthorised</th><th>Audit opinion</th></tr></thead><tbody>
-        ${years.slice().reverse().slice(0, 10).map((y) => { const o = aud?.rows?.find((r: any) => r.year === y); return `<tr><td class="mono">${fy(y)}</td><td class="num mono">${uv(y, "irregular") != null ? rand(uv(y, "irregular")) : "—"}</td><td class="num mono">${uv(y, "fruitless") != null ? rand(uv(y, "fruitless")) : "—"}</td><td class="num mono">${uv(y, "unauthorised") != null ? rand(uv(y, "unauthorised")) : "—"}</td><td>${o ? (o.report ? `<a href="${esc(o.report)}" target="_blank" rel="noopener">${esc(o.opinion)}</a>` : esc(o.opinion)) : ""}</td></tr>`; }).join("")}</tbody></table></div>
+        ${years.slice().reverse().slice(0, 10).map((y) => { const o = (O.audit || []).find((r: any) => r.year === y); return `<tr><td class="mono">${fy(y)}</td><td class="num mono">${uv(y, "irregular") != null ? rand(uv(y, "irregular")) : "—"}</td><td class="num mono">${uv(y, "fruitless") != null ? rand(uv(y, "fruitless")) : "—"}</td><td class="num mono">${uv(y, "unauthorised") != null ? rand(uv(y, "unauthorised")) : "—"}</td><td>${o ? (o.report ? `<a href="${esc(o.report)}" target="_blank" rel="noopener">${esc(o.opinion)}</a>` : esc(o.opinion)) : ""}</td></tr>`; }).join("")}</tbody></table></div>
         <div class="note">National Treasury Municipal Money, from the notes to the audited annual financial statements; audit opinions from Treasury's audit-opinion data with the Auditor-General's report linked. <button class="mini" data-go="finance">Finances and audit</button></div>` : `<div class="empty">Not in this build.</div>`}</div>
       <div class="tile"><div class="caps">Deviations reported to Council (MFMA SCM Regulation 36)</div>
-        ${devs.length ? devs.slice(0, 8).map((r) => `<div class="row" data-tender="${esc(r[1])}"><span class="t">${esc(r[1])}: ${esc(names.get(r[12]?.[0]) || r[6])}</span><small>${esc(r[0] || "")}${r[8] ? " · " + short(r[8]) : ""}</small></div>`).join("")
-          + `<div class="note">${fmt(devs.length)} deviations, ${short(devs.reduce((a, r) => a + (Number(r[8]) || 0), 0))} together, read from the monthly deviations item in the Council agendas. Largest contractors by deviation value:</div>`
-          + bars([...devs.reduce((m, r) => m.set(names.get(r[12]?.[0]) || r[6], (m.get(names.get(r[12]?.[0]) || r[6]) || 0) + (Number(r[8]) || 0)), new Map<string, number>())].sort((a, b) => b[1] - a[1]), 6, short)
-          : `<div class="empty">Not in this build yet.</div>`}</div>
-      <div class="tile"><div class="caps">Departments</div><div id="ov-dep"></div>
+        ${O.devs.n ? O.devs.latest.map((r: any[]) => `<div class="row" data-tender="${esc(r[0])}"><span class="t">${esc(r[0])}: ${esc(r[1])}</span><small>${esc(r[2] || "")}${r[3] ? " · " + short(r[3]) : ""}</small></div>`).join("")
+          + `<div class="note">${fmt(O.devs.n)} deviations, ${short(O.devs.total)} together, read from the monthly deviations item in the Council agendas. Largest contractors by deviation value:</div>`
+          + bars(O.devs.top as [string, number][], 6, short) : `<div class="empty">Not in this build yet.</div>`}</div>
+      <div class="tile"><div class="caps">Departments</div>${O.departments.map((d: any) => `<div class="row" data-dept="${d.i}"><span class="t">${esc(d.name.replace(/^Stellenbosch Municipality: /, ""))}</span><small>${fmt(d.n)} records${d.value ? " · " + short(d.value) : ""}</small></div>`).join("")}
         <div class="note">Stellenbosch's award registers and deviation reports do not name the directorate. Departments here are those the eTender portal names.</div></div>
       <div class="tile" style="grid-column:1/-1"><div class="caps">Latest awards</div><div class="tscroll"><table class="t"><thead><tr><th>Date</th><th>Number</th><th>Kind</th><th>Description</th><th>Awarded to</th><th>Amount as published</th></tr></thead><tbody>
-        ${latest.map((r) => `<tr><td class="mono">${esc(r.d || "")}</td><td><a href="#t=${esc(r.ref)}" data-tender="${esc(r.ref)}">${esc(r.ref)}</a></td><td>${r.kind}</td><td>${esc(String(r.desc || "").slice(0, 140))}</td><td>${r.sup ? `<a href="#s=${esc(r.sup)}" data-sup="${esc(r.sup)}">${esc(names.get(r.sup) || r.name)}</a>` : esc(r.name)}</td><td class="mono">${esc(r.v || "")}</td></tr>`).join("")}</tbody></table></div></div>
+        ${O.latest.map((r: any) => `<tr><td class="mono">${esc(r.d || "")}</td><td><a href="#t=${esc(r.ref)}" data-tender="${esc(r.ref)}">${esc(r.ref)}</a></td><td>${r.kind}</td><td>${esc(r.desc)}</td><td>${r.sup ? `<a href="#s=${esc(r.sup)}" data-sup="${esc(r.sup)}">${esc(r.sup_name || r.name)}</a>` : esc(r.name)}</td><td class="mono">${esc(r.v || "")}</td></tr>`).join("")}</tbody></table></div></div>
     </div>`;
-  const D = await getJSON<any[]>(ROOT + "money/departments.json").catch((): any[] => []);
-  const dep = el.querySelector("#ov-dep") as HTMLElement | null;
-  if (dep) dep.innerHTML = D.slice(0, 10).map((d) => `<div class="row" data-dept="${D.indexOf(d)}"><span class="t">${esc(d.name.replace(/^Stellenbosch Municipality: /, ""))}</span><small>${fmt(d.n)} records${d.value ? " · " + short(d.value) : ""}</small></div>`).join("");
-  el.querySelectorAll("[data-supname]").forEach((b) => (b as HTMLElement).onclick = () => { const r = top.find((x) => x[1] === (b as HTMLElement).dataset.supname); if (r) openSupplier(r[0]); });
+  el.querySelectorAll("[data-supname]").forEach((b) => (b as HTMLElement).onclick = () => { const r = O.top.find((x: any[]) => x[1] === (b as HTMLElement).dataset.supname); if (r) openSupplier(r[0]); });
 }
 
 async function departments(el: HTMLElement) {
@@ -117,6 +107,17 @@ async function finance(el: HTMLElement) {
     ${items.map(([i, l]) => years.slice().reverse().filter((y) => v(y, "ORGB", i) != null || v(y, "AUDA", i) != null).slice(0, 6).map((y, k) => { const a = v(y, "AUDA", i), b = v(y, "ADJB", i);
       return `<tr><td>${k ? "" : esc(l)}</td><td class="mono">${fy(y)}</td>${cell(v(y, "ORGB", i))}${cell(b)}${cell(a)}${a != null && b != null ? cell(a - b) : cell(null)}</tr>`; }).join("")).join("")}</tbody></table></div>
     <div class="note">Amounts as published by Treasury (mSCOA section 71 aggregation). A blank means Treasury publishes no figure for that year and type.</div>
+    ${[fin.capital, fin.repairs].filter(Boolean).map((blk: any) => { const ys = [...new Set(blk.rows.map((r: any) => r.year))].sort().reverse().slice(0, 6) as number[];
+      const g = (y: number, t: string) => blk.rows.find((r: any) => r.year === y && r.type === t)?.amount;
+      return `<h3>${esc(blk.title)}</h3><div class="tscroll"><table class="t"><thead><tr><th>Year</th><th class="num">Original budget</th><th class="num">Adjusted budget</th><th class="num">Audited actual</th><th class="num">Actual as share of adjusted</th></tr></thead><tbody>
+        ${ys.map((y) => { const a = g(y, "AUDA"), b = g(y, "ADJB"); return `<tr><td class="mono">${fy(y)}</td>${cell(g(y, "ORGB"))}${cell(b)}${cell(a)}<td class="num mono">${a != null && b ? Math.round(a / b * 100) + "%" : "—"}</td></tr>`; }).join("")}</tbody></table></div>
+        <div class="note">Data API: <a href="${esc(blk.api)}" target="_blank" rel="noopener">${esc(blk.api)}</a>.</div>`; }).join("")}
+    ${fin.creditors ? (() => { const C = fin.creditors.rows as any[]; const months = [...new Set(C.map((r) => r.month))].sort().reverse().slice(0, 13) as string[];
+      const g = (m: string, i: string) => C.find((r) => r.month === m && r.item === i);
+      return `<h3>Amounts owed to creditors, and the part older than 30 days</h3><div class="tscroll"><table class="t"><thead><tr><th>Month</th><th class="num">Owed, total</th><th class="num">Over 30 days</th><th class="num">Trade creditors</th><th class="num">Trade creditors over 30 days</th></tr></thead><tbody>
+        ${months.map((m) => { const t = g(m, "1000"), tr = g(m, "0700"); return `<tr><td class="mono">${esc(m)}</td>${cell(t?.total)}${cell(t?.over_30)}${cell(tr?.total)}${cell(tr?.over_30)}</tr>`; }).join("")}</tbody></table></div>
+        <div class="note">${esc(fin.creditors.rule)} <a href="${esc(fin.creditors.rule_url)}" target="_blank" rel="noopener">MFMA (Act 56 of 2003) ↗</a>. Figures from the municipality's monthly section 71 returns as Treasury publishes them
+        (<a href="${esc(fin.creditors.api)}" target="_blank" rel="noopener">${esc(fin.creditors.api)}</a>); "over 30 days" is the total less the 0 to 30 day column.</div>`; })() : ""}
     <h3>Unauthorised, irregular, fruitless and wasteful expenditure</h3>
     <div class="tscroll"><table class="t"><thead><tr><th>Year</th><th class="num">Irregular</th><th class="num">Fruitless and wasteful</th><th class="num">Unauthorised</th></tr></thead><tbody>
     ${uy.slice().reverse().map((y) => { const g = (k: string) => U.find((r) => r.year === y && r.item === k)?.amount; return `<tr><td class="mono">${fy(y)}</td>${cell(g("irregular"))}${cell(g("fruitless"))}${cell(g("unauthorised"))}</tr>`; }).join("")}</tbody></table></div>
@@ -144,7 +145,7 @@ async function notices(el: HTMLElement) {
 }
 
 async function sources(el: HTMLElement) {
-  const [S, m] = await Promise.all([getJSON<any>(ROOT + "sources.json"), moneyMeta()]);
+  const [S, m] = await Promise.all([getJSON<any>(ROOT + "sources_manifest.json"), moneyMeta()]);
   el.innerHTML = `<div class="toolbar"><b>Sources</b><span class="note">Built ${esc(String(S.built).slice(0, 16).replace("T", " "))} UTC. Every record in this app links to the document it was read from.</span></div>
     <div class="tscroll"><table class="t"><thead><tr><th>Source</th><th class="num">Records</th><th>Published</th><th>Fetched</th><th>Notes</th></tr></thead><tbody>
     ${S.sources.map((s: any) => `<tr><td><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)}</a></td><td class="num mono">${fmt(s.n)}</td><td class="mono">${esc(s.published || "")}</td><td class="mono">${esc(s.retrieved)}</td>

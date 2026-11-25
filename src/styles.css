@@ -189,3 +189,7 @@ select.chip:hover { border-color: var(--ac); } select.chip option { background: 
   body.dragging { user-select: none; cursor: col-resize; }
 }
 @media (max-width: 900px) { .rsz, .pclose, .popen { display: none !important; } }
+
+/* verification badges (money views) */
+.badge { display: inline-block; font: 600 10px var(--mono); letter-spacing: .05em; border: 1px solid var(--ln); border-radius: 3px; padding: 1px 5px; margin: 0 4px 2px 0; white-space: nowrap; vertical-align: middle; cursor: help; }
+.badge.nm { color: var(--ac2); border-color: var(--ac2); } .badge.rv { color: var(--warn); border-color: var(--warn); } .badge.ok { color: var(--mu); }

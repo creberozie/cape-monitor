@@ -232,13 +232,28 @@ KEEP = ["id", "tender_No", "description", "category", "type", "organ_of_State", 
         "province", "delivery", "eSubmission", "preferencePointsSystem", "validity", "awardDate", "tenderAmount", "awardContact", "contactNumber"]
 
 
+ET_PAGES = os.path.join(HERE, "cache", "metro", "etpages"); os.makedirs(ET_PAGES, exist_ok=True)
+ET_WINDOW = 500                    # records per request: about 2 MB, answered in a few seconds
+ET_TIMEOUT = 30                    # seconds per request; a slow window is retried with backoff, then read in 100-record windows
+ET_CACHE_HOURS = 20                # a window read in the last 20 hours is taken from disk, so an interrupted run resumes where it stopped
+
+
 def et_page(status, start, length):
+    """one window of the portal's list (newest first), from the disk cache when fresh; exponential backoff on failure (2, 4, 8, 16, 32 s)"""
+    path = os.path.join(ET_PAGES, f"{status}-{start}-{length}.json")
+    if os.path.exists(path) and time.time() - os.path.getmtime(path) < ET_CACHE_HOURS * 3600:
+        try: return json.load(open(path))
+        except ValueError: pass
     q = urllib.parse.urlencode({"draw": 1, "start": start, "length": length, "status": status})
-    for k in range(6):
+    err = None
+    for k in range(5):
         try:
-            return json.loads(http(f"{ET}?{q}", tries=1, timeout=240, headers={**BROWSER, "Accept": "application/json"}))
+            d = json.loads(http(f"{ET}?{q}", tries=1, timeout=ET_TIMEOUT, headers={**BROWSER, "Accept": "application/json"}))
+            if not isinstance(d.get("data"), list): raise ValueError("no data list in the answer")
+            json.dump(d, open(path + ".part", "w")); os.replace(path + ".part", path)
+            return d
         except Exception as e:
-            err = e; time.sleep(5 * (k + 1))
+            err = e; time.sleep(2 ** (k + 1))
     raise RuntimeError(f"eTenders status {status} start {start}: {err}")
 
 
@@ -261,38 +276,46 @@ def slim(t):
 
 
 def etenders():
+    """Western Cape records from the portal's four lists, read in windows of ET_WINDOW records, newest first. Records are kept across
+    runs (the portal drops old ones). A quick run stops a list once a whole window brings no record (or status change) it has not seen;
+    --refresh-etenders reads every list to the end (closed tenders: the newest 20 000)."""
     path = os.path.join(CACHE, "etenders.json")
     old = json.load(open(path)) if os.path.exists(path) else {"tenders": {}}
     keep = {str(k): v for k, v in old.get("tenders", {}).items()}   # earlier runs: the portal drops old records, we keep them
+    full = "--refresh-etenders" in sys.argv or not keep
     stats, gaps = {}, []
     for st, label in ET_STATUS.items():
-        first = et_page(st, 0, 10); total = first["recordsTotal"]; got = 0; n = 1000
-        # closed tenders: the newest 40 000 are enough each week once the archive is built
-        # closed tenders: the newest 20 000 each run (earlier runs' records are kept), so the archive grows without one run taking hours
+        first = et_page(st, 0, ET_WINDOW); total = first["recordsTotal"]; got = 0; new = 0
         limit = min(total, 20000) if st == 3 else total
         deadline = time.time() + 25 * 60
-        starts = list(range(0, limit, n))
-        def page(s):
-            if time.time() > deadline: gaps.append({"status": label, "start": s, "length": n, "error": "time limit for this run"}); return []
-            try: return et_page(st, s, n)["data"]
+        def window(s):
+            if time.time() > deadline: gaps.append({"status": label, "start": s, "length": ET_WINDOW, "error": "time limit for this run"}); return []
+            try: return et_page(st, s, ET_WINDOW)["data"]
             except Exception:
                 out = []
-                for k in range(s, s + n, 100):   # the portal fails on some large pages: read the same range in small pages
+                for k in range(s, s + ET_WINDOW, 100):   # the portal fails on some large windows: read the same range in small ones
                     try: out += et_page(st, k, 100)["data"]
                     except Exception as e: gaps.append({"status": label, "start": k, "length": 100, "error": str(e)[:120]})
                 return out
-        with cf.ThreadPoolExecutor(3) as ex:
-            for data in ex.map(page, starts):
-                for t in data:
-                    got += 1
-                    if (t.get("province") == "Western Cape") or WC.search(f"{t.get('organ_of_State')} {t.get('department')} {t.get('delivery')}"):
-                        r = slim(t); r["portal_status"] = label; r["seen"] = now()[:10]
-                        keep[str(t["id"])] = {**keep.get(str(t["id"]), {}), **r}
-        stats[label] = {"portal_total": total, "read": got}
+        starts = list(range(0, limit, ET_WINDOW)); i = 0
+        while i < len(starts):
+            batch = starts[i:i + 3]; i += 3; fresh = 0
+            with cf.ThreadPoolExecutor(3) as ex:
+                for data in ex.map(window, batch):
+                    for t in data:
+                        got += 1
+                        if (t.get("province") == "Western Cape") or WC.search(f"{t.get('organ_of_State')} {t.get('department')} {t.get('delivery')}"):
+                            k = str(t["id"]); was = keep.get(k, {})
+                            if was.get("portal_status") != label: fresh += 1
+                            r = slim(t); r["portal_status"] = label; r["seen"] = now()[:10]
+                            keep[k] = {**was, **r}
+            new += fresh
+            if not full and fresh == 0 and got >= 3 * ET_WINDOW: break   # nothing new in three windows: the rest is already in the archive
+        stats[label] = {"portal_total": total, "read": got, "new_or_changed": new}
         log("etenders", label, stats[label], "kept so far", len(keep))
     dump({"id": "etenders", "title": "National eTender portal: tenders placed by Western Cape buyers (all spheres)", "url": "https://www.etenders.gov.za/Home/opportunities?id=1",
-          "retrieved": now(), "stats": stats, "gaps": gaps, "tenders": keep}, path)
-    return f"{len(keep)} Western Cape tenders kept; {len(gaps)} unreadable 100-record pages"
+          "retrieved": now(), "stats": stats, "gaps": gaps, "tenders": keep, "window": ET_WINDOW, "full": full}, path)
+    return f"{len(keep)} Western Cape tenders kept; {len(gaps)} unreadable 100-record pages; {'full' if full else 'incremental'} read"
 
 
 if __name__ == "__main__":

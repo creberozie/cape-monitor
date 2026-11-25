@@ -65,40 +65,70 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      # tesseract: Stellenbosch publishes its bid-opening registers as scanned images, read by OCR (fetch_muni.py)
-      - run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils tesseract-ocr >/dev/null && pip install shapely pillow
+      - run: sudo apt-get install -y poppler-utils >/dev/null && pip install shapely
       # the raw downloads (PDF text, the eTender archive) are kept between runs: published PDFs do not change,
       # and the eTender portal drops old records that earlier runs kept
       - uses: actions/cache/restore@v4
         with: { path: pipeline/cache/metro, key: "metro-raw-${{ github.run_id }}", restore-keys: "metro-raw-" }
-      - name: Unit tests (labour, company register, private-individual rule)
-        run: python3 -m unittest discover -s pipeline/tests
       - name: Fetch and build metro-wide data
-        env:   # optional licensed company-register provider; empty secrets leave that part switched off
+        env:   # optional licensed company-register provider; empty secrets leave that part switched off; ZopStopper runs in the watch job
+          RUN_MUNI: "0"
           REGISTRY_API_URL: ${{ secrets.REGISTRY_API_URL }}
           REGISTRY_API_KEY: ${{ secrets.REGISTRY_API_KEY }}
         run: |
           mkdir -p logs
           python3 -I pipeline/metro/run.py ${{ env.FULL == 'true' && 'full' || 'quick' }} 2>&1 | tee logs/metro.log
           python3 -I pipeline/check.py metro | tee -a logs/metro.log
-          python3 -I pipeline/check.py muni stellenbosch | tee -a logs/metro.log || echo "::warning::ZopStopper data did not pass its checks; its last good data stays live"
       - uses: actions/cache/save@v4
         if: always()
         with: { path: pipeline/cache/metro, key: "metro-raw-${{ github.run_id }}" }
       - uses: actions/cache/save@v4
         with: { path: public/data/metro, key: "good-metro-${{ github.run_id }}" }
-      - name: Save ZopStopper data only when it passed its checks
-        id: municheck
-        run: python3 -I pipeline/check.py muni stellenbosch >/dev/null && echo "ok=true" >> "$GITHUB_OUTPUT" || echo "ok=false" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache/save@v4
-        if: ${{ steps.municheck.outputs.ok == 'true' }}
-        with: { path: public/data/muni, key: "good-muni-${{ github.run_id }}" }
       - if: always()
         uses: actions/upload-artifact@v4
         with: { name: log-metro, path: logs, retention-days: 14 }
 
+  # ZopStopper (MUNI=stellenbosch): after the metro job, whose eTender archive, Cape Town supplier index and gazette notices it reads.
+  # Downloaded PDFs, agenda text and OCR results are kept in their own cache, keyed by the SHA-256 list of the files (files.sha256), so a
+  # run with nothing new reads only the municipality's document list and the Treasury APIs. Target: under 8 minutes with a warm cache.
+  watch:
+    needs: [metro]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env: { MUNI: stellenbosch }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      # tesseract: the bid-opening registers are scanned images, read by OCR (two readings per price)
+      - run: sudo apt-get install -y poppler-utils tesseract-ocr >/dev/null && pip install pillow pdfplumber pypdfium2 jsonschema reportlab pytest
+      - uses: actions/cache/restore@v4
+        with: { path: pipeline/cache/metro, key: "metro-raw-${{ github.run_id }}", restore-keys: "metro-raw-" }
+      - uses: actions/cache/restore@v4   # newer than what metro-raw carries for this folder
+        with: { path: pipeline/cache/metro/muni, key: "watch-files-x", restore-keys: "watch-files-" }
+      - uses: actions/cache/restore@v4
+        with: { path: public/data/metro, key: "good-metro-x", restore-keys: "good-metro-" }
+      - name: Unit tests (readers, OCR register, deviations, rotated text, names, restricted list)
+        run: python3 -m pytest -q pipeline/tests
+      - name: Fetch and build ZopStopper data
+        run: |
+          set -o pipefail; mkdir -p logs
+          ( python3 -I pipeline/metro/fetch_muni.py ${{ env.FULL == 'true' && '' || 'docs awards bids deviations etenders finance restricted' }} \
+            && python3 -I pipeline/metro/build_money.py && python3 -I pipeline/metro/build_muni.py ) 2>&1 | tee logs/watch.log
+      - name: Validation gate (schema, counts, supplier names); nothing is saved or deployed if it fails
+        run: python3 -I pipeline/metro/validate_watch.py 2>&1 | tee -a logs/watch.log
+      - uses: actions/cache/save@v4
+        if: always()
+        with: { path: pipeline/cache/metro/muni, key: "watch-files-${{ hashFiles('pipeline/cache/metro/muni/*/files.sha256') }}" }
+      - uses: actions/cache/save@v4
+        with: { path: public/data/muni, key: "good-muni-${{ github.run_id }}" }
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: log-watch, path: logs, retention-days: 14 }
+
   deploy:
-    needs: [district, metro]
+    needs: [district, metro, watch]
     if: ${{ always() }}
     uses: ./.github/workflows/deploy.yml
     secrets: inherit

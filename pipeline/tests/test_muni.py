@@ -62,6 +62,44 @@ class AwardRegisters(unittest.TestCase):
         self.assertEqual(len([r for r in rows if r["ref"] == "FQ 66/27"]), 2)   # two suppliers on one quotation
 
 
+class RotatedAndStrayText(unittest.TestCase):
+    def test_rotated_text_across_the_table_is_left_out(self):
+        try:
+            from reportlab.pdfgen import canvas; from reportlab.lib.pagesizes import A4, landscape
+        except ImportError: self.skipTest("reportlab not installed")
+        import tempfile
+        path = os.path.join(tempfile.mkdtemp(), "reg.pdf")
+        c = canvas.Canvas(path, pagesize=landscape(A4)); c.setFont("Helvetica", 8)
+        for x, t in ((20, "BID NUMBER"), (90, "DESCRIPTION"), (330, "CLOSING DATE"), (400, "SUCCESSFUL BIDDER"), (590, "AMOUNT APPROVED"), (680, "DATE APPROVED")):
+            c.drawString(x, 520, t)
+        c.drawString(20, 480, "BSM 12/26"); c.drawString(90, 480, "SUPPLY OF WATER METERS"); c.drawString(330, 480, "2026-05-04")
+        c.drawString(400, 480, "ACME METERS (PTY) LTD"); c.drawString(590, 480, "R 1 250 000,00"); c.drawString(680, 480, "2026-06-01")
+        c.saveState(); c.translate(380, 430); c.rotate(35); c.setFont("Helvetica", 14); c.drawString(0, 0, "OF BULK WATER AND ASSOCIATED INFRASTRUCTURE"); c.restoreState()
+        c.save()
+        text, n = F.text_without_rotated(path)
+        self.assertGreater(n, 20)
+        self.assertNotIn("INFRASTRUCTURE", text)
+        rows = F.parse_awards(text, "awards")
+        self.assertEqual([(r["ref"], r["bidder"], r["amount"]) for r in rows], [("BSM 12/26", "ACME METERS (PTY) LTD", 1250000.00)])
+
+    def test_staggered_description_text_is_not_a_bidder(self):
+        # August 2023 register: the description of B/SM 30/23 drifts right line by line into the bidder column
+        rows = [{"ref": "B/SM 30/23", "bidder": "OF BULK WATER EXEO KHOKELA AND ASSOCIATED INFRASTRUCTURE"},
+                {"ref": "B/SM 46/23", "bidder": "AND EQUIPMENT AT THE STELLENBOSCH MUNICIPALITY L1FOR A PERIOD"},
+                {"ref": "B/SM 11/24", "bidder": "EXEO KHOKELA"}, {"ref": "B/SM 43/22", "bidder": "THE STANDARD BANK OF SOUTH AFRICA LIMITED"}]
+        out, warn = F.check_names(rows)
+        names = sorted(r["bidder"] for r in out)
+        self.assertEqual(names, ["EXEO KHOKELA", "EXEO KHOKELA", "THE STANDARD BANK OF SOUTH AFRICA LIMITED"])   # the first recovered from the mixed line
+        self.assertEqual(len(warn), 2); self.assertEqual(warn[0]["recovered"], ["EXEO KHOKELA"]); self.assertEqual(warn[1]["recovered"], [])
+
+    def test_names_run_together_are_split_and_fragments_not_recovered(self):
+        rows = [{"ref": "BSM 51/23", "bidder": "GUNDO EVOLUTION (PTY) LTD VK DISTRIBUTORS (PTY) LTD AMILA INVESTMENT (PTY) LTD CHLORCAPE (PTY) LTD"},
+                {"ref": "BSM 84/25", "bidder": "CC"}, {"ref": "BSM 1/25", "bidder": "(PTY) LTD"}]
+        out, warn = F.check_names(rows)
+        self.assertEqual([r["bidder"] for r in out], ["GUNDO EVOLUTION (PTY) LTD", "VK DISTRIBUTORS (PTY) LTD", "AMILA INVESTMENT (PTY) LTD", "CHLORCAPE (PTY) LTD"])
+        self.assertEqual(len(warn), 3)
+
+
 class ScannedBidRegister(unittest.TestCase):
     def test_ocr_register_names_prices_and_checks(self):
         t = F.parse_register(json.load(open(os.path.join(FIX, "stb-register-bsm-25-27.ocr.json"))))

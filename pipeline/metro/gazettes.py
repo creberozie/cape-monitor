@@ -158,7 +158,7 @@ def run():
         for n in items: n["date_iso"] = iso(n["date"])
         items.sort(key=lambda n: (n["date_iso"] or "", n["number"] or ""), reverse=True)
         dump({"built": now(), "url": LIST, "source": {"name": "Western Cape Provincial Gazette (Department of the Premier)", "url": LIST, "years": want, "gazettes": len(gaz)},
-              "places": MUNIS[k]["places"], "notices": items}, os.path.join(ROOT, "public", "data", "muni", k, "notices.json"))
+              "places": MUNIS[k]["places"], "notices": items}, os.path.join(ROOT, "public", "data", "metro", f"notices-{k}.json"))
         print(k, len(items), "gazette notices name one of its places")
     print(len(gaz), "gazettes;", len(notices), "notices kept;", sum(1 for n in notices if n["city"]), "City of Cape Town;", sum(1 for n in notices if n["erfs"]), "name an erf;", len(failed), "failed")
 

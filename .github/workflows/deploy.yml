@@ -51,6 +51,11 @@ jobs:
         run: |
           if ls public/data/d/*/manifest.json >/dev/null 2>&1 && [ -f public/data/metro/notices.json ]; then echo "ok=true" >> "$GITHUB_OUTPUT"
           else echo "ok=false" >> "$GITHUB_OUTPUT"; echo "::warning::No saved data for ${BRANCH} yet. Nothing deployed; the Data run deploys once it has built the data."; fi
+      - name: ZopStopper validation gate (schema, counts, supplier names); the deploy stops if the data fails
+        if: ${{ steps.hasdata.outputs.ok == 'true' }}
+        run: |
+          pip install -q jsonschema
+          MUNI=stellenbosch python3 -I pipeline/metro/validate_watch.py
       - name: Index, build and check (file size, file count) before deploying
         if: ${{ steps.hasdata.outputs.ok == 'true' }}
         env:   # accounts (optional): repository variables; REQUIRE_ACCOUNT_ACCESS=false opens the app to everyone

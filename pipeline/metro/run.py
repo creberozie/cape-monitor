@@ -6,7 +6,7 @@ HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(os.pat
 mode = sys.argv[1] if len(sys.argv) > 1 else "full"
 py = lambda *a: [sys.executable, "-I", os.path.join(HERE, a[0]), *a[1:]]
 steps = [("districts", py("districts.py"), True)] if mode == "full" or not os.path.exists(os.path.join(ROOT, "public/data/metro/districts.json")) else []
-steps += [("money-fetch", py("fetch_money.py", *(["--refresh"] if mode == "full" else ["odp", "etenders", "--refresh"])), False),
+steps += [("money-fetch", py("fetch_money.py", *(["--refresh", "--refresh-etenders"] if mode == "full" else ["odp", "etenders", "--refresh"])), False),
           ("money-build", py("build_money.py"), True),
           ("registry", py("business_registry.py"), False),
           ("feeds", py("feeds.py"), False),
@@ -17,7 +17,8 @@ steps += [("money-fetch", py("fetch_money.py", *(["--refresh"] if mode == "full"
           ("gazettes", py("gazettes.py"), False)]
 # other municipalities (ZopStopper), after Cape Town so their supplier profiles can show the same name in Cape Town's records.
 # Never core: a failure keeps that municipality's last good data and leaves Cape Monitor untouched.
-for m in ["stellenbosch"]:
+# RUN_MUNI=0: the data workflow runs these in their own job ("watch"), after this one, with their own cache
+for m in (["stellenbosch"] if os.environ.get("RUN_MUNI", "1") != "0" else []):
     steps += [(f"{m}-fetch", py("fetch_muni.py", *([] if mode == "full" else ["docs", "awards", "bids", "deviations", "etenders", "finance", "restricted"])), False, {"MUNI": m}),
               (f"{m}-money", py("build_money.py"), False, {"MUNI": m}),
               (f"{m}-build", py("build_muni.py"), False, {"MUNI": m})]

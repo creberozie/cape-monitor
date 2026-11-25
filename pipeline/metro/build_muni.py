@@ -2,7 +2,8 @@
   finance.json  budget against audited actual, and unauthorised, irregular, fruitless and wasteful expenditure (National Treasury)
   audit.json    Auditor-General audit opinions per year, with the audit report links Treasury publishes
   justice.json  Competition Tribunal decided cases naming one of the municipality's places or one of its suppliers
-  sources.json  every source: link, publication and retrieval dates, record counts, warnings, and what was not added and why
+  sources_manifest.json  every source: link, publication and retrieval dates, record counts, extraction method, warnings; every document read
+                with its page counts (readable and unreadable); rows the readers rejected (parse_warnings); and what was not added and why
 Gazette notices are written by gazettes.py (it reads each gazette once for every municipality)."""
 import json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))); sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -37,12 +38,17 @@ if os.path.exists(cases_path):
     justice = {"built": now(), "source": {"name": "Competition Tribunal: decided cases", "url": "https://www.comptrib.co.za/decided-cases", "retrieved": J.get("retrieved")}, "items": items}
     dump(justice, os.path.join(OUT, "justice.json"))
 
-notices_path = os.path.join(OUT, "notices.json")
-notices = json.load(open(notices_path)) if os.path.exists(notices_path) else None
+notices_src = os.path.join(ROOT, "public", "data", "metro", f"notices-{M['slug']}.json")   # written by gazettes.py in the metro step
+notices = json.load(open(notices_src)) if os.path.exists(notices_src) else None
+if notices: dump(notices, os.path.join(OUT, "notices.json"))
 
 T = money.get("tables", {})
+METHOD = {"etenders": "eTender API", "awards": "PDF Text (OCR for scanned registers)", "fq": "PDF Text (OCR for scanned registers)", "bids": "Dual-Pass OCR",
+          "deviations": "PDF Text (page by page)", "docs": "Municipal document API", "finance": "Treasury API", "uifw": "Treasury API", "audit": "Treasury API",
+          "restricted": "PDF Text", "tribunal": "Tribunal website", "gazette": "PDF Text"}
 def src(id, name, url, retrieved, n, published=None, note=None, warnings=None):
-    return {"id": id, "name": name, "url": url, "retrieved": (retrieved or "")[:10], "published": published, "n": n, **({"note": note} if note else {}), **({"warnings": warnings} if warnings else {})}
+    return {"id": id, "name": name, "url": url, "retrieved": (retrieved or "")[:10], "published": published, "n": n, "method": METHOD.get(id, ""),
+            **({"note": note} if note else {}), **({"warnings": warnings} if warnings else {})}
 sources = []
 if et: sources.append(src("etenders", "National Treasury eTender Portal: this municipality's tenders", "https://www.etenders.gov.za/Home/opportunities?id=1", et.get("retrieved"), len(et["tenders"]),
                           note="Filtered from Cape Monitor's Western Cape eTender archive by buyer name: " + "; ".join(et.get("buyer_names", [])) + ". Other buyers with a similar name, left out: "
@@ -79,6 +85,53 @@ not_added = [
     {"name": "Contracts register and long-term contracts (s33)", "url": M["site"] + "downloads/long-term-contracts/", "why": "Not read in this first version."},
     {"name": "Directors and registration dates (CIPC)", "url": "https://www.bizportal.gov.za/", "why": "Not in any free public source used here; each profile links to CIPC BizPortal and the CSD."},
 ]
+# the start page: one small file (counts, ranked flags, largest suppliers, deviations, latest awards, departments, expenditure and audit),
+# so the first screen needs about 20 KB of data; the full tables load only when a section is opened
+SEV = {"restricted": 1, "split": 1, "notlowest": 1, "portal": 2, "deviation": 2, "growth": 2, "near": 2, "official": 2, "phone": 2, "retender": 2, "young": 2,
+       "single": 3, "repeat": 3, "cobid": 3}
+MP = M["pub"]
+if os.path.exists(os.path.join(MP, "flags.json")):
+    import glob
+    F = json.load(open(os.path.join(MP, "flags.json"))); S = json.load(open(os.path.join(MP, "suppliers.json")))
+    rows = lambda t: sum((json.load(open(f)) for f in sorted(glob.glob(os.path.join(MP, "t", f"{t}-*.json")), key=lambda f: int(f.rsplit("-", 1)[1][:-5]))), [])
+    AW, FQ = rows("awards"), rows("rfq")
+    names = {r[0]: r[1] for r in S["rows"]}
+    flags = sorted(F["flags"], key=lambda f: (SEV.get(f["kind"], 3), -(f.get("value") or 0), -len(f["records"])))
+    keep = ("id", "kind", "title", "value", "verification_status", "review_reason", "scan")
+    devs = sorted([r for r in AW if str(r[3]).startswith("Deviation")], key=lambda r: str(r[0]), reverse=True)
+    by_dev = {}
+    for r in devs: k = names.get((r[12] or [None])[0], r[6]); by_dev[k] = by_dev.get(k, 0) + (r[8] or 0)
+    latest = sorted([{"d": r[0], "ref": r[1], "desc": str(r[5] or "")[:140], "sup": (r[12] or [None])[0], "name": r[6], "v": r[7], "kind": "Tender"} for r in AW if not str(r[3]).startswith("Deviation")]
+                    + [{"d": r[0], "ref": r[1], "desc": str(r[4] or "")[:140], "sup": r[8], "name": r[5], "v": r[11], "kind": "Quotation"} for r in FQ], key=lambda x: str(x["d"]), reverse=True)[:14]
+    ct = S["fields"].index("cape_town") if "cape_town" in S["fields"] else -1
+    D = json.load(open(os.path.join(MP, "departments.json")))
+    dump({"built": now(), "counts": money.get("counts", {}), "kinds": F["kinds"], "note": F["note"], "n_flags": len(F["flags"]),
+          "restricted": sum(1 for f in F["flags"] if f["kind"] == "restricted"), "cape_town": sum(1 for r in S["rows"] if ct >= 0 and r[ct]),
+          "flags": [{k: f[k] for k in keep if k in f} for f in flags[:12]],
+          "top": [[r[0], r[1], r[3] + r[5]] for r in sorted(S["rows"], key=lambda r: -(r[3] + r[5])) if r[3] + r[5] > 0][:12],
+          "devs": {"n": len(devs), "total": round(sum(r[8] or 0 for r in devs)), "latest": [[r[1], names.get((r[12] or [None])[0], r[6]), r[0], r[8]] for r in devs[:8]],
+                   "top": sorted(([k, round(v)] for k, v in by_dev.items()), key=lambda x: -x[1])[:6]},
+          "latest": [{**x, "sup_name": names.get(x["sup"])} for x in latest],
+          "departments": [{"i": i, "name": d["name"], "n": d["n"], "value": d["value"]} for i, d in enumerate(D[:10])],
+          "uifw": (fin or {}).get("uifw", {}).get("rows", []), "audit": (aud or {}).get("rows", [])}, os.path.join(OUT, "overview.json"))
+
+# every document read, with its page counts; agendas are read page by page, so a damaged file still gives its readable pages
+documents = []
+for x in (aw or {}).get("documents", []) + (fq or {}).get("documents", []):
+    documents.append({"title": x["title"], "url": x.get("file"), "published": x.get("published"), "kind": x["kind"], "method": "Dual-Pass OCR" if x["how"].startswith("ocr") else "PDF Text",
+                      "rows": x.get("rows"), **({"rotated_chars_left_out": x["rotated_chars"]} if x.get("rotated_chars") else {})})
+for x in (bids or {}).get("registers", []):
+    documents.append({"title": x["title"], "url": x.get("file"), "published": x.get("published"), "kind": "bids", "method": "Dual-Pass OCR", "rows": x.get("bids"),
+                      "unreadable_rows": x.get("unreadable", 0)})
+for x in (dv or {}).get("agendas", []):
+    documents.append({"title": x["title"], "url": x.get("file"), "published": x.get("published"), "kind": "agenda", "method": "PDF Text (page by page)", "rows": x.get("deviations"),
+                      "pages": x.get("pages"), "readable_pages": x.get("readable_pages", (x.get("pages") or 0) - (x.get("unreadable_pages") or 0)),
+                      "unreadable_pages": x.get("unreadable_pages", 0), **({"note": x["note"]} if x.get("note") else {})})
+parse_warnings = [{**w, "register": "tenders awarded"} for w in (aw or {}).get("parse_warnings", [])] + [{**w, "register": "quotations awarded"} for w in (fq or {}).get("parse_warnings", [])]
+damaged = [d for d in documents if d.get("unreadable_pages")]
 dump({"built": now(), "muni": {k: M[k] for k in ("slug", "label", "code", "category")}, "thresholds": [{"from": t[0], "value": t[1], "text": t[2], "url": t[3]} for t in M["thresholds"]],
-      "sources": sources, "not_added": not_added, "money_counts": money.get("counts", {})}, os.path.join(OUT, "sources.json"))
+      "sources": sources, "not_added": not_added, "money_counts": money.get("counts", {}), "documents": documents, "damaged_documents": damaged,
+      "parse_warnings": parse_warnings}, os.path.join(OUT, "sources_manifest.json"))
+old = os.path.join(OUT, "sources.json")
+if os.path.exists(old): os.remove(old)
 print("muni:", M["slug"], {s["id"]: s["n"] for s in sources})

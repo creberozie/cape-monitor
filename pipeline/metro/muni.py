@@ -21,11 +21,11 @@ MUNIS = {
     "stellenbosch": {
         "label": "Stellenbosch Municipality", "code": "WC024", "category": "local municipality",
         "site": "https://stellenbosch.gov.za/",
-        # Buyer names the eTender portal uses for this municipality (organ_of_State, department). Checked against the portal's records;
-        # matching is on the whole name, case-insensitive. "Stellenbosch University" and provincial departments based in Stellenbosch are
-        # other organs of state and are left out on purpose.
-        "buyers": [r"^stellenbosch( local)? municipality$", r"^stellenbosch municipality\b", r"^municipality of stellenbosch$", r"^stellenbosch lm$",
-                   r"^wc024\b", r"^stellenbosch( local)? municipality \(wc024\)$"],
+        # Buyer names for this municipality on the eTender portal (organ_of_State or department), compared whole and case-insensitively.
+        # The portal's archive (13 000+ Western Cape records, Nov 2026) uses only the first; the others are accepted in case it changes.
+        # "Stellenbosch University" and provincial departments based in Stellenbosch are other organs of state and do not match.
+        "buyers": ["Stellenbosch Municipality", "Stellenbosch Local Municipality", "WC024", "Stellenbosch", "WC024 Stellenbosch Municipality",
+                   "Stellenbosch Municipality (WC024)", "Municipality of Stellenbosch"],
         # gazette notices and tribunal cases naming one of these places are tagged to Stellenbosch (whole words, case-insensitive)
         "places": ["Stellenbosch", "Kayamandi", "Cloetesville", "Idas Valley", "Idasvallei", "Franschhoek", "Pniel", "Kylemore", "Klapmuts",
                    "Jamestown", "Raithby", "Lynedoch", "Groendal", "Wemmershoek", "La Motte", "Johannesdal", "Lanquedoc", "Koelenhof",
@@ -57,15 +57,16 @@ def cfg(s=None):
 
 
 def is_buyer(name, s=None):
-    pats = MUNIS[s or muni()].get("buyers")
-    n = re.sub(r"\s+", " ", str(name or "")).strip().lower()
-    return bool(pats) and any(re.search(p, n) for p in pats)
+    names = {re.sub(r"\s+", " ", b).strip().lower() for b in MUNIS[s or muni()].get("buyers", [])}
+    return re.sub(r"\s+", " ", str(name or "")).strip().lower() in names
 
 
 def ref_key(ref):
-    """one key per tender or quotation number, whatever the spelling: 'B/SM 06/27', 'BSM 6/27' -> 'BSM6/27'; 'FQ/SM 84/27', 'FQ 84/27' -> 'FQ84/27';
-    City of Cape Town references ('46Q/2023/24') keep their form, without leading zeros."""
+    """one key per tender, quotation or deviation number, whatever the spelling: 'B/SM 06/27', 'BSM 6/27', 'BSM6-27', 'BSM 006/2027' -> 'BSM6/27';
+    'FQ/SM 84/27', 'FQ 84/27' -> 'FQ84/27'; 'D/SM 3/27' -> 'DSM3/27'. City of Cape Town references ('46Q/2023/24') keep their form, without leading zeros."""
     r = re.sub(r"\s", "", str(ref or "")).upper()
-    m = re.match(r"^(B/?SM|FQ(?:/?SM)?|RFQ)[-:/]?0*(\d+)/(\d\d)\b", r)
-    if m: return ("BSM" if "B" in m.group(1)[:1] else "FQ" if m.group(1).startswith("FQ") else "RFQ") + f"{int(m.group(2))}/{m.group(3)}"
+    m = re.match(r"^(B/?SM|FQ(?:/?SM)?|RFQ|D/?SM)[-_:/]?0*(\d+)[-_/](\d{4}|\d{2})(?!\d)", r)
+    if m:
+        kind = {"B": "BSM", "F": "FQ", "R": "RFQ", "D": "DSM"}[m.group(1)[0]]
+        return f"{kind}{int(m.group(2))}/{m.group(3)[-2:]}"
     return re.sub(r"^0+", "", r)

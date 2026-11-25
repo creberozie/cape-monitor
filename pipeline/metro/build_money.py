@@ -86,9 +86,12 @@ def money_val(v):
 # words that are never a supplier on their own: price-column leftovers in the bid registers and fragments of split vendor lists
 GENERIC = {"GROUP", "RATES", "VARIOUS", "VARIOUS RATES", "BLANK", "SERVICES", "MAINTENANCE", "ATTORNEYS", "SCHEDULE", "SUBMISSION", "AUTOMOTIVE", "TRADING",
            "PROJECTS", "CONSTRUCTION", "HOLDINGS", "INCORPORATED", "AND", "JV", "JOINT VENTURE", "CONSORTIUM", "NOT STATED", "NIL", "NONE", "N A", "TBC"}
+if not CT: from fetch_muni import name_problem   # municipalities read from PDFs and scans: text that is not a name gets no supplier profile
+REJECTED = collections.Counter()
 class Registry:
     def __init__(self): self.by = {}; self.compact = {}
     def get(self, raw, ocr=False):
+        if not CT and name_problem(str(raw or "")): REJECTED[str(raw)[:80]] += 1; return None
         """ocr=True: a name read by OCR, where spaces between words are often lost ('DZIVHACIVILS(PTY)LTD'): if no profile has its exact
         normalised name, a profile whose name has the same letters and digits in the same order, ignoring spaces, is used. Nothing else is merged."""
         k = norm(raw)
@@ -190,6 +193,10 @@ if RQ:
           f"{len(DQ):,} orders carry values that form a spreadsheet fill-series in the source; they are marked, shown as published, and left out of totals and flags.")
 
 # ================================================================ 1b/2b. another municipality: its own award registers (fetch_muni.py)
+def method(how):
+    """how a row was read, in the words the app shows"""
+    h = str(how or "")
+    return ("PDF Text (Council agenda)" if "agenda" in h else "Single-pass OCR (amount not parsed)" if h.startswith("ocr") else "PDF Text" if h.startswith("text") else h)
 if not CT:
     MA = load("muni-awards")
     if MA:
@@ -202,11 +209,12 @@ if not CT:
                 if date: s["years"].add(date[:4])
                 if r.get("amount"): s["award_value"] += r["amount"]
             awards.append([date, r["ref"], r.get("doc_title"), "Award" + (f" (panel of {r['panel']})" if r.get("panel", 1) > 1 else ""), "Awarded", r.get("desc"),
-                           r["bidder"], r.get("amount_text"), r.get("amount"), None, None, rates, sids, r.get("doc"), r.get("closing"), r.get("level"), r.get("completion"), r.get("how")])
+                           r["bidder"], r.get("amount_text"), r.get("amount"), None, None, rates, sids, r.get("doc"), r.get("closing"), r.get("level"), r.get("completion"), method(r.get("how")),
+                           r.get("published")])
         table("awards", MA["title"], [["date", "Date approved"], ["ref", "Bid number"], ["decision", "Register"], ["reason", "Reason"], ["code", "Decision"], ["desc", "Description"],
               ["vendor", "Successful bidder as published"], ["value_text", "Amount approved, as published"], ["value", "Amount (parsed, R)"], ["budget_text", "Budget, as published"],
               ["budget", "Budget (parsed, R)"], ["rates", "Rates based"], ["sup", "Suppliers"], ["doc", "Register (PDF)"], ["closing", "Closing date"], ["bbbee", "B-BBEE level"],
-              ["completion", "Completion"], ["how", "Read from"]], awards, f"{M['label']}: tenders awarded", MA["url"], MA["retrieved"],
+              ["completion", "Completion"], ["how", "Extraction method"], ["published", "Register published"]], awards, f"{M['label']}: tenders awarded", MA["url"], MA["retrieved"],
               "Read from the municipality's monthly 'Tenders awarded' registers (PDF). One row per successful bidder; a panel award lists every member with the tender's amount "
               "(usually 'RATES': a rates-based contract with no single total). Amounts are as published. Rows are read from the register's layout; check them against the PDF linked on each row.")
     DV = load("muni-deviations")
@@ -219,7 +227,7 @@ if not CT:
                 if r.get("date"): s["years"].add(r["date"][:4])
             awards.append([r.get("date") or r["agenda_date"], r["number"], f"Reported to Council: {r['agenda']}", f"Deviation (reg. 36): {r.get('reason') or 'reason not stated'}", "Approved",
                            f"{r.get('description')}. Why the SCM process was not followed, as reported: {r.get('substantiation')}", r["contractor"], r.get("price_text"), r.get("price"),
-                           None, None, "", sids, r["doc"], None, None, None, "council agenda (text)"])
+                           None, None, "", sids, r["doc"], None, None, None, method("council agenda"), r.get("agenda_date")])
         tables["awards"]["n"] = len(awards)
         for k in range(0, max(1, len(awards)), SHARD): dump(awards[k:k + SHARD], os.path.join(PUB, "t", f"awards-{k // SHARD}.json"))
         tables["awards"]["shards"] = max(1, math.ceil(len(awards) / SHARD))
@@ -235,10 +243,10 @@ if not CT:
                 s["refs"]["rfq"].append(i); s["rfq_value"] += r.get("amount") or 0
                 if date: s["years"].add(date[:4])
             rfq.append([date, r["ref"], "Directorate not published", "No category published", r.get("desc"), r["bidder"], r.get("level"), r.get("amount"), sid, r.get("doc"), None,
-                        r.get("amount_text"), r.get("closing"), r.get("doc_title"), r.get("how")])
+                        r.get("amount_text"), r.get("closing"), r.get("doc_title"), method(r.get("how")), r.get("published")])
         table("rfq", MF["title"], [["date", "Award date"], ["tracking", "Quotation number"], ["directorate", "Directorate"], ["group", "Category"], ["group_text", "Description"],
               ["supplier", "Awarded to, as published"], ["bbbee", "B-BBEE level"], ["value", "Amount (parsed, R)"], ["sup", "Supplier"], ["doc", "Register (PDF)"], ["dq", "Data-quality note"],
-              ["value_text", "Amount as published"], ["closing", "Closing date"], ["register", "Register"], ["how", "Read from"]], rfq, f"{M['label']}: formal written price quotations awarded",
+              ["value_text", "Amount as published"], ["closing", "Closing date"], ["register", "Register"], ["how", "Extraction method"], ["published", "Register published"]], rfq, f"{M['label']}: formal written price quotations awarded",
               MF["url"], MF["retrieved"], "Formal written price quotations (and requests for quotation) awarded, read from the municipality's monthly registers (PDF). The registers do not "
               "name the directorate or a spending category. 'Rates' means a rates-based order with no single total. Check each row against the PDF linked on it.")
 
@@ -259,7 +267,7 @@ if BD:
                 if t.get("closing"): s["years"].add(t["closing"][:4])
             rank = (sorted(prices).index(b["price"]) + 1) if b["price"] and prices else None
             bids.append([t.get("closing"), t["ref"], t["description"], b["n"], b["bidder"], b["price_text"], b["price"], rank, len(t["bids"]),
-                         " / ".join(b["hdi"]), sid, t["doc"]] + ([b.get("conf")] if not CT else []))
+                         " / ".join(b["hdi"]), sid, t["doc"] + (f"#page={b['page']}" if b.get("page") else "")] + ([b.get("conf"), b.get("page"), "Dual-Pass OCR", t.get("published")] if not CT else []))
             bid_tenders[t["ref"]].append(i)
     if CT:
         table("bids", BD["title"], [["closing", "Closing date"], ["ref", "Tender reference"], ["desc", "Description"], ["n", "Serial no."], ["bidder", "Bidder as published"],
@@ -270,7 +278,7 @@ if BD:
     else:
         table("bids", BD["title"], [["closing", "Closing date"], ["ref", "Tender reference"], ["desc", "Description"], ["n", "Serial no."], ["bidder", "Bidder as read (OCR)"],
               ["price_text", "Price as read (OCR)"], ["price", "Price (parsed, R)"], ["rank", "Price rank (1 = lowest)"], ["n_bids", "Bids read on this tender"],
-              ["hdi", "B-BBEE level as read"], ["sup", "Supplier"], ["doc", "Register (scan)"], ["conf", "OCR confidence (0-100)"]], bids, f"{M['label']}: bid-opening registers", BD["url"], BD["retrieved"],
+              ["hdi", "B-BBEE level as read"], ["sup", "Supplier"], ["doc", "Register (scan)"], ["conf", "OCR confidence (0-100)"], ["page", "Page of the scan"], ["how", "Extraction method"], ["published", "Register published"]], bids, f"{M['label']}: bid-opening registers", BD["url"], BD["retrieved"],
               "The municipality publishes its bid-opening registers as scanned images. Each was read by OCR (tesseract): every row here is machine-read, with its confidence, "
               f"and links to the scan. Rows below confidence {BD.get('min_conf', 60)} and handwritten registers are not shown. Prices are as read out at the opening, before evaluation.")
 
@@ -299,12 +307,12 @@ if ET:
         et_rows.append([(t.get("date_Published") or "")[:10], t.get("tender_No"), t.get("organ_of_State"), t.get("type"), t.get("category"), t.get("description"),
                         t.get("portal_status"), (t.get("closing_Date") or "")[:16].replace("T", " "), t.get("province"), t.get("contactPerson"), t.get("email"),
                         "; ".join(f"{a.get('company')} ({a.get('amount')})" for a in t.get("awards", [])), (t.get("awardDate") or "")[:10], len(t.get("bidders", [])),
-                        win, bidders, t.get("id")])
+                        win, bidders, t.get("id")] + ([] if CT else ["eTender API", f"https://www.etenders.gov.za/Home/opportunities?id={ {'Open': 1, 'Awarded': 2, 'Closed': 3, 'Cancelled': 4}.get(t.get('portal_status'), 1) }"]))
         et_detail[i] = t
     table("etenders", ET["title"], [["published", "Published"], ["number", "Tender number"], ["buyer", "Organ of state"], ["type", "Type"], ["category", "Category"],
           ["desc", "Description"], ["status", "Status on portal"], ["closing", "Closing"], ["province", "Province"], ["official", "Contact person (buyer)"],
           ["email", "Contact e-mail (buyer)"], ["awards", "Awarded to (amount as published)"], ["award_date", "Award date"], ["n_bidders", "Bidders listed"],
-          ["sup", "Winning suppliers"], ["bidders", "Bidding suppliers"], ["portal_id", "Portal record"]], et_rows, "National Treasury eTender Portal",
+          ["sup", "Winning suppliers"], ["bidders", "Bidding suppliers"], ["portal_id", "Portal record"]] + ([] if CT else [["how", "Extraction method"], ["url", "Portal list"]]), et_rows, "National Treasury eTender Portal",
           ET["url"], ET["retrieved"], "Every tender a Western Cape buyer (any sphere) placed on the national portal, with briefing details, documents, bidders and awards as published." if CT
           else f"Every tender {M['label']} placed on the national portal (buyer names: {', '.join(ET.get('buyer_names', []))}), with briefing details, documents, bidders and awards as published.")
     # full detail (documents, bidders with amounts, award contacts) in shards, opened from the table
@@ -341,7 +349,8 @@ if not CT:
     MD = load("docs")
     if MD:
         rows = []
-        KL = {"awards": "Tenders awarded", "fq": "Formal quotations awarded", "rfq": "RFQs awarded", "bids": "Bid-opening register", "cancelled": "Tender cancelled", "scm": "SCM report"}
+        KL = {"awards": "Tenders awarded", "fq": "Formal quotations awarded", "rfq": "RFQs awarded", "bids": "Bid-opening register", "cancelled": "Notice of cancellation",
+              "open": "Tender advertised", "fq_open": "Formal quotation invited", "rfq_open": "RFQ invited", "rfq30": "RFQ under R30 000", "scm": "SCM report"}
         for i, d in enumerate(MD["docs"]):
             refs = sorted({muni_ref(m.group(0)) for m in re.finditer(r"\b(?:B\s*/?\s*SM|FQ\s*/?\s*(?:SM)?)\s*[-_]?\s*\d{1,3}\s*[-_/]\s*\d\d\b", d["title"] + " " + (d.get("file") or "").rsplit("/", 1)[-1].replace("_", "/"), re.I)})
             rows.append([d["published"], KL.get(d["kind"], d["kind"]), d["title"], ", ".join(refs), d.get("file") or d["page"]])
@@ -351,6 +360,7 @@ if not CT:
 
 # ================================================================ tender dossiers: one entry per tender reference, joining every source
 def ref_key(r): return muni_ref(r)
+OWN_REF = re.compile(r"\b(?:B\s*/?\s*SM|FQ\s*/?\s*(?:SM)?|RFQ)\s*[-_:]?\s*0*\d{1,3}\s*[-_/]\s*(?:20)?\d\d\b", re.I)
 tender = collections.defaultdict(lambda: {"awards": [], "bids": [], "et": [], "docs": [], "rfq": []})
 for i, a in enumerate(awards): tender[ref_key(a[1])]["awards"].append(i)
 for ref, idx in bid_tenders.items(): tender[ref_key(ref)]["bids"] += idx
@@ -358,7 +368,10 @@ for i, r in enumerate(et_rows):
     if CT:
         m = re.search(r"\b(\d{1,3}[A-Z]/20\d\d/\d\d)\b", str(r[1] or "").upper().replace(" ", ""))
         if m and "CAPE TOWN" in str(r[2] or "").upper(): tender[ref_key(m.group(1))]["et"].append(i)
-    elif re.match(r"\s*(B\s*/?\s*SM|FQ)", str(r[1] or ""), re.I): tender[ref_key(r[1])]["et"].append(i)
+    else:   # the municipality's own number, wherever the buyer typed it (tender number field or description): BSM 12/26, BSM12-26, BSM 012/2026
+        m = OWN_REF.search(f"{r[1] or ''} {r[5] or ''}")
+        if m:
+            k = ref_key(m.group(0)); tender[k]["et"].append(i); et_detail[i]["muni_ref"] = k
 for ref, idx in docs_by_ref.items(): tender[ref_key(ref)]["docs"] += idx
 if not CT:   # a municipality's formal quotations carry their own numbers (FQ 29/27): each gets a dossier too
     for i, r in enumerate(rfq): tender[ref_key(r[1])]["rfq"].append(i)
@@ -368,9 +381,9 @@ for k, v in tender.items(): buckets[bucket(k)][k] = {x: y for x, y in v.items() 
 for b, v in buckets.items(): dump(v, os.path.join(PUB, "tender", f"{b}.json"))
 
 # ================================================================ pattern flags
-def flag(kind, title, text, records, subjects, value=None, basis=None):
+def flag(kind, title, text, records, subjects, value=None, basis=None, **extra):
     flags.append({"id": f"{kind}-{len(flags)}", "kind": kind, "title": title, "text": text, "records": records, "subjects": subjects,
-                  **({"value": value} if value is not None else {}), **({"basis": basis} if basis else {})})
+                  **({"value": value} if value is not None else {}), **({"basis": basis} if basis else {}), **extra})
 
 KINDS = {
     "repeat": "Repeat winner in one directorate",
@@ -492,14 +505,20 @@ for (a, b), n in pairs.most_common(400):
 for ref, idx in bid_tenders.items():
     k = ref_key(ref); prices = [(bids[i][6], bids[i][10], i) for i in idx if bids[i][6]]
     if len(prices) < 2 or not winners.get(k): continue
-    lo = min(p[0] for p in prices)
+    lo = min(p[0] for p in prices); lo_i = next(i for p, _, i in prices if p == lo)
     for p, sid, i in prices:
-        # OCR-read registers: a gap of more than three times is more often a misread or a bid for part of the work than a real price gap; held back
-        if sid in winners[k] and p > lo * 1.10 and (CT or p <= lo * 3):
+        if sid in winners[k] and p > lo * 1.10:
+            review = not CT and p > lo * 4   # a gap above 300% (more than four times the lowest) in an OCR-read register: more often a misread digit or a bid for part of the work
+            extra = {}
+            if not CT:
+                extra = {"verification_status": "NEEDS_SCAN_REVIEW" if review else "OCR_DUAL_PASS_AGREED", "method": "Dual-Pass OCR",
+                         "scan": bids[i][11], "scan_lowest": bids[lo_i][11]}
+                if review: extra["review_reason"] = "HIGH_VARIANCE_OR_PARTIAL_BID"
             flag("notlowest", f"Tender {ref}: awarded bidder priced {p / lo - 1:.0%} above the lowest",
                  f"Price read out at opening R{p:,.0f}; lowest R{lo:,.0f}. Preference points (80/20 or 90/10), functionality and responsiveness lawfully affect the award; "
-                 "the evaluation report is not published here.", [["bids", j] for j in idx] + [["awards", a] for a in by_ref.get(k, [])],
-                 [["tender", k], ["supplier", sid]], p - lo)
+                 "the evaluation report is not published here." + (" The gap is more than 300% of the lowest price: check both prices against the scanned register "
+                 "before relying on it; it may be a misread digit or a bid for only part of the work." if review else ""),
+                 [["bids", j] for j in idx] + [["awards", a] for a in by_ref.get(k, [])], [["tender", k], ["supplier", sid]], p - lo, **extra)
 
 # the same buyer official on several eTender awards to one supplier
 off = collections.defaultdict(list)
@@ -553,6 +572,68 @@ if os.path.exists(REG_PATH):
             flag("young", f"{REG.by[sid]['names'].most_common(1)[0][0]}: {len(recs)} award(s) or order(s) within 12 months of registration",
                  f"Registered {d} according to {rec.get('source', 'the company register')} (retrieved {str(rec.get('retrieved', ''))[:10]}). New companies win work lawfully; this lists the records.",
                  recs, [["supplier", sid]])
+
+# ---------------------------------------------------------------- portal discrepancy and cancel-and-re-tender (municipalities other than Cape Town)
+if not CT and et_rows:
+    KINDS["portal"] = "Award above the competitive-bidding threshold with no award notice on the eTender portal"
+    et_dates = sorted(r[0] for r in et_rows if r[0])
+    # the archive covers a year only once it holds a fair number of this buyer's records (the portal drops old ones before Cape Monitor
+    # began keeping them): flags start three months into the first such year, and skip the last 60 days, while notices are still posted
+    per_year = collections.Counter(d[:4] for d in et_dates)
+    cover = next((y for y in sorted(per_year) if per_year[y] >= 20), et_dates[0][:4])
+    first_et = f"{cover}-04-01"; last_et = et_dates[-1]
+    last_ok = (datetime.date.fromisoformat(last_et) - datetime.timedelta(days=60)).isoformat()
+    seen_award = set()
+    for i, a in enumerate(awards):
+        if not str(a[3] or "").startswith("Award") or not a[8] or not a[0]: continue   # tender awards with a published amount; not deviations or rates
+        k = ref_key(a[1]); T = threshold(a[0])
+        if a[8] <= T[1] or k in seen_award or a[0] < first_et or a[0] > last_ok: continue
+        ets = tender.get(k, {}).get("et", [])
+        if any(et_detail[j].get("awards") for j in ets): continue
+        seen_award.add(k)
+        state = ", ".join(sorted({str(et_rows[j][6]) for j in ets})) or "no record at all"
+        rows_k = [j for j in tender[k]["awards"]]
+        flag("portal", f"Tender {a[1]}: R{a[8]:,.0f} award, no award notice on the eTender portal",
+             f"The municipality's register shows an award of {a[7]} on {a[0]}, above the threshold of the day ({T[2]}). Cape Monitor's archive of the national eTender "
+             f"portal (this buyer's records complete enough from {first_et}; latest {last_et}) holds for this number: {state}. Award notices may have been published under another number, or "
+             "removed by the portal; the archive keeps what it has seen since it was started.",
+             [["awards", j] for j in rows_k] + [["etenders", j] for j in ets], [["tender", k]] + [["supplier", s] for j in rows_k for s in awards[j][12]],
+             a[8], {"text": T[2], "url": T[3]})
+
+    KINDS["retender"] = "Cancelled tender followed within 180 days by a similar tender"
+    STOP = set("the and for of to in a an at as on by with from or be is are this that until ending period when required stellenbosch municipality municipal wc024 date award "
+               "appointment provision service services supply delivery tender tenders bsm sm".split())
+    def words(t): return {w for w in re.findall(r"[a-z]{3,}", str(t or "").lower()) if w not in STOP}
+    later = []   # (date, key, description, source, index)
+    for j, r in enumerate(et_rows):
+        if r[0]: later.append((r[0], et_detail[j].get("muni_ref"), r[5], "etenders", j))
+    for i, a in enumerate(awards):
+        if a[0] and str(a[3] or "").startswith("Award"): later.append((a[0], ref_key(a[1]), a[5], "awards", i))
+    for i, d in enumerate((MD or {}).get("docs", [])):
+        if d["kind"] in ("open", "fq_open"): later.append((d["published"], None, d["title"], "docs", i))
+    cancels = [(i, d) for i, d in enumerate((MD or {}).get("docs", [])) if d["kind"] == "cancelled"]
+    done = set()
+    for i, d in cancels:
+        m = OWN_REF.search(d["title"])
+        if not m: continue
+        k = ref_key(m.group(0)); w0 = words(re.sub(r"^.*?\d\d\s*[:\-]?", "", d["title"], count=1)) | words(" ".join(str(awards[j][5]) for j in tender.get(k, {}).get("awards", [])))
+        if len(w0) < 4 or k in done: continue
+        d0 = d["published"]; end = (datetime.date.fromisoformat(d0) + datetime.timedelta(days=180)).isoformat()
+        hits = []
+        for dt, k2, desc, src, j in later:
+            if not (d0 < dt <= end) or (k2 and k2 == k): continue
+            w1 = words(desc); shared = w0 & w1
+            if len(shared) >= 4 and len(shared) / len(w0 | w1) >= 0.5: hits.append((dt, src, j, desc, sorted(shared)))
+        bidders = {bids[j][10] for j in tender.get(k, {}).get("bids", []) if bids[j][10]}
+        if not hits: continue
+        done.add(k)
+        recs = [["docs", i]] + [[src, j] for _, src, j, _, _ in hits[:20]]
+        winners_later = sorted({s for _, src, j, _, _ in hits if src == "awards" for s in awards[j][12]} & bidders)
+        flag("retender", f"Tender {m.group(0)}: cancelled {d0}, similar tender within 180 days ({len(hits)} record{'s' if len(hits) > 1 else ''})",
+             f"Notice of cancellation published {d0}. Within 180 days the municipality published records with a similar description (at least half of the distinctive "
+             f"words shared), first on {hits[0][0]}: '{str(hits[0][3])[:160]}'." + (f" A later award went to a supplier that bid on the cancelled tender." if winners_later else "")
+             + " Re-tendering after a cancellation is lawful and common; this lists the records so the reasons can be compared.",
+             recs, [["tender", k]] + [["supplier", s] for s in winners_later])
 
 # Treasury's restricted-supplier report: a supplier whose normalised name equals a restricted name. Name match only.
 RS = load("restricted")
@@ -626,4 +707,5 @@ dump({"built": NOW, "warnings": (BD or {}).get("warnings", []) + [f"eTender port
       "buckets": BUCKETS, "shard": SHARD, "et_shard": 2000, "muni": {"slug": MUNI, "label": M["label"], "code": M.get("code"), "category": M["category"]},
       "registers": {"cipc": "https://www.bizportal.gov.za/", "csd": "https://secure.csd.gov.za/", "restricted": "https://ocpo.treasury.gov.za/RestrictedSupplier/RestrictedSuppliersReport.pdf",
                     "etenders": "https://www.etenders.gov.za/"}}, os.path.join(PUB, "money.json"))
+if REJECTED: print(f"money: {sum(REJECTED.values())} rows name no supplier (text that is not a name), e.g. {list(REJECTED)[:5]}")
 print("money:", {k: v["n"] for k, v in tables.items()}, "suppliers", len(index), "flags", collections.Counter(f["kind"] for f in flags), "tenders", len(tender))

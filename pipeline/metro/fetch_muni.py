@@ -50,7 +50,8 @@ def jget(url, **kw): return json.loads(http(url, **kw))
 WP = "https://stellenbosch.gov.za/wp-json/wp/v2/"
 # category slugs (stb_doc_category) per register kind; child categories (per year) are found through the API
 KINDS = {"awards": ["tenders-awarded"], "fq": ["formal-quotations-awarded"], "rfq": ["request-for-quotations-awarded"],
-         "bids": ["tender-opening"], "cancelled": ["tender-cancellations"], "scm": ["scm-reports"]}
+         "bids": ["tender-opening"], "cancelled": ["tender-cancellations"], "open": ["open-tenders"], "fq_open": ["open-formal-quotations"],
+         "rfq_open": ["request-for-quotations-open"], "rfq30": ["rfq-under-r30-000"], "scm": ["scm-reports"]}
 RESOLVE = {"awards", "fq", "rfq", "bids"}   # kinds whose files are read
 
 
@@ -111,6 +112,30 @@ def local(url):
     return os.path.join(PDFS, key)
 
 
+def sha256(path):
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for b in iter(lambda: fh.read(1 << 20), b""): h.update(b)
+    return h.hexdigest()
+
+
+def ocr_done(url):
+    f = local(url)
+    if not os.path.exists(f): return False
+    return os.path.exists(os.path.join(CACHE, "ocr", f"{sha256(f)}-{DPI}-4c.json")) or os.path.exists(f + f".ocr-{DPI}-4c.json")
+
+
+def write_manifest():
+    """files.sha256: one line per downloaded file and OCR result; the data workflow keys its cache on this file's hash"""
+    lines = []
+    for d in ("pdf", "ocr", "agenda"):
+        for name in sorted(os.listdir(os.path.join(CACHE, d))) if os.path.isdir(os.path.join(CACHE, d)) else []:
+            p = os.path.join(CACHE, d, name)
+            if os.path.isfile(p) and not name.endswith((".part",)): lines.append(f"{sha256(p) if name.endswith('.pdf') else os.path.getsize(p)}  {d}/{name}")
+    open(os.path.join(CACHE, "files.sha256"), "w").write("\n".join(lines) + "\n")
+
+
 def fetch_file(url):
     f = local(url)
     if not os.path.exists(f):
@@ -120,15 +145,53 @@ def fetch_file(url):
     return f
 
 
+def upright_chars(page):
+    """pdfplumber page keeping only characters set horizontally (upright, no rotation or skew in their matrix)"""
+    return page.filter(lambda o: o.get("object_type") != "char" or (o.get("upright", True) and abs(o["matrix"][1]) < 1e-3 and abs(o["matrix"][2]) < 1e-3))
+
+
+def text_without_rotated(pdf_path):
+    """(layout text, number of rotated or skewed characters left out). Text set at an angle (stamps, watermarks, labels laid across a
+    table) is not part of any row; pdftotext prints it into the columns it crosses."""
+    import pdfplumber
+    out, n = [], 0
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            n += sum(1 for c in page.chars if not (c.get("upright", True) and abs(c["matrix"][1]) < 1e-3 and abs(c["matrix"][2]) < 1e-3))
+            out.append(upright_chars(page).extract_text(layout=True, x_density=5.5, y_density=13) or "")
+    return "\f".join(out), n
+
+
 def pdf_text(url):
-    f = fetch_file(url); t = f + ".txt"
+    """layout text of a PDF (pdftotext); when the PDF has rotated or skewed text, the text is rebuilt from horizontal characters only and
+    the number left out is kept next to it (.meta.json) for the sources manifest"""
+    f = fetch_file(url); t = f + ".txt"; meta = f + ".meta.json"
     if not os.path.exists(t): subprocess.run(["pdftotext", "-layout", f, t], check=True, timeout=300)
+    if not os.path.exists(meta):
+        info = {"rotated_chars": 0}
+        try:
+            text, n = text_without_rotated(f)
+            if n:
+                open(t, "w", encoding="utf-8").write(text); info = {"rotated_chars": n, "how": "pdfplumber, horizontal characters only"}
+        except Exception as e: info["error"] = str(e)[:120]
+        json.dump(info, open(meta, "w"))
     return open(t, encoding="utf-8", errors="replace").read()
+
+
+def pdf_meta(url):
+    p = local(url) + ".meta.json"
+    return json.load(open(p)) if os.path.exists(p) else {}
 
 
 def ocr_pages(url):
     """[(page, [words])] where a word is {x, y, w, h, conf, text, line}; pages are turned upright first. Cached as JSON next to the PDF."""
-    f = fetch_file(url); out = f + f".ocr-{DPI}-4c.json"   # the settings are in the name: changing them reads the scans again
+    f = fetch_file(url)
+    # OCR results are kept by the SHA-256 of the PDF itself (and the OCR settings): a file re-uploaded under another name is not read again,
+    # and the data workflow's cache restores them by the same key
+    os.makedirs(os.path.join(CACHE, "ocr"), exist_ok=True)
+    out = os.path.join(CACHE, "ocr", f"{sha256(f)}-{DPI}-4c.json")
+    legacy = f + f".ocr-{DPI}-4c.json"
+    if not os.path.exists(out) and os.path.exists(legacy): shutil.copy(legacy, out)
     if os.path.exists(out): return json.load(open(out))
     from PIL import Image
     pages = []
@@ -347,7 +410,7 @@ def awards():
         try:
             text = pdf_text(d["file"]); how = "text"
             if len(text.strip()) < 200:
-                if not os.path.exists(local(d["file"]) + f".ocr-{DPI}-4c.json"): read.append({**slimdoc(d), "how": "waiting for OCR", "rows": 0}); continue
+                if not ocr_done(d["file"]): read.append({**slimdoc(d), "how": "waiting for OCR", "rows": 0}); continue
                 text = ocr_text(ocr_pages(d["file"])); how = "ocr"
             kind = "fq" if d["kind"] == "rfq" else d["kind"]
             rows = parse_awards(text, kind)
@@ -361,9 +424,12 @@ def awards():
                 rows = good
             for r in rows: r.update({"doc": d["file"], "doc_page": d["page"], "doc_title": d["title"], "published": d["published"], "how": how, "kind": d["kind"]})
             out["awards" if kind == "awards" else "fq"] += rows
-            read.append({**slimdoc(d), "how": how, "rows": len(rows)})
+            read.append({**slimdoc(d), "how": how, "rows": len(rows), **({"rotated_chars": pdf_meta(d["file"])["rotated_chars"]} if pdf_meta(d["file"]).get("rotated_chars") else {})})
         except Exception as e:
             failed.append({**slimdoc(d), "error": str(e)[:160]})
+    name_warnings = []
+    for k in out:
+        out[k], w = check_names(out[k]); name_warnings += w
     # a register published twice (a 'revised' copy, a re-upload) gives the same rows: keep one, list every document that has it
     for k in out:
         seen = {}
@@ -375,12 +441,73 @@ def awards():
     warnings = [f"{x['title']}: no rows read (new layout?)" for x in read if not x["rows"] and x["how"] in ("text", "ocr")]
     for k, title in (("awards", "Tenders awarded"), ("fq", "Formal quotations and RFQs awarded")):
         dump({"id": f"muni-{k}", "title": f"{M['label']}: {title.lower()} (read from the monthly award registers)", "url": M["site"] + ("tenders-awarded/" if k == "awards" else "formal-quotations-awarded/"),
-              "retrieved": now(), "rows": out[k], "documents": [x for x in read if (x["kind"] == "awards") == (k == "awards")], "failed": failed, "warnings": warnings},
+              "retrieved": now(), "rows": out[k], "documents": [x for x in read if (x["kind"] == "awards") == (k == "awards")], "failed": failed, "warnings": warnings,
+              "parse_warnings": [w for w in name_warnings if (k == "awards") == bool(re.match(r"B", w["ref"] or ""))]},
              os.path.join(CACHE, f"muni-{k}.json"))
     return f"{len(out['awards'])} tender award rows, {len(out['fq'])} quotation award rows from {len(read)} registers ({sum(1 for x in read if x['how'] == 'ocr')} by OCR); {len(failed)} failed"
 
 
 def slimdoc(d): return {k: d.get(k) for k in ("id", "kind", "title", "published", "page", "file")}
+
+
+COMPANY = re.compile(r"\b(?:\(?PTY\)?|LTD|LIMITED|CC|INC|INCORPORATED|JV|JOINT VENTURE|NPC|SOC|ATTORNEYS|CONSULTING|ENGINEERS|TRADING|PROJECTS|HOLDINGS|"
+                     r"ENTERPRISES?|SERVICES|SOLUTIONS|GROUP|PARTNERS(?:HIP)?|BANK|ASSOCIATES|CONSTRUCTION|CIVILS|T/A)\b", re.I)
+DESCRIPTIVE = re.compile(r"\b(?:SUPPLY AND|DELIVERY OF|FOR A PERIOD|PERIOD ENDING|AS AND WHEN|MAINTENANCE OF|CONSTRUCTION OF|APPOINTMENT OF|PROVISION OF|"
+                         r"INSTALLATION OF|UPGRADING OF|STELLENBOSCH MUNICIPALITY|WC024|ENDING 30|(?:JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|"
+                         r"OCTOBER|NOVEMBER|DECEMBER) 20\d\d)\b", re.I)
+
+
+def name_problem(name):
+    """why a bidder name read from a register is not a name (None when it reads as one): description text that strayed into the bidder
+    column, a header word, or a fragment"""
+    n = name.strip(); w = n.split()
+    if len(w) > 12: return "too many words for a name"
+    # a fragment in lower case ('of TENDER', 'on ZTD GROUP'), or OF / AND in capitals; capital ON, AT, IN start real names ('ON POINT ON TIME SOLUTIONS')
+    if re.match(r"(?:of|and|for|to|in|with|at|on|by|from|as|including|ending|period)\b", n) or re.match(r"(?:OF|AND)\b", n): return "starts like a sentence fragment"
+    if re.search(r"(?i)\bname of bidders?\b|\btender number\b|^number\b|…{3,}|\.{6,}", n): return "form or header text"
+    if re.fullmatch(r"\(?[A-Z](?:\s[A-Z]){1,3}\)?", n): return "initials only"
+    if DESCRIPTIVE.search(n) and not COMPANY.search(n): return "reads as tender description"
+    if re.search(r"\bL\d(?:FOR|AND|OF)\b|\b\w+(?:FOR|AND)\s+A\s+PERIOD\b", n, re.I): return "columns run together"
+    if len(re.sub(r"[^A-Za-z]", "", n)) < 3: return "too short"
+    if not distinctive(n): return "only a company suffix"
+    return None
+
+
+SUFFIX_WORDS = {"PTY", "LTD", "LIMITED", "CC", "INC", "INCORPORATED", "JV", "NPC", "SOC", "T/A", "AND", "THE", "OF"}
+
+
+def distinctive(name):
+    return [w for w in re.findall(r"[A-Z0-9&'.]+", name.upper()) if w.strip("().") not in SUFFIX_WORDS and len(w) > 1]
+
+
+def split_merged(name):
+    """several company names printed on one line ('A (PTY) LTD B CC C (PTY) LTD'): split after each company suffix"""
+    parts = [p.strip(" ,") for p in re.split(r"(?<=\bLTD)\s+|(?<=\bLIMITED)\s+|(?<=\bCC)\s+(?!T/A)|(?<=\bINC)\s+|(?<=\bINCORPORATED)\s+", name, flags=re.I) if p.strip(" ,")]
+    return parts if len(parts) > 1 and all(not name_problem(p) for p in parts) else None
+
+
+def check_names(rows):
+    """Rows whose bidder text is not a name are taken out and listed as parse warnings. Several names run together on one line are split.
+    Where the text contains a bidder name accepted elsewhere (two or more distinctive words), that name is kept, with a note.
+    Returns (rows, warnings)."""
+    out, bad = [], []
+    for r in rows:
+        why = name_problem(r["bidder"])
+        if not why: out.append(r); continue
+        parts = split_merged(r["bidder"])
+        if parts:
+            out += [{**r, "bidder": p, "name_note": f"one of several names printed on one line: '{r['bidder']}'"} for p in parts]
+            bad.append({"ref": r["ref"], "text": r["bidder"], "reason": why, "doc": r.get("doc"), "recovered": parts}); continue
+        bad.append((r, why))
+    known = sorted({re.sub(r"\s+", " ", x["bidder"].upper()).strip() for x in out if len(distinctive(x["bidder"])) >= 2}, key=len, reverse=True)
+    warn = [b for b in bad if isinstance(b, dict)]
+    for b in bad:
+        if isinstance(b, dict): continue
+        r, why = b; up = re.sub(r"\s+", " ", r["bidder"].upper())
+        hit = next((k for k in known if re.search(r"(?<![A-Z0-9])" + re.escape(k) + r"(?![A-Z0-9])", up)), None)
+        warn.append({"ref": r["ref"], "text": r["bidder"], "reason": why, "doc": r.get("doc"), "recovered": [hit] if hit else []})
+        if hit: out.append({**r, "bidder": hit, "name_note": f"name recovered from text mixed with the description: '{r['bidder']}'"})
+    return out, warn
 
 
 # ================================================================ 4. bid-opening registers (scanned: OCR)
@@ -397,7 +524,7 @@ def parse_register(pages):
     out = {"ref": re.sub(r"\s", "", ref.group(1)).upper().replace("B/SM", "B/SM ").replace("BSM", "B/SM ") if ref else None,
            "description": re.sub(r"\s+", " ", desc.group(1)).strip()[:400] if desc else "", "closing": closing, "bids": [], "unreadable": 0}
     px = DPI / 300   # pixel distances below are for 300 dpi
-    for words in pages:
+    for pno, words in enumerate(pages, 1):
         lines = {}
         for w in words: lines.setdefault(w["line"], []).append(w)
         L = sorted(lines.values(), key=lambda ws: min(w["y"] for w in ws))
@@ -457,7 +584,7 @@ def parse_register(pages):
             lv = [x for x in " ".join(w["text"] for w in level_w).split() if re.fullmatch(r"(?i)L\d|[1-8]|N/?A|NC|NIA", x)]
             if conf < MIN_CONF or len(re.sub(r"[^A-Za-z]", "", name)) < 3 or re.search(r"NAME OF BIDDER", name, re.I):
                 out["unreadable"] += 1; continue
-            out["bids"].append({"n": n, "bidder": name, "price_text": pt or "", "price": price, "hdi": [lv[0].replace("NIA", "N/A")] if lv else [], "conf": conf,
+            out["bids"].append({"n": n, "bidder": name, "price_text": pt or "", "price": price, "hdi": [lv[0].replace("NIA", "N/A")] if lv else [], "conf": conf, "page": pno,
                                 **({"price_alt": alt} if alt and alt != pt else {})})
     return out
 
@@ -472,7 +599,7 @@ def bids():
     for d in sorted(regs, key=lambda d: d["published"], reverse=True):   # newest first, so a time-limited run reads the latest registers
         try:
             text = pdf_text(d["file"])
-            done = os.path.exists(local(d["file"]) + f".ocr-{DPI}-4c.json")
+            done = ocr_done(d["file"])
             if len(text.strip()) >= 200: how = "text"; pages = None
             elif not done and time.time() - t0 > OCR_BUDGET: status.append({**slimdoc(d), "how": "waiting for OCR", "bids": 0}); continue
             else: how = "ocr"; pages = ocr_pages(d["file"])
@@ -592,6 +719,7 @@ def agenda_text(d):
         meta["pages"] = len(doc); meta["note"] = "PDF damaged on the municipality's site: read page by page; layout not kept"
         open(key, "w").write("\f".join(parts))
     else: meta["pages"] = open(key, errors="replace").read().count("\f")
+    meta["readable_pages"] = meta["pages"] - meta["unreadable_pages"]
     os.remove(pdf); json.dump(meta, open(key + ".json", "w"))
     return open(key, encoding="utf-8", errors="replace").read(), meta
 
@@ -671,8 +799,25 @@ def finance():
     rows = [{"year": c["financial_year_end.year"], "type": c["amount_type.code"], "type_label": ATYPES[c["amount_type.code"]], "item": c["item.code"], "label": c["item.label"], "amount": c["amount.sum"]}
             for c in agg if c["amount_type.code"] in ATYPES and c["item.code"] in ITEMS]
     ret = now()
+    q = lambda cube, cut, dd, agg: jget(f"{MD}{cube}/aggregate?cut=demarcation.code:{code}{cut}&drilldown={dd}&aggregates={agg}&pagesize=20000", timeout=300)["cells"]
+    cap = q("capital_v2", "|period_length.length:year", "financial_year_end.year|amount_type.code", "amount.sum")
+    rm = q("repmaint_v2", "|period_length.length:year", "financial_year_end.year|amount_type.code", "amount.sum")
+    ac = q("aged_creditor_v2", "|period_length.length:month", "financial_year_end.year|financial_period.period|item.code|item.label", "l30_amount.sum|total_amount.sum")
+    yearly = lambda cells: sorted([{"year": c["financial_year_end.year"], "type": c["amount_type.code"], "type_label": ATYPES[c["amount_type.code"]], "amount": c["amount.sum"]}
+                                   for c in cells if c["amount_type.code"] in ATYPES], key=lambda r: (r["year"], r["type"]))
+    # MFMA s65(2)(e): creditors are to be paid within 30 days. The aged-creditor return splits what is owed by age; over 30 days = total less 0-30 days.
+    # The municipal financial year ends in June: period 1 is July of the year before financial_year_end.
+    creditors = sorted([{"year": c["financial_year_end.year"], "period": c["financial_period.period"],
+                         "month": f"{c['financial_year_end.year'] - (1 if c['financial_period.period'] <= 6 else 0)}-{(c['financial_period.period'] + 5) % 12 + 1:02d}",
+                         "item": c["item.code"], "label": c["item.label"], "total": c["total_amount.sum"], "over_30": round((c["total_amount.sum"] or 0) - (c["l30_amount.sum"] or 0), 2)}
+                        for c in ac if c["item.code"] in ("0700", "1000")], key=lambda r: (r["month"], r["item"]))
     dump({"id": "finance", "title": "National Treasury Municipal Money: income and expenditure, budget against audited actual", "url": "https://municipalmoney.gov.za/profiles/municipality-" + code + "/",
           "api": MD + "incexp_v2", "data_updated": model.get("last_updated"), "retrieved": ret, "rows": rows,
+          "capital": {"title": "Capital expenditure (capital_v2), all functions", "api": MD + "capital_v2", "rows": yearly(cap)},
+          "repairs": {"title": "Repairs and maintenance (repmaint_v2), all items", "api": MD + "repmaint_v2", "rows": yearly(rm)},
+          "creditors": {"title": "Amounts owed to creditors by age, monthly section 71 returns (aged_creditor_v2)", "api": MD + "aged_creditor_v2",
+                        "rule": "MFMA section 65(2)(e): money owed by the municipality must be paid within 30 days of receiving the invoice or statement, unless prescribed otherwise.",
+                        "rule_url": "https://www.gov.za/sites/default/files/gcis_document/201409/a56-03.pdf", "rows": creditors},
           "uifw": {"title": "Unauthorised, irregular, fruitless and wasteful expenditure (notes to the audited annual financial statements)", "api": MD + "uifwexp", "retrieved": ret,
                    "rows": sorted([{"year": x["financial_year_end.year"], "item": x["item.code"], "label": x["item.label"], "amount": x.get("amount")} for x in uif], key=lambda r: (r["year"], r["item"]))}},
          os.path.join(CACHE, "finance.json"))
@@ -680,7 +825,7 @@ def finance():
           "api": MD + "audit_opinions", "agsa": "https://www.agsa.co.za/Reporting/MFMAReports.aspx", "retrieved": ret,
           "rows": sorted([{"year": x["financial_year_end.year"], "opinion": x["opinion.label"], "code": x["opinion.code"], "report": x.get("opinion.report_url")} for x in aud], key=lambda r: r["year"], reverse=True)},
          os.path.join(CACHE, "audit.json"))
-    return f"{len(rows)} income/expenditure figures, {len(uif)} UIFW figures, {len(aud)} audit opinions"
+    return f"{len(rows)} income/expenditure figures, {len(cap)} capital, {len(rm)} repairs, {len(creditors)} creditor months, {len(uif)} UIFW figures, {len(aud)} audit opinions"
 
 
 # ================================================================ 7. National Treasury restricted suppliers and tender defaulters
@@ -750,4 +895,5 @@ if __name__ == "__main__":
         try: log(name, "→", fn(), f"({time.time() - t:.0f}s)")
         except Exception as e: failed.append(name); log(name, "FAILED", repr(e)[:300])
     json.dump({"failed": failed, "at": now()}, open(os.path.join(CACHE, "_status.json"), "w"))
+    write_manifest()
     if len(failed) == len([j for j in jobs if not only or j in only]): sys.exit(1)
