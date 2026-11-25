@@ -257,7 +257,7 @@ export async function openSupplier(id: string) {
   (R().querySelector("[data-expjson]") as HTMLElement).onclick = () => exportJSON(`supplier-${id}`, { supplier: name, id, profile: P, index: Object.fromEntries(S.fields.map((f, k) => [f, ix[k]])), flags, tribunal: cases, exported: new Date().toISOString() });
 }
 
-/** the same normalised name in another municipality's records (Stellenbosch Watch: Cape Town) */
+/** the same normalised name in another municipality's records (ZopStopper: Cape Town) */
 function elsewhere(E: Record<string, any> | undefined) {
   if (!E) return "";
   const lab: Record<string, string> = { "cape-town": "City of Cape Town (Cape Monitor)" };

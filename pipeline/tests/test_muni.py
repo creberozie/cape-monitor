@@ -1,4 +1,4 @@
-"""Unit tests for the Stellenbosch Watch readers (pipeline/metro/fetch_muni.py, muni.py). Fixtures are excerpts of the municipality's own
+"""Unit tests for the ZopStopper readers (pipeline/metro/fetch_muni.py, muni.py). Fixtures are excerpts of the municipality's own
 published registers and of Treasury's restricted-supplier report. Run: python3 -m unittest discover -s pipeline/tests"""
 import json, os, sys, unittest
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, os.path.join(HERE, "..")); sys.path.insert(0, os.path.join(HERE, "..", "metro"))

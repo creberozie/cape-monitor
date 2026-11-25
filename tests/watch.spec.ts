@@ -1,6 +1,6 @@
 import { test, expect, Page } from "@playwright/test";
 import { mockSupabase, enter } from "./mock-supabase";
-// Stellenbosch Watch (/watch/): start page, supplier profile, flag dossier, search and sources, on desktop (1440) and phone (390).
+// ZopStopper (/watch/): start page, supplier profile, flag dossier, search and sources, on desktop (1440) and phone (390).
 
 const errors = (p: Page) => { const e: string[] = []; p.on("pageerror", (x) => e.push(x.message)); p.on("console", (m) => { if (m.type() === "error" && !/favicon|Failed to load resource/.test(m.text())) e.push(m.text()); }); return e; };
 const phone = (p: Page) => (p.viewportSize()?.width || 0) <= 900;
@@ -21,7 +21,7 @@ test.beforeEach(async ({ page }) => { await mockSupabase(page); });
 
 test("start page: flags, suppliers, finances and latest awards, with sources, fast and without errors", async ({ page }) => {
   const e = errors(page); const ms = await start(page);
-  await expect(page.locator(".brand").first()).toContainText("STELLENBOSCH WATCH");
+  await expect(page.locator(".brand").first()).toContainText("ZOPSTOPPER");
   await expect(page.locator("#dockbody .kpis")).toBeVisible();
   await expect(page.locator("#dockbody")).toContainText("Pattern flags, highest severity");
   await expect(page.locator("#dockbody")).toContainText("Largest suppliers");
@@ -33,7 +33,7 @@ test("start page: flags, suppliers, finances and latest awards, with sources, fa
   await noOverflow(page, "#dockbody");
   await expect(page.locator("link[rel=manifest]")).toHaveAttribute("href", "manifest.webmanifest");
   const man = await (await page.request.get("./watch/manifest.webmanifest")).json();
-  expect(man.name).toBe("Stellenbosch Watch"); expect(man.scope).toBe("/watch/");
+  expect(man.name).toBe("ZopStopper"); expect(man.scope).toBe("/watch/");
   expect(e).toEqual([]);
 });
 

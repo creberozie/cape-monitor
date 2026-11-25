@@ -25,7 +25,7 @@ elif kind == "metro":
     if os.path.exists(os.path.join(d, "money/money.json")):
         c = json.load(open(os.path.join(d, "money/money.json")))["counts"]; print("metro money:", c)
         need(c.get("awards", 0) > 1000 and c.get("rfq", 0) > 10000, "money tables too small")
-elif kind == "muni":   # check.py muni <slug>: another municipality's build (Stellenbosch Watch)
+elif kind == "muni":   # check.py muni <slug>: another municipality's build (ZopStopper)
     d = os.path.join(ROOT, "public", "data", "muni", sys.argv[2])
     for f in ("money/money.json", "money/suppliers.json", "money/flags.json", "sources.json"):
         need(os.path.exists(os.path.join(d, f)), f"missing {f}")

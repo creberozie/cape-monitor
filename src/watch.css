@@ -1,4 +1,4 @@
-/* Stellenbosch Watch: Cape Monitor's styles, laid out for reading instead of a map. Its own accent colour (wine), so the two apps are told apart. */
+/* ZopStopper: Cape Monitor's styles, laid out for reading instead of a map. Its own accent colour (wine), so the two apps are told apart. */
 body.watch { --ac: #e9c46a; --ac2: #7fb3ff; --dock: 0px; --tabs: 38px; --right: 0px; }
 body.watch.inspect { --right: min(560px, 44vw); }
 body.watch .brand .dot { background: #c0394f; box-shadow: 0 0 10px #c0394f; }

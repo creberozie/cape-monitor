@@ -81,13 +81,13 @@ jobs:
           mkdir -p logs
           python3 -I pipeline/metro/run.py ${{ env.FULL == 'true' && 'full' || 'quick' }} 2>&1 | tee logs/metro.log
           python3 -I pipeline/check.py metro | tee -a logs/metro.log
-          python3 -I pipeline/check.py muni stellenbosch | tee -a logs/metro.log || echo "::warning::Stellenbosch Watch data did not pass its checks; its last good data stays live"
+          python3 -I pipeline/check.py muni stellenbosch | tee -a logs/metro.log || echo "::warning::ZopStopper data did not pass its checks; its last good data stays live"
       - uses: actions/cache/save@v4
         if: always()
         with: { path: pipeline/cache/metro, key: "metro-raw-${{ github.run_id }}" }
       - uses: actions/cache/save@v4
         with: { path: public/data/metro, key: "good-metro-${{ github.run_id }}" }
-      - name: Save Stellenbosch Watch data only when it passed its checks
+      - name: Save ZopStopper data only when it passed its checks
         id: municheck
         run: python3 -I pipeline/check.py muni stellenbosch >/dev/null && echo "ok=true" >> "$GITHUB_OUTPUT" || echo "ok=false" >> "$GITHUB_OUTPUT"
       - uses: actions/cache/save@v4

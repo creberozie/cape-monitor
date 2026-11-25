@@ -32,7 +32,7 @@ Plot dossiers list registered businesses whose register address matches the plot
 **Districts**: every City GIS layer with records in the district, building plans, service requests, City sales and the plot dossier.
 **Live**: news and NGO feeds tagged to suburbs; NASA FIRMS fires; AIS ships (needs an aisstream.io key).
 
-## Stellenbosch Watch (/watch/)
+## ZopStopper (/watch/)
 
 A second app in the same build for Stellenbosch Municipality (WC024), money and governance first, with no map: `watch/index.html`
 and `src/watch.ts`, built to `dist/watch/`, with its own manifest, icon and service worker so it installs as a separate app.

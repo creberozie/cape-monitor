@@ -37,7 +37,7 @@ jobs:
       - { uses: actions/cache/restore@v4, with: { path: public/data/d/mitchells-plain-khayelitsha, key: "good-mitchells-plain-khayelitsha-x", restore-keys: "good-mitchells-plain-khayelitsha-" } }
       - { uses: actions/cache/restore@v4, with: { path: public/data/d/helderberg, key: "good-helderberg-x", restore-keys: "good-helderberg-" } }
       - { uses: actions/cache/restore@v4, with: { path: public/data/metro, key: "good-metro-x", restore-keys: "good-metro-" } }
-      - { uses: actions/cache/restore@v4, with: { path: public/data/muni, key: "good-muni-x", restore-keys: "good-muni-" } }   # Stellenbosch Watch (/watch/)
+      - { uses: actions/cache/restore@v4, with: { path: public/data/muni, key: "good-muni-x", restore-keys: "good-muni-" } }   # ZopStopper (/watch/)
       - name: Hold back if there is no data for this branch yet
         id: hasdata
         run: |

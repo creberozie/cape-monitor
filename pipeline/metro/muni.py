@@ -1,7 +1,7 @@
 """Which municipality a money run is for: MUNI=<slug> (default cape-town).
 
 cape-town     the metro build Cape Monitor has always made: caches in pipeline/cache/metro/money, output in public/data/metro/money.
-stellenbosch  Stellenbosch Watch: caches in pipeline/cache/metro/muni/stellenbosch (inside the metro cache, so the data workflow keeps
+stellenbosch  ZopStopper: caches in pipeline/cache/metro/muni/stellenbosch (inside the metro cache, so the data workflow keeps
               them between runs), output in public/data/muni/stellenbosch.
 
 Each entry lists, in the code, every spelling the national eTender portal uses for the buyer, the places used to tag gazette notices

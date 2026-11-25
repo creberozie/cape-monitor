@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))));
 from common import ROOT, HERE, now, dump
 from places import tag
 from muni import MUNIS
-# other municipalities (Stellenbosch Watch): a notice naming one of their places, or issued by them, is also written to public/data/muni/<slug>/notices.json
+# other municipalities (ZopStopper): a notice naming one of their places, or issued by them, is also written to public/data/muni/<slug>/notices.json
 MUNI_RX = {k: re.compile(r"\b(" + "|".join(re.escape(p) for p in v["places"]) + r")\b", re.I) for k, v in MUNIS.items() if v.get("places")}
 
 LIST = "https://www.westerncape.gov.za/department-premier/documents?media_category=9651"

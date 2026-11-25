@@ -1,4 +1,4 @@
-// Stellenbosch Watch offline support. App files and data: served from storage at once and refreshed in the background
+// ZopStopper offline support. App files and data: served from storage at once and refreshed in the background
 // (stale-while-revalidate). Live layers and the data index: always from the network first. Map tiles use range requests
 // and are left to the browser cache.
 const C = "sw-v1";

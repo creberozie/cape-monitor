@@ -15,7 +15,7 @@ steps += [("money-fetch", py("fetch_money.py", *(["--refresh"] if mode == "full"
           # always the full four-year window: downloaded PDFs are kept between runs, so a daily run fetches only new gazettes,
           # and the published archive never shrinks to the current year
           ("gazettes", py("gazettes.py"), False)]
-# other municipalities (Stellenbosch Watch), after Cape Town so their supplier profiles can show the same name in Cape Town's records.
+# other municipalities (ZopStopper), after Cape Town so their supplier profiles can show the same name in Cape Town's records.
 # Never core: a failure keeps that municipality's last good data and leaves Cape Monitor untouched.
 for m in ["stellenbosch"]:
     steps += [(f"{m}-fetch", py("fetch_muni.py", *([] if mode == "full" else ["docs", "awards", "bids", "etenders", "finance", "restricted"])), False, {"MUNI": m}),

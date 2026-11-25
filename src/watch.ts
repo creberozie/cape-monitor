@@ -1,4 +1,4 @@
-// Stellenbosch Watch: Cape Monitor's money views for Stellenbosch Municipality (WC024), money and governance first, no map.
+// ZopStopper: Cape Monitor's money views for Stellenbosch Municipality (WC024), money and governance first, no map.
 // Data: ../data/muni/stellenbosch/ (built by pipeline/metro with MUNI=stellenbosch). Profiles open in the right-hand panel.
 import "./styles.css";
 import "./watch.css";
@@ -196,7 +196,7 @@ function openHash() {
 }
 
 async function boot() {
-  await accessGate("STELLENBOSCH WATCH", "Public records of Stellenbosch Municipality, joined and sourced.");
+  await accessGate("ZOPSTOPPER", "Public records of Stellenbosch Municipality, joined and sourced.");
   let m;
   try { m = await moneyMeta(); } catch { $("#bootmsg").textContent = "The Stellenbosch data is not in this build yet."; return; }
   $("#fresh").innerHTML = `Data <b>${esc(m.built.slice(0, 10))}</b>`;
