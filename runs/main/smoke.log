@@ -1,4 +1,4 @@
-page 200 2777
+page 200 2686
 districts with data: ['blaauwberg', 'table-bay', 'tygerberg', 'northern', 'southern', 'cape-flats', 'mitchells-plain-khayelitsha', 'helderberg']
   blaauwberg: manifest ok (253 layers); tiles community range request -> HTTP 206, 127 bytes
   table-bay: manifest ok (255 layers); tiles community range request -> HTTP 206, 127 bytes
