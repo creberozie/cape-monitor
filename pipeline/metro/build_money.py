@@ -494,7 +494,8 @@ for ref, idx in bid_tenders.items():
     if len(prices) < 2 or not winners.get(k): continue
     lo = min(p[0] for p in prices)
     for p, sid, i in prices:
-        if sid in winners[k] and p > lo * 1.10:
+        # OCR-read registers: a gap of more than three times is more often a misread or a bid for part of the work than a real price gap; held back
+        if sid in winners[k] and p > lo * 1.10 and (CT or p <= lo * 3):
             flag("notlowest", f"Tender {ref}: awarded bidder priced {p / lo - 1:.0%} above the lowest",
                  f"Price read out at opening R{p:,.0f}; lowest R{lo:,.0f}. Preference points (80/20 or 90/10), functionality and responsiveness lawfully affect the award; "
                  "the evaluation report is not published here.", [["bids", j] for j in idx] + [["awards", a] for a in by_ref.get(k, [])],
