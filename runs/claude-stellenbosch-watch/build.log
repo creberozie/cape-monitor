@@ -27,8 +27,8 @@ dist/assets/gate-Bo9LKR8c.js       55.19 kB │ gzip:  19.27 kB
 dist/assets/dist-DwhOg3L3.js      217.56 kB │ gzip:  56.25 kB
 dist/assets/main-CQUPDCLd.js    1,187.53 kB │ gzip: 334.86 kB
 
-[32m✓ built in 11.91s[39m
-[33m[33m[PLUGIN_TIMINGS] [0mJavaScript callbacks ran for 11.5s of this 11.9s build (97%).
+[32m✓ built in 11.92s[39m
+[33m[33m[PLUGIN_TIMINGS] [0mJavaScript callbacks ran for 11.6s of this 11.9s build (97%).
 The slowest callbacks, timed inside each callback (the wait before a callback starts is excluded, the time it awaits is included):
   - plugin vite:prepare-out-dir renderStart (96%, 11.4s, 1 call)
 Additional callback time came from the callbacks below and from callbacks under 1s.
