@@ -9,7 +9,7 @@ districts with data: ['blaauwberg', 'table-bay', 'tygerberg', 'northern', 'south
   mitchells-plain-khayelitsha: manifest ok (232 layers); tiles community range request -> HTTP 206, 127 bytes
   helderberg: manifest ok (243 layers); tiles community range request -> HTTP 206, 127 bytes
   basemap range request -> HTTP 206 127
-  data/metro/money/money.json 200 5417
+  data/metro/money/money.json 200 5569
   live/news 200 17198
   watch page 200 2364
   watch data 200 {'suppliers': 3269, 'flags': 132, 'tenders': 1628, 'awards': 1825, 'rfq': 422, 'bids': 1870, 'etenders': 688, 'docs': 3891}

@@ -1,0 +1,413 @@
+formal-protections-nhra: 260 (heritage) label=SITE_NAME cat=LU_NHRA_STS
+retic-water-hydrant: 9732 (utilities) label=None cat=LU_SYNC
+retic-water-valve-zonal-valves-all-scales: 240 (utilities) label=None cat=LU_VLV
+retic-water-valve: 11921 (utilities) label=None cat=VRFD_BY
+heritage-inventory-objects: 158 (heritage) label=HRTG_INV_SITE_NAME cat=HRTG_INV_RCS_CAT
+heritage-inventory: 23999 (heritage) label=HRTG_INV_SITE_NAME cat=HRTG_INV_RCS_CAT
+sewer-gravity-main-flow-direction: 38660 (utilities) label=NAME cat=PIPE_CLS
+sewer-pump-station-with-generator: 16 (utilities) label=NAME cat=NAME
+sewer-pump-station: 87 (utilities) label=NAME cat=LU_OWNR
+treated-effluent-main: 26 (utilities) label=PIPE_NAME cat=PIPE_CLS
+retic-water-main: 19049 (utilities) label=NAME cat=LU_MTRL
+retic-water-main-pumping: 2 (utilities) label=NAME cat=None
+retic-water-pump-station-with-generator: 1 (utilities) label=LU_PUMP_STN cat=None
+retic-water-pump-station: 22 (utilities) label=LU_PUMP_STN cat=NAME
+bulk-water-pump-station-with-generator: 2 (utilities) label=NAME cat=NAME
+bulk-water-pump-station: 9 (utilities) label=NAME cat=NAME
+spring-water-main: 13 (utilities) label=PIPE_NAME cat=MDP_LU_SRC
+bulk-water-pump-stations: 9 (utilities) label=NAME cat=NAME
+wetlands: 1525 (environment) label=WTLN_NAME cat=ANTH_TYPE
+sewer-manhole: 34415 (utilities) label=LU_LFT_STN cat=LU_MLTP_INVR
+bulk-water-main-potable: 755 (utilities) label=LU_DSCR cat=DMTR
+bulk-water-main-raw: 3 (utilities) label=LU_DSCR cat=SYNC_DATE
+bulk-water-tunnel-channel: 758 (utilities) label=LU_DSCR cat=LU_DSCR
+sewer-pressurised-main: 97 (utilities) label=None cat=PIPE_CLS
+treated-effluent-valve: 36 (utilities) label=LU_DSCR cat=LU_VLV
+spring-water-reservoir: 1 (utilities) label=NAME cat=None
+bulk-water-reservoir: 5 (utilities) label=NAME cat=NAME
+treated-effluent-reservoir: 3 (utilities) label=NAME cat=NAME
+transport-road-centreline: 13859 (utilities) label=ROAD_NAME cat=SURF_TYPE
+road-ownership: 13859 (utilities) label=ROAD_NAME cat=SURF_TYPE
+retic-water-reservoir: 49 (utilities) label=NAME cat=DPT
+retic-water-network-meter: 26 (utilities) label=None cat=ZONE
+bulk-water-network-meter: 52 (utilities) label=NAME cat=LocationDesc
+bulk-water-valve-show-at-all-scales: 48 (utilities) label=LU_DSCR cat=LU_DSCR
+sewer-final-effluent-outfall: 2 (utilities) label=None cat=DMTR
+sewer-main-redundant: 12 (utilities) label=None cat=UP_INVR
+spring-water-network-component: 2 (utilities) label=LU_DSCR cat=LU_DSCR
+sewer-valve: 4 (utilities) label=None cat=LU_VLV
+retic-water-zone-management-station: 52 (utilities) label=ZONE_NAME cat=LU_SYNC
+bulk-water-dam: 5 (utilities) label=NAME cat=NAME
+bulk-water-supply-dams: 5 (utilities) label=NAME cat=NAME
+stormwater-conduit: 38936 (utilities) label=LCTN_DSCR cat=TYPE
+stormwater-integrated-main-drainage: 247 (utilities) label=LCTN_DSCR cat=TYPE
+sewer-treatment-plant: 4 (utilities) label=NAME cat=TRMN_PLNT
+spring-water-spring: 19 (utilities) label=NAME cat=NAME
+spring-water-main-redundant: 37 (utilities) label=PIPE_NAME cat=PIPE_NAME
+stormwater-open-watercourse-main-drainage-waylea: 573 (utilities) label=RVR_NAME cat=TYPE
+stormwater-open-watercourse-wayleave-infrastruct: 1823 (utilities) label=None cat=TYPE
+stormwater-storage-facility-pond: 63 (utilities) label=None cat=POND_CLS
+electricity-distribution-capacity: 20 (utilities) label=None cat=I3ph_kA1
+bulk-water-treatment-plant: 2 (utilities) label=NAME cat=TYPE
+treated-effluent-collection-point: 1 (utilities) label=NAME cat=None
+bulk-water-treatment-plants: 2 (utilities) label=NAME cat=TYPE
+retic-water-main-redundant: 227 (utilities) label=NAME cat=DMTR
+stormwater-open-watercourse-main-drainage: 556 (environment) label=RVR_NAME cat=TYPE
+stormwater-open-watercourse: 1796 (environment) label=None cat=TYPE
+formal-protections-mpbl-hpoz: 16 (heritage) label=None cat=USPA_RGN
+stormwater-junction: 39890 (utilities) label=LCTN_DSCR cat=TYPE
+service-region-reticulation: 2 (property) label=DSTR_NAME cat=DSTR_NAME
+smart-facilities-energy: 6049 (property) label=ALTR_BLDN_NAME cat=FCLT_TYPE_DSCR
+formal-protections-hpoz-mpbl: 16 (heritage) label=None cat=USPA_RGN
+biodiversity-network: 6704 (environment) label=CBA_NAME cat=CBA_CTGR
+property: 92949 (property) label=ADR_NO cat=LU_LGL_STS_DSCR
+stormwater-inlet-outlet: 2520 (utilities) label=LCTN_DSCR cat=INL_OTL_TYPE
+water-and-sanitation-wayleave-applications-regio: 2 (property) label=DSTR_NAME cat=DSTR_NAME
+inland-water-quality-monitoring: 71 (environment) label=SCN_SRV_CODE_NAME cat=MNTR_TYPE
+spring-water-spring-survey: 35 (utilities) label=NAME cat=None
+smart-facilities-water: 1 (utilities) label=ALTR_BLDN_NAME cat=None
+retic-water-connection-point: 5863 (utilities) label=None cat=INST_DATE
+telecommunication-underground-routes: 824 (utilities) label=None cat=CNS_STS
+treated-effluent-main-proposed: 330 (utilities) label=None cat=WWTW
+smart-facilities-solar: 26 (property) label=ALTR_BLDN_NAME cat=SF_BLDN_USE_SPC
+stormwater-pump-facility: 17 (utilities) label=LCTN_DSCR cat=TYPE
+sectional-title-scheme: 1755 (property) label=ST_SCHM_NAME cat=None
+street-number: 92370 (property) label=LU_ADR_STS_KEY cat=None
+stormwater-storage-facility: 48 (utilities) label=None cat=CTMT
+retic-water-fitting: 7010 (utilities) label=None cat=LU_FTNG
+retic-water-connection-line-leading: 3866 (utilities) label=None cat=DMTR
+sewer-connection-point: 41555 (utilities) label=None cat=CMNT
+sewer-connection-line-leading: 35006 (utilities) label=None cat=DMTR
+servitude: 6122 (property) label=None cat=None
+land-parcels: 92949 (property) label=ADR_NO cat=LU_LGL_STS_DSCR
+sewer-tank: 492 (utilities) label=None cat=LU_TANK
+network-management-depot-area: 2 (property) label=DSTR_NAME cat=DSTR_NAME
+polyphagous-shot-hole-borer-beetle-pshb-sighting: 684 (environment) label=CMN_NAME cat=STS
+stormwater-ancillary-structure: 29 (utilities) label=ANCL_STRC_NAME cat=TYPE
+retic-water-chamber-footprint: 23 (utilities) label=None cat=_area
+sewer-end-cap: 244 (utilities) label=None cat=INST_DATE
+treated-effluent-consumer-meter: 5 (utilities) label=None cat=DMTR
+treated-effluent-fitting: 5 (utilities) label=None cat=LU_FTNG
+street-name: 14407 (property) label=STR_NAME cat=PRVT_IND
+w-s-fibre-optic-cable: 5 (utilities) label=None cat=None
+sewer-rodding-eye: 473 (utilities) label=None cat=LU_SRC_HRZN
+routine-inland-water-quality-monitoring: 71 (utilities) label=SCN_SRV_CODE_NAME cat=MNTR_TYPE
+heritage-audit-areas: 105 (heritage) label=ADT_AREA_NAME cat=LU_ADT_TYPE
+stormwater-waterbodies: 1500 (environment) label=WTLD_NAME cat=ANTH_TYPE
+address: 95519 (property) label=ADR_NO cat=None
+bulk-water-dams: 5 (utilities) label=NAME cat=NAME
+town-survey-marks: 2593 (utilities) label=None cat=STS
+monuments: 42 (community) label=NAME cat=HRTG_STS
+old-age-homes: 1 (community) label=HSNG_NAME cat=None
+dunes: 98 (environment) label=None cat=SYST_TYPE
+stormwater-drainage-catchment: 11 (environment) label=None cat=CTMT_RGN
+retic-water-reservoir-footprint: 36 (utilities) label=NAME cat=None
+bulk-water-pump-station-footprint: 9 (utilities) label=NAME cat=NAME
+bulk-water-reservoir-footprint: 5 (utilities) label=NAME cat=NAME
+bulk-water-treatment-plant-footprint: 3 (utilities) label=NAME cat=NAME
+treated-effluent-reservoir-footprint: 3 (utilities) label=NAME cat=NAME
+sewer-treatment-plant-footprint: 5 (utilities) label=NAME cat=NAME
+spring-water-reservoir-footprint: 1 (utilities) label=NAME cat=None
+bulk-water-treatment-plant-footprints: 3 (utilities) label=NAME cat=NAME
+bulk-water-reservoir-footprints: 5 (utilities) label=NAME cat=NAME
+bulk-water-pump-station-footprints: 9 (utilities) label=NAME cat=NAME
+open-watercourse: 1796 (utilities) label=OWC_DSCR cat=OWNRSHP
+zoning: 92351 (property) label=INT_ZONE_DESC cat=None
+indigenous-vegetation-current-extent: 1480 (environment) label=None cat=NTNL_VGTN_TYPE
+sanbi-ecosystem-status-2011: 1480 (environment) label=None cat=NTNL_VGTN_TYPE
+soils: 12 (environment) label=SYMB_DSCR cat=SYMB_DSCR
+admin-areas-roads-and-stormwater-districts: 3 (utilities) label=RGN_NAME cat=RGN_NAME
+roads-stormwater-district-boundaries: 3 (property) label=RS_DSTR_NAME cat=RS_DSTR_NAME
+official-suburb-suburbs: 53 (property) label=OFC_SBRB_NAME cat=None
+servitudes: 5927 (property) label=None cat=None
+electricity-transmission-capacity: 8 (utilities) label=None cat=Status
+refuse-collection-beats: 128 (utilities) label=ABSD_NAME cat=ABSD_NAME
+refuse-collection-think-twice-recycling-beats: 75 (utilities) label=THK_TWC_TNDR_AREA_NAME cat=CLTN_DAY
+cemeteries: 11 (community) label=PARK_NAME cat=PARK_NAME
+informal-trading-bay-rental-status: 607 (community) label=BAY_NAME cat=BAY_STS
+split-zoning: 8203 (property) label=INT_ZONE_DESC cat=None
+zoning-sg-approved-properties: 2272 (property) label=INT_ZONE_DESC cat=None
+zoning-confirmed-properties: 2655 (property) label=INT_ZONE_DESC cat=INT_ZONE_DESC
+zoning-registered-properties: 87424 (property) label=INT_ZONE_DESC cat=None
+official-suburb: 53 (property) label=OFC_SBRB_NAME cat=None
+traffic-site-buffer: 314 (utilities) label=SITE_NAME cat=DPT
+home-owner-association-gv-2015: 91 (property) label=NGHB_NAME cat=NGHB_REGN
+home-owners-associations-gv-2018: 92 (property) label=NGHB_NAME cat=NGHB_REGN
+home-owners-association-gv-2021: 123 (property) label=NGHB_NAME cat=NGHB_REGN
+think-twice-areas-recycling: 4 (utilities) label=None cat=TNDR
+bulk-water-ground-water-protection-zone: 1 (utilities) label=PRTC_DSCR cat=None
+parks: 639 (community) label=PARK_NAME cat=LU_PARK_TYPE
+indigenous-vegetation-historic-extent: 704 (environment) label=None cat=NTNL_VGTN_TYPE
+telecommunication-buildings: 167 (utilities) label=NAME cat=TYPE
+2d-building-footprints: 50443 (utilities) label=None cat=ACQS_PRD
+2d-building-footprints-low-detail: 116811 (utilities) label=None cat=DATA_SRC
+roads-and-stormwater-depots: 7 (utilities) label=DPT_BNDRY_NAME cat=DPT_BNDRY_NAME
+places-of-worship: 226 (community) label=NAME cat=RLGN_TYPE
+world-heritage-site: 209 (environment) label=NAME cat=TYPE
+city-owned-ecd-centres: 4 (community) label=ECD_NAME cat=ECD_NAME
+lftea-areas: 12 (property) label=RGN_NM cat=SBRB_NM
+pt1-zones: 15 (property) label=None cat=AREA_HCTR
+pt2-zones: 7 (property) label=None cat=_area
+historic-cape-town-scheme-special-areas: 1 (property) label=DSCR cat=None
+street-name-change: 9 (utilities) label=STR_NAME cat=None
+electricity-public-lighting-wayleave-infrastruct: 29941 (utilities) label=None cat=LampType
+electricity-district-areas: 6 (utilities) label=None cat=District
+electricity-supply-authority-wayleave-infrastruc: 0 (utilities) label=None cat=None
+telecommunication-underground-utility-boxes: 407 (utilities) label=None cat=CNS_STS
+telecommunication-aerial-routes: 2164 (utilities) label=None cat=CNS_STS
+public-service-infrastructure-national-roads: 3 (utilities) label=ROAD_NAME cat=PSI_TYPE
+submitted-bdm-cases: 1179 (property) label=None cat=CASE_TYPE
+submitted-land-use-cases: 252 (property) label=None cat=CASE_TYPE
+voting-stations: 84 (property) label=VTNG_STN_NAME cat=WARD
+5m-contours: 4753 (utilities) label=NAME cat=LYR
+stormwater-drainage-catchment-region: 11 (utilities) label=None cat=CTMT_RGN
+stormwater-topographical-catchment-region: 11 (utilities) label=None cat=CTMT_RGN
+roads-and-stormwater-districts: 3 (utilities) label=RGN_NAME cat=RGN_NAME
+informal-trading-location-planning-status: 80 (community) label=LOC_NAME cat=None
+allotment-farm: 19 (property) label=SG_ADM_DST_NAME cat=ALT_NAME
+nodes: 40 (property) label=NAME cat=TYPE
+new-development-areas: 80 (property) label=DSCR cat=TYPE
+complexes: 130 (property) label=CMPLX_NAME cat=GATED
+urban-development-zones: 1 (property) label=None cat=None
+scenic-routes: 247 (property) label=SGMN_NAME cat=CTGR
+development-focus-areas: 2 (property) label=DSCR cat=NAME
+environmental-focus-areas: 7 (property) label=DSCR cat=NAME
+spatial-transformation-areas: 94 (property) label=DSCR cat=ZONE
+myciti-bus-routes: 16 (utilities) label=RT_NAME cat=RT_TYPE
+recreation-and-parks-regions: 3 (property) label=PBDM_RGN_NAME cat=PBDM_RGN_NAME
+electricity-districts: 6 (utilities) label=None cat=District
+roads-and-stormwater-planning-region: 2 (utilities) label=RGN_NAME cat=RGN_NAME
+cct-buildings: 142 (community) label=NAME cat=None
+libraries: 17 (community) label=NAME cat=CTGY
+community-centres: 18 (community) label=FCLT_NAME cat=FCLT_NAME
+health-care-facilities: 24 (community) label=ADR cat=TYPE
+scenic-drives: 9 (property) label=LYR_NM cat=SCN_DRV_RFR
+area-based-service-delivery-areas: 3 (property) label=ABSD_NAME cat=ABSD_NAME
+subcouncils: 5 (property) label=SUB_CNCL_NAME cat=SUB_CNCL_NAME
+wards: 22 (property) label=WARD_NAME cat=WARD_NAME
+protective-action-zone-boundary: 19 (safety) label=None cat=PLTN
+police-stations: 12 (justice) label=STN cat=CLST
+urban-development-edge: 16 (property) label=DSCR cat=AREA_HCTR
+mixed-use-intensification-areas: 34 (property) label=DSCR cat=None
+development-corridors: 1 (property) label=DSCR cat=None
+areas-of-agricultural-significance: 10 (property) label=DSCR cat=AREA_HCTR
+local-area-overlay-zones: 98 (property) label=LYR_NM cat=TLT
+incentive-overlay-zone-areas: 3 (property) label=None cat=INCN_OVRL_ZONE_SUB_AREA
+myciti-bus-stops: 38 (utilities) label=STOP_NAME cat=STOP_TYPE
+railway-lines: 97 (utilities) label=None cat=TYPE
+city: 1 (property) label=CITY_NAME cat=None
+biodiversity-management-protected-area-clusters: 2 (property) label=None cat=RVR_1
+electricity-district-areas-odp-split-1: 6 (utilities) label=None cat=District
+home-owners-association-gv-2009: 133 (property) label=HOA_NAME cat=None
+sub-council: 5 (property) label=SUB_CNCL_NAME cat=SUB_CNCL_NAME
+electricity-regions: 2 (utilities) label=None cat=RGN
+electricity-supply-authority: 0 (utilities) label=None cat=None
+loadshedding-blocks: 8 (utilities) label=None cat=_area
+drop-offs: 7 (utilities) label=NAME cat=NAME
+solid-waste-depots: 4 (utilities) label=DPT_NAME cat=STATUS
+schools: 192 (community) label=INST_NAME cat=None
+swimming-pools: 4 (community) label=FCLT_NAME cat=FCLT_SUB_CTGR
+day-visitors-sites: 2 (community) label=FCLT_NAME cat=FCLT_NAME
+tourism-development-areas: 4 (community) label=NAME cat=NAME
+planning-offices: 1 (property) label=DIST_NAME cat=None
+city-of-cape-town-boundary: 1 (property) label=CITY_NAME cat=None
+city-health-regions: 3 (property) label=CITY_HLTH_RGN_NAME cat=CITY_HLTH_RGN_NAME
+development-management-districts: 3 (property) label=PBDM_RGN_NAME cat=PBDM_RGN_NAME
+city-improvement-districts: 23 (property) label=SRA_NAME cat=SRA_NAME
+rate-payers-associations: 77 (property) label=None cat=None
+koeberg-radii-planning: 6 (safety) label=None cat=DSTN
+fire-stations: 7 (safety) label=FIRE_STN_NAME cat=FIRE_STN_CLASS
+subdivisional-areas: 8 (property) label=DSCR cat=_area
+estates: 14 (property) label=EST_NAME cat=EST_NAME
+urban-support-focus-areas: 1 (property) label=DSCR cat=None
+administrative-penalty-exempted-area: 1 (property) label=NAME cat=None
+affordable-rental-flat-areas: 11 (property) label=AREA_NAME cat=AREA_NAME
+taxi-routes: 361 (utilities) label=None cat=None
+class-1-principal-arterial: 190 (utilities) label=None cat=None
+class-2-major-arterial: 119 (utilities) label=None cat=None
+class-3-minor-arterial: 424 (utilities) label=None cat=None
+class-4-collector: 179 (utilities) label=None cat=None
+class-5-local-street: 11478 (utilities) label=None cat=None
+pedestrian-crossing: 944 (utilities) label=None cat=OWNRSHP
+electricity-overhead-lines: 31878 (utilities) label=None cat=None
+telecommunication-pole: 3926 (utilities) label=None cat=CNS_STS
+biodiversity-management-network: 462 (utilities) label=NAME_PRTC_AREA cat=NAME_PRTC_AREA
+electricity-generation-and-distribution-district: 2 (utilities) label=None cat=RGN
+city-admin-district: 3 (property) label=PBDM_RGN_NAME cat=PBDM_RGN_NAME
+cct-free-call-lines: 15 (community) label=BLDN_NAME cat=BLDN_NAME
+recreational-hubs: 5 (community) label=FCLT_NAME cat=FCLT_NAME
+resorts: 4 (community) label=FCLT_NAME cat=FCLT_NAME
+sports-grounds: 21 (community) label=FCLT_NAME cat=FCLT_NAME
+bath-houses: 1 (community) label=FCLT_NAME cat=None
+beaches: 6 (community) label=FCLT_NAME cat=FCLT_NAME
+eco-centres: 1 (community) label=FCLT_NAME cat=None
+public-toilets: 44 (community) label=FCLT_NAME cat=None
+spray-parks: 1 (community) label=FCLT_NAME cat=None
+tidal-pools: 3 (community) label=FCLT_NAME cat=FCLT_NAME
+wine-route-farm-points: 41 (community) label=WINE_RT_NAME cat=INFR_1
+wine-routes: 1 (community) label=NAME cat=None
+housing-and-maintenance-offices: 7 (community) label=NAME cat=NAME
+coastal-urban-edge: 13 (environment) label=None cat=None
+raised-intersection: 8 (utilities) label=None cat=None
+speed-bump: 1107 (utilities) label=None cat=OWNRSHP
+traffic-site: 259 (utilities) label=None cat=None
+electricity-substations: 1384 (utilities) label=Name cat=None
+electricity-underground-cables: 47414 (utilities) label=None cat=None
+electricity-high-voltage-underground-cable-buffe: 1 (utilities) label=None cat=None
+telecommunication-point-of-interest: 289 (utilities) label=None cat=None
+recreation-and-parks-facilities-point-theme: 105 (utilities) label=FCLT_NAME cat=FLCT_CTGR
+municipal-courts: 2 (justice) label=CRT_NAME cat=CRT_NAME
+cape-care-routes: 3 (community) label=None cat=DSTN
+on-street-parking: 5384 (property) label=None cat=CNSTR_MTRL
+railway-stations: 26 (utilities) label=NAME cat=None
+heritage: 621 tiles, 3.3 MB, z9-15
+utilities: 750 tiles, 15.2 MB, z9-14
+utilities-sewer-gravity-main-flow-direction: 317 tiles, 1.6 MB, z13-15
+environment: 892 tiles, 4.1 MB, z9-14
+utilities-sewer-manhole: 315 tiles, 1.0 MB, z13-15
+property: 1048 tiles, 6.6 MB, z9-14
+property-property: 741 tiles, 9.4 MB, z12-15
+property-street-number: 434 tiles, 2.5 MB, z13-15
+utilities-sewer-connection-point: 302 tiles, 1.2 MB, z13-15
+utilities-sewer-connection-line-leading: 279 tiles, 1.2 MB, z13-15
+property-land-parcels: 741 tiles, 9.4 MB, z12-15
+property-address: 434 tiles, 3.1 MB, z13-15
+community: 161 tiles, 0.4 MB, z9-14
+property-zoning: 741 tiles, 8.5 MB, z12-15
+property-zoning-registered-properties: 732 tiles, 8.2 MB, z12-15
+utilities-2d-building-footprints: 306 tiles, 4.8 MB, z12-15
+utilities-2d-building-footprints-low-detail: 439 tiles, 9.1 MB, z12-15
+utilities-electricity-public-lighting-wayleave-infrastruct: 262 tiles, 0.9 MB, z13-15
+safety: 6820 tiles, 1.3 MB, z9-14
+justice: 38 tiles, 0.0 MB, z9-14
+utilities-electricity-overhead-lines: 272 tiles, 1.1 MB, z13-15
+utilities-electricity-underground-cables: 435 tiles, 4.2 MB, z13-15
+complaints: 562 tiles, 15.4 MB, z8-15
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/heritage.pmtiles 621 tiles 3.3 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/utilities.pmtiles 750 tiles 15.1 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/utilities-sewer-gravity-main-flow-direction.pmtiles 317 tiles 1.6 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/environment.pmtiles 892 tiles 4.1 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/utilities-sewer-manhole.pmtiles 315 tiles 1.0 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/property.pmtiles 1048 tiles 6.6 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/property-property.pmtiles 741 tiles 9.4 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/property-street-number.pmtiles 434 tiles 2.5 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/utilities-sewer-connection-point.pmtiles 302 tiles 1.2 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/utilities-sewer-connection-line-leading.pmtiles 279 tiles 1.2 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/property-land-parcels.pmtiles 741 tiles 9.4 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/property-address.pmtiles 434 tiles 3.1 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/community.pmtiles 161 tiles 0.4 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/property-zoning.pmtiles 741 tiles 8.5 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/property-zoning-registered-properties.pmtiles 732 tiles 8.2 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/utilities-2d-building-footprints.pmtiles 306 tiles 4.8 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/utilities-2d-building-footprints-low-detail.pmtiles 439 tiles 9.1 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/utilities-electricity-public-lighting-wayleave-infrastruct.pmtiles 262 tiles 0.9 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/safety.pmtiles 6820 tiles 0.7 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/justice.pmtiles 38 tiles 0.0 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/utilities-electricity-overhead-lines.pmtiles 272 tiles 1.1 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/utilities-electricity-underground-cables.pmtiles 435 tiles 4.2 MB
+/home/runner/work/cape-monitor/cape-monitor/public/data/d/southern/tiles/complaints.pmtiles 562 tiles 15.4 MB
+joined formal-protections-nhra
+joined heritage-inventory-objects
+joined heritage-inventory
+joined wetlands
+joined formal-protections-mpbl-hpoz
+joined service-region-reticulation
+joined formal-protections-hpoz-mpbl
+joined biodiversity-network
+joined property
+joined water-and-sanitation-wayleave-applications-regio
+joined sectional-title-scheme
+joined servitude
+joined network-management-depot-area
+joined heritage-audit-areas
+joined stormwater-waterbodies
+joined dunes
+joined stormwater-drainage-catchment
+joined zoning
+joined indigenous-vegetation-current-extent
+joined sanbi-ecosystem-status-2011
+joined soils
+joined roads-stormwater-district-boundaries
+joined official-suburb-suburbs
+joined servitudes
+joined cemeteries
+joined informal-trading-bay-rental-status
+joined split-zoning
+joined zoning-sg-approved-properties
+joined zoning-confirmed-properties
+joined zoning-registered-properties
+joined official-suburb
+joined home-owner-association-gv-2015
+joined home-owners-associations-gv-2018
+joined home-owners-association-gv-2021
+joined parks
+joined indigenous-vegetation-historic-extent
+joined world-heritage-site
+joined lftea-areas
+joined pt1-zones
+joined pt2-zones
+joined historic-cape-town-scheme-special-areas
+joined informal-trading-location-planning-status
+joined allotment-farm
+joined nodes
+joined new-development-areas
+joined complexes
+joined urban-development-zones
+joined development-focus-areas
+joined environmental-focus-areas
+joined spatial-transformation-areas
+joined recreation-and-parks-regions
+joined area-based-service-delivery-areas
+joined subcouncils
+joined wards
+joined protective-action-zone-boundary
+joined urban-development-edge
+joined mixed-use-intensification-areas
+joined development-corridors
+joined areas-of-agricultural-significance
+joined local-area-overlay-zones
+joined incentive-overlay-zone-areas
+joined city
+joined biodiversity-management-protected-area-clusters
+joined home-owners-association-gv-2009
+joined sub-council
+joined tourism-development-areas
+joined city-of-cape-town-boundary
+joined city-health-regions
+joined development-management-districts
+joined city-improvement-districts
+joined rate-payers-associations
+joined koeberg-radii-planning
+joined subdivisional-areas
+joined estates
+joined urban-support-focus-areas
+joined administrative-penalty-exempted-area
+joined affordable-rental-flat-areas
+joined city-admin-district
+building plans matched: 28533
+layers 250 tables 15 feeds 0 dossiers 92949
+  community.pmtiles 0.4 MB
+  complaints.pmtiles 15.4 MB
+  environment.pmtiles 4.1 MB
+  heritage.pmtiles 3.3 MB
+  justice.pmtiles 0.0 MB
+  property-address.pmtiles 3.1 MB
+  property-land-parcels.pmtiles 9.4 MB
+  property-property.pmtiles 9.4 MB
+  property-street-number.pmtiles 2.5 MB
+  property-zoning-registered-properties.pmtiles 8.2 MB
+  property-zoning.pmtiles 8.5 MB
+  property.pmtiles 6.6 MB
+  safety.pmtiles 0.7 MB
+  utilities-2d-building-footprints-low-detail.pmtiles 9.1 MB
+  utilities-2d-building-footprints.pmtiles 4.8 MB
+  utilities-electricity-overhead-lines.pmtiles 1.1 MB
+  utilities-electricity-public-lighting-wayleave-infrastruct.pmtiles 0.9 MB
+  utilities-electricity-underground-cables.pmtiles 4.2 MB
+  utilities-sewer-connection-line-leading.pmtiles 1.2 MB
+  utilities-sewer-connection-point.pmtiles 1.2 MB
+  utilities-sewer-gravity-main-flow-direction.pmtiles 1.6 MB
+  utilities-sewer-manhole.pmtiles 1.0 MB
+  utilities.pmtiles 15.1 MB
+southern: 250 layers, 15 tables, 23 tile files, 184 left out
+check ok

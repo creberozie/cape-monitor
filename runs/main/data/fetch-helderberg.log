@@ -1,0 +1,392 @@
+  counted 1/446
+  counted 26/446
+  counted 51/446
+  counted 76/446
+  counted 101/446
+  counted 126/446
+  counted 151/446
+  counted 176/446
+  counted 201/446
+  counted 226/446
+  counted 251/446
+  counted 276/446
+  counted 301/446
+  counted 326/446
+  counted 351/446
+  counted 376/446
+  counted 401/446
+  counted 426/446
+446 layers; 364 with records in HELDERBERG ; 0 errors
+261 layers chosen, 185 left out
+cape-care-routes 1 features
+stadia 1 features
+swimming-pools 1 features
+recreational-hubs 1 features
+solid-waste-depots 1 features
+tourism-development-areas 1 features
+roads-and-stormwater-planning-region 1 features
+electricity-regions 1 features
+planning-offices 1 features
+administrative-penalty-exempted-area 1 features
+pt2-zones 0 features
+development-focus-areas 1 features
+urban-support-focus-areas 1 features
+development-corridors 1 features
+area-based-service-delivery-areas 1 features
+city-of-cape-town-boundary 1 features
+electricity-proposed-servitudes 1 features
+street-name-change 1 features
+treated-effluent-pump-station 1 features
+treated-effluent-pump-station-footprint 1 features
+bulk-water-network-component 1 features
+retic-water-pump-station-with-generator 1 features
+electricity-high-voltage-overhead-line-buffer 1 features
+electricity-high-voltage-underground-cable-buffe 1 features
+city 1 features
+loadshedding-blocks 2 features
+landfill-sites-and-refuse-transfer-stations 2 features
+service-region-reticulation 1 features
+network-management-depot-area 1 features
+electricity-generation-and-distribution-district 1 features
+electricity-districts 2 features
+think-twice-areas-recycling 2 features
+municipal-courts 2 features
+drop-offs 2 features
+roads-and-stormwater-districts 2 features
+city-improvement-districts 2 features
+city-health-regions 2 features
+coastal-urban-edge 2 features
+development-management-districts 2 features
+urban-development-edge 2 features
+stormwater-pump-facility 2 features
+bulk-water-treatment-plant-footprint 2 features
+electricity-district-areas 2 features
+admin-areas-roads-and-stormwater-districts 2 features
+bulk-water-treatment-plant 2 features
+bulk-water-treatment-plants 2 features
+bulk-water-treatment-plant-footprints 2 features
+roads-stormwater-district-boundaries 2 features
+recreation-and-parks-regions 2 features
+city-admin-district 2 features
+special-rating-areas 2 features
+electricity-district-areas-odp-split-1 2 features
+subcouncils 3 features
+bulk-water-supply-dams 3 features
+w-s-fibre-optic-fitting 3 features
+estates 2 features
+bulk-water-dam 3 features
+sewer-treatment-plant-footprint 3 features
+bulk-water-main-redundant 3 features
+sewer-treatment-plant 3 features
+telecommunication-aerial-routes 3 features
+sub-council 3 features
+biodiversity-management-protected-area-clusters 3 features
+water-and-sanitation-wayleave-applications-regio 3 features
+bulk-water-dams 3 features
+roads-and-stormwater-depots 4 features
+day-visitors-sites 4 features
+tidal-pools 1 features
+w-s-fibre-optic-cable 4 features
+fire-stations 4 features
+local-area-overlay-zones 4 features
+housing-and-maintenance-offices 4 features
+koeberg-radii-planning 4 features
+resorts 5 features
+bulk-water-reservoir 4 features
+police-stations 5 features
+railway-stations 5 features
+stormwater-topographical-catchment-region 5 features
+rail-station 5 features
+spring-water-spring 5 features
+monuments 4 features
+stormwater-drainage-catchment-region 6 features
+libraries 6 features
+environmental-focus-areas 6 features
+bulk-water-pump-station 6 features
+bulk-water-pump-station-footprint 6 features
+stormwater-drainage-catchment 6 features
+bulk-water-fitting 6 features
+pt1-zones 6 features
+bulk-water-reservoir-footprint 6 features
+bulk-water-pump-stations 6 features
+spring-water-spring-survey 6 features
+monument 4 features
+bulk-water-reservoir-footprints 6 features
+world-heritage-site 7 features
+bulk-water-pump-station-footprints 6 features
+electricity-distribution-capacity 6 features
+soils 7 features
+sewer-pump-station-with-generator 7 features
+lftea-areas 7 features
+treated-effluent-fitting 7 features
+community-centres 9 features
+areas-of-agricultural-significance 8 features
+public-service-infrastructure-national-roads 7 features
+w-s-electrical-cable 8 features
+health-care-facilities 10 features
+sports-grounds 11 features
+sewer-oil-seperator 10 features
+mixed-use-intensification-areas 10 features
+cemeteries 11 features
+electricity-supply-authority 8 features
+electricity-supply-authority-wayleave-infrastruc 8 features
+treated-effluent-collection-point 10 features
+retic-water-network-meter 11 features
+bulk-water-wellfield-collector-mains 11 features
+public-toilets 12 features
+smart-facilities-solar 13 features
+cct-free-call-lines 13 features
+nodes 12 features
+wards 12 features
+bulk-water-wellfield-collector-main 11 features
+affordable-rental-flat-areas 13 features
+ward 12 features
+retic-water-chamber-footprint 17 features
+bulk-water-ground-water-protection-zone 16 features
+protective-action-zone-boundary 16 features
+stormwater-ancillary-structure 17 features
+beaches 0 features
+subdivisional-areas 17 features
+informal-trading-location-planning-status 19 features
+allotment-farm 17 features
+class-1-principal-arterial 22 features
+formal-protections-nhra 31 features
+raised-intersection 25 features
+dunes 26 features
+bulk-water-boreholes 31 features
+retic-water-reservoir-footprint 31 features
+sewer-tank 29 features
+bulk-water-borehole 31 features
+routine-inland-water-quality-monitoring 32 features
+stormwater-water-quality-monitoring 32 features
+retic-water-reservoir 33 features
+inland-water-quality-monitoring 32 features
+treated-effluent-consumer-meter 34 features
+heritage-audit-areas 35 features
+bulk-water-network-meter 40 features
+submitted-land-use-cases 34 features
+retic-water-pump-station 43 features
+refuse-collection-think-twice-recycling-beats 45 features
+sewer-valve 45 features
+recreation-and-parks-facilities-point-theme 45 features
+scenic-routes 46 features
+stormwater-integrated-main-drainage 49 features
+sewer-pump-station 45 features
+retic-water-zone-management-station 43 features
+wine-route-farm-points 42 features
+refuse-collection-beats 48 features
+voting-stations 51 features
+new-development-areas 62 features
+railway-lines 63 features
+retic-water-main-pumping 53 features
+telecommunication-buildings 69 features
+spatial-transformation-areas 68 features
+cct-buildings 74 features
+rate-payers-associations 74 features
+heritage-inventory-objects 77 features
+treated-effluent-valve 81 features
+class-2-major-arterial 93 features
+places-of-worship 105 features
+sewer-pressurised-main 98 features
+schools 99 features
+treated-effluent-main 83 features
+traffic-site 98 features
+stormwater-storage-facility-pond 137 features
+home-owner-association-gv-2015 118 features
+taxi-routes 116 features
+bulk-water-main-raw 134 features
+home-owners-association-gv-2009 130 features
+traffic-site-buffer 124 features
+stormwater-storage-facility 138 features
+bulk-water-valve-show-at-all-scales 138 features
+bulk-water-valve 138 features
+telecommunication-underground-utility-boxes 144 features
+home-owners-associations-gv-2018 155 features
+official-suburb 162 features
+official-suburb-suburbs 162 features
+class-4-collector 165 features
+informal-trading-bay-rental-status 168 features
+class-3-minor-arterial 172 features
+treated-effluent-main-proposed 229 features
+sewer-main-redundant 176 features
+home-owners-association-gv-2021 180 features
+complexes 197 features
+retic-water-valve-zonal-valves-all-scales 222 features
+retic-water-main-redundant 232 features
+indigenous-vegetation-historic-extent 198 features
+stormwater-open-watercourse-main-drainage-waylea 246 features
+stormwater-open-watercourse-main-drainage 245 features
+telecommunication-point-of-interest 346 features
+parks 363 features
+bulk-water-main-potable 446 features
+sewer-end-cap 402 features
+telecommunication-underground-routes 505 features
+indigenous-vegetation-current-extent 554 features
+sanbi-ecosystem-status-2011 554 features
+bulk-water-mains 581 features
+pedestrian-crossing 582 features
+bulk-water-tunnel-channel 581 features
+submitted-bdm-cases 591 features
+stormwater-inlet-outlet 618 features
+sectional-title-scheme 688 features
+town-survey-marks 654 features
+sewer-rodding-eye 713 features
+speed-bump 706 features
+split-zoning 919 features
+electricity-substations 1096 features
+stormwater-waterbodies 1206 features
+wetlands 1260 features
+biodiversity-management-network 1315 features
+servitudes 1810 features
+servitude 1886 features
+on-street-parking 1999 features
+stormwater-open-watercourse 2815 features
+stormwater-open-watercourse-wayleave-infrastruct 2831 features
+heritage-inventory 2364 features
+smart-facilities-energy 3621 features
+zoning-confirmed-properties 3768 features
+biodiversity-network 3824 features
+open-watercourse 3016 features
+retic-water-hydrant 4561 features
+electricity-overhead-lines 4880 features
+polyphagous-shot-hole-borer-beetle-pshb-sighting 5247 features
+5m-contours 3875 features
+retic-water-fitting 5449 features
+street-name     2000/10031
+retic-water-valve 7041 features
+class-5-local-street 8461 features
+stormwater-junction     2000/10046
+2d-building-footprints 9393 features
+zoning-sg-approved-properties 9580 features
+retic-water-main     2000/11822
+road-ownership 9671 features
+electricity-public-lighting-wayleave-infrastruct     2000/16432
+electricity-public-lighting     2000/16432
+street-name 10015 features
+electricity-underground-cables     2000/16558
+stormwater-junction 10046 features
+transport-road-centreline 9671 features
+stormwater-conduit     2000/20098
+sewer-manhole     2000/20797
+retic-water-main 11803 features
+sewer-gravity-main-flow-direction     2000/21669
+sewer-gravity-main     2000/21669
+retic-water-connection-point     2000/25724
+electricity-public-lighting-wayleave-infrastruct 16378 features
+electricity-public-lighting 16378 features
+electricity-underground-cables 16534 features
+retic-water-connection-line-leading     2000/29199
+sewer-connection-line-leading     2000/32991
+sewer-connection-point     2000/31461
+sewer-manhole     20797/20797
+sewer-manhole 20729 features
+stormwater-conduit     20098/20098
+stormwater-conduit 20098 features
+sewer-gravity-main     21669/21669
+sewer-gravity-main 21601 features
+sewer-gravity-main-flow-direction     21669/21669
+sewer-gravity-main-flow-direction 21601 features
+zoning-registered-properties     2000/54715
+street-number     2000/67449
+retic-water-connection-point     22000/25724
+land-parcels     2000/68415
+zoning     2000/68074
+retic-water-connection-point 25724 features
+sewer-connection-point     22000/31461
+sewer-connection-line-leading     22000/32991
+retic-water-connection-line-leading     22000/29199
+property     2000/68415
+retic-water-connection-line-leading 29141 features
+sewer-connection-point 31403 features
+zoning-registered-properties     22000/54715
+street-number     22000/67449
+sewer-connection-line-leading 32932 features
+address     2000/69487
+2d-building-footprints-low-detail     2000/102977
+land-parcels     22000/68415
+zoning     22000/68074
+property     22000/68415
+zoning-registered-properties     42000/54715
+street-number     42000/67449
+address     22000/69487
+2d-building-footprints-low-detail     22000/102977
+land-parcels     42000/68415
+zoning     42000/68074
+property     42000/68415
+zoning-registered-properties 54620 features
+street-number     62000/67449
+address     42000/69487
+2d-building-footprints-low-detail     42000/102977
+land-parcels     62000/68415
+zoning     62000/68074
+street-number 67361 features
+property     62000/68415
+land-parcels 68309 features
+zoning 67968 features
+property 68309 features
+address     62000/69487
+2d-building-footprints-low-detail     62000/102977
+address 69398 features
+2d-building-footprints-low-detail     82000/102977
+2d-building-footprints-low-detail     102000/102977
+2d-building-footprints-low-detail 102831 features
+building-plans     1000/247845
+building-plans     11000/247845
+building-plans     21000/247845
+building-plans     31000/247845
+building-plans     41000/247845
+building-plans     51000/247845
+building-plans     61000/247845
+building-plans     71000/247845
+building-plans     81000/247845
+building-plans     91000/247845
+building-plans     101000/247845
+building-plans     111000/247845
+building-plans     121000/247845
+building-plans     131000/247845
+building-plans     141000/247845
+building-plans     151000/247845
+building-plans     161000/247845
+building-plans     171000/247845
+building-plans     181000/247845
+building-plans     191000/247845
+building-plans     201000/247845
+building-plans     211000/247845
+building-plans     221000/247845
+building-plans     231000/247845
+building-plans     241000/247845
+service-requests     1000/256286
+service-requests     11000/256286
+service-requests     21000/256286
+service-requests     31000/256286
+service-requests     41000/256286
+service-requests     51000/256286
+service-requests     61000/256286
+service-requests     71000/256286
+service-requests     81000/256286
+service-requests     91000/256286
+service-requests     101000/256286
+service-requests     111000/256286
+service-requests     121000/256286
+service-requests     131000/256286
+service-requests     141000/256286
+service-requests     151000/256286
+service-requests     161000/256286
+service-requests     171000/256286
+service-requests     181000/256286
+service-requests     191000/256286
+service-requests     201000/256286
+service-requests     211000/256286
+service-requests     221000/256286
+service-requests     231000/256286
+service-requests     241000/256286
+service-requests     251000/256286
+service-requests 245888 records
+building-plans 247845 records
+property-disposals 130 records
+population-2025 190 records
+crashes 211 records
+fire-incidents 1608 records
+business-licences 15216 records
+certificates-acceptability 3767 records
+homeless-shelters 29 records

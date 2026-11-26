@@ -1,2 +1,2 @@
-{'performance': 40, 'accessibility': 100, 'best-practices': 100}
-{'first-contentful-paint': '2.7\xa0s', 'largest-contentful-paint': '6.1\xa0s', 'total-blocking-time': '3,270\xa0ms', 'cumulative-layout-shift': '0.095', 'speed-index': '4.3\xa0s'}
+{'performance': 41, 'accessibility': 100, 'best-practices': 100}
+{'first-contentful-paint': '2.7\xa0s', 'largest-contentful-paint': '5.8\xa0s', 'total-blocking-time': '3,320\xa0ms', 'cumulative-layout-shift': '0.095', 'speed-index': '3.9\xa0s'}
