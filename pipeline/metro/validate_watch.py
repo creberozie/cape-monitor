@@ -40,8 +40,9 @@ files = sorted(glob.glob(os.path.join(D, "**", "*.json"), recursive=True))
 need(files, f"no data in {D}")
 data = {}
 for f in files:
-    try: data[os.path.relpath(f, D)] = json.load(open(f, encoding="utf-8"))
-    except Exception as e: errors.append(f"{os.path.relpath(f, D)}: does not parse ({str(e)[:80]})")
+    rel = os.path.relpath(f, D).replace(os.sep, "/")   # schema keys use "/" on every platform
+    try: data[rel] = json.load(open(f, encoding="utf-8"))
+    except Exception as e: errors.append(f"{rel}: does not parse ({str(e)[:80]})")
 for name, schema in SCHEMAS.items():
     if name not in data: errors.append(f"missing {name}"); continue
     try: jsonschema.validate(data[name], schema)
@@ -68,7 +69,7 @@ rfq_f = [f[0] for f in (data.get("money/money.json") or {}).get("tables", {}).ge
 if rfq_f:
     big = []
     for f in sorted(glob.glob(os.path.join(D, "money", "t", "rfq-*.json"))):
-        for r in json.load(open(f)):
+        for r in json.load(open(f, encoding="utf-8")):
             v, d = r[rfq_f.index("value")], str(r[rfq_f.index("date")] or "")
             if r[rfq_f.index("dq")]: continue   # kept, with a notice that says so
             if v and d and v > next(t[1] for t in M["thresholds"] if d >= t[0]): big.append(f"{r[rfq_f.index('tracking')]} {d} R{v:,.0f}")

@@ -20,6 +20,14 @@ const closeSheet = async (p: Page) => { if (phone(p) && await p.locator("body.in
 
 test.beforeEach(async ({ page }) => { await mockSupabase(page); });
 
+test("own identity: ZopStopper icon on /watch without the slash, credits in a box at the bottom, none on the loading screen", async ({ page }) => {
+  const html = await (await page.request.get("./watch/")).text();
+  expect(html).not.toContain("Dedicated to");   // icon and manifest paths name /watch/ so they resolve the same with or without the trailing slash
+  expect(html).toMatch(/rel="icon"[^>]*href="(?:\.\.)?\/watch\/icons\//); expect(html).toMatch(/rel="manifest" href="(?:\.\.)?\/watch\/manifest/); expect(html).not.toMatch(/href="icons\//);
+  await start(page);
+  const box = page.locator("#dockbody .zcredits"); await expect(box).toContainText("Created by Crehan de Jager"); await expect(box).toContainText("Dedicated to Robert Duigan");
+});
+
 test("start page: flags, suppliers, finances and latest awards, with sources, fast and without errors", async ({ page }) => {
   const e = errors(page); const ms = await start(page);
   await expect(page.locator(".brand").first()).toContainText("ZOPSTOPPER");
@@ -32,7 +40,7 @@ test("start page: flags, suppliers, finances and latest awards, with sources, fa
   console.log(`watch start page ready in ${ms} ms`);
   expect(ms, "start page ready in under 2 s").toBeLessThan(2000);
   await noOverflow(page, "#dockbody");
-  await expect(page.locator("link[rel=manifest]")).toHaveAttribute("href", "manifest.webmanifest");
+  await expect(page.locator("link[rel=manifest]")).toHaveAttribute("href", /^(?:\.\.)?\/watch\/manifest\.webmanifest$/);
   const man = await (await page.request.get("./watch/manifest.webmanifest")).json();
   expect(man.name).toBe("ZopStopper Stellenbosch"); expect(man.scope).toBe("/watch/");
   expect(e).toEqual([]);

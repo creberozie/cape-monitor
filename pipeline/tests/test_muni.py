@@ -24,6 +24,42 @@ class References(unittest.TestCase):
         self.assertEqual((t[0][0], t[0][1]), ("2023-12-14", 300000)); self.assertEqual(t[1][1], 200000); self.assertIn("49863", t[0][2])
 
 
+class AwardRegisterCells(unittest.TestCase):
+    """the February 2021 register: ruled table, cells set at the bottom of their box. The layout reader put LEVEGO on B/SM 10/21 and
+    split 'AKHILE MANAGEMENT AND / CONSULTING (PTY) LTD' into two bidders."""
+    @classmethod
+    def setUpClass(cls):
+        import tempfile
+        from reportlab.lib.pagesizes import A4, landscape
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+        cls.path = os.path.join(tempfile.mkdtemp(), "feb2021.pdf")
+        data = [["BID NUMBER", "DESCRIPTION", "CLOSING DATE", "SUCCESSFUL BIDDER", "B-BBEE STATUS\nLEVEL OF\nCONTRIBUTOR", "AMOUNT\nAPPROVED", "DATE\nAPPROVED"],
+                ["B/SM 35/21", "LONG TERM FINANCIAL PLANNING\nTOOL", "11-Jan-21", "AKHILE MANAGEMENT AND\nCONSULTING (PTY) LTD", "LEVEL 1", "RATES", "05-Feb-21"],
+                ["B/SM 44/21", "SUPPLY AND DELIVERY OF TOOLS\nAND HARDWARE", "14-Dec-21", "TUNILITE T/A EEZIBUILD IT", "LEVEL 1", "RATES", "12-Feb-21"],
+                ["", "", "", "UKUYENZA TRADING (PTY)\nLTD", "LEVEL 1", "RATES", ""],
+                ["B/SM 10/21", "SERVICING OF FIRE EXTINGUISHERS\nAND EQUIPMENT IN STELLENBOSCH\nMUNICIPAL BUILDINGS", "25-Oct-20", "STELLFIRE SERVICES CC", "LEVEL 4", "RATES", "19-Feb-21"],
+                ["B/SM 40/21", "DEVELOPMENT OF AN AIR QUALITY\nMONITORING PROGRAM", "11-Jan-21", "LEVEGO ENVIRONMENTAL\nSERVICES (PTY)", "LEVEL 2", "R 1 250 000.00", "19-Feb-21"]]
+        t = Table(data); t.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), 0.5, (0, 0, 0)), ("VALIGN", (0, 0), (-1, -1), "BOTTOM"), ("FONTSIZE", (0, 0), (-1, -1), 7),
+                                                ("SPAN", (0, 2), (0, 3)), ("SPAN", (1, 2), (1, 3)), ("SPAN", (2, 2), (2, 3)), ("SPAN", (6, 2), (6, 3))]))
+        SimpleDocTemplate(cls.path, pagesize=landscape(A4)).build([t])
+        cls.rows = F.parse_awards_cells(cls.path, "awards")
+
+    def test_each_bidder_on_its_own_tender(self):
+        got = {(ref_key(r["ref"]), r["bidder"]) for r in self.rows}
+        self.assertEqual(got, {("BSM35/21", "AKHILE MANAGEMENT AND CONSULTING (PTY) LTD"), ("BSM44/21", "TUNILITE T/A EEZIBUILD IT"),
+                               ("BSM44/21", "UKUYENZA TRADING (PTY) LTD"), ("BSM10/21", "STELLFIRE SERVICES CC"), ("BSM40/21", "LEVEGO ENVIRONMENTAL SERVICES (PTY)")})
+
+    def test_header_text_is_never_a_bidder(self):
+        # the CI build of 2026-11-26 read 'Successful Bidder' as a supplier from a header row in another form; the gate stopped it
+        self.assertEqual(F.name_problem("Successful Bidder"), "form or header text")
+        self.assertFalse(any(re.match(r"(?i)successful|awarded to", r["bidder"]) for r in self.rows))
+
+    def test_amount_date_and_level_stay_in_the_row(self):
+        r = next(r for r in self.rows if r["bidder"].startswith("LEVEGO"))
+        self.assertEqual((r["amount"], r["approved"], r["level"], r["closing"]), (1250000.0, "2021-02-19", "LEVEL 2", "2021-01-11"))
+        self.assertIsNone(next(r for r in self.rows if r["bidder"].startswith("STELLFIRE"))["amount"])   # RATES: no single total
+
+
 class AwardRegisters(unittest.TestCase):
     def test_2026_layout_single_award_and_panel(self):
         rows = F.parse_awards(fx("stb-awards-2026-10.txt"), "awards")

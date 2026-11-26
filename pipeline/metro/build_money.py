@@ -261,7 +261,7 @@ if not CT:
             if s:
                 s["refs"]["rfq"].append(i); s["rfq_value"] += 0 if dq else r.get("amount") or 0
                 if date: s["years"].add(date[:4])
-            rfq.append([date, r["ref"], "Directorate not published", "No category published", r.get("desc"), r["bidder"], r.get("level"), None if r.get("status") else r.get("amount"), sid, r.get("doc"), dq,
+            rfq.append([date, r["ref"], r.get("department") or "Directorate not published", "No category published", r.get("desc"), r["bidder"], r.get("level"), None if r.get("status") else r.get("amount"), sid, r.get("doc"), dq,
                         r.get("amount_text"), r.get("closing"), r.get("doc_title"), method(r.get("how")), r.get("published")])
         table("rfq", MF["title"], [["date", "Award date"], ["tracking", "Quotation number"], ["directorate", "Directorate"], ["group", "Category"], ["group_text", "Description"],
               ["supplier", "Awarded to, as published"], ["bbbee", "B-BBEE level"], ["value", "Amount (parsed, R)"], ["sup", "Supplier"], ["doc", "Register (PDF)"], ["dq", "Data-quality note"],
@@ -517,7 +517,7 @@ for (a, b), n in pairs.most_common(400):
     recs = [["bids", i] for r in refs for i in bid_tenders.get(next((k for k in bid_tenders if ref_key(k) == r), ""), []) if bids[i][10] in (a, b)]
     na, nb = (REG.by[x]["names"].most_common(1)[0][0] for x in (a, b))
     flag("cobid", f"{na} and {nb}: bid on the same {n} tenders",
-         f"Both appear on {n} of the City's published bid-opening registers. Per the published award decisions, {na} won {wa} and {nb} won {wb} of these.",
+         f"Both appear on {n} of the {'City' if CT else M['label']}'s published bid-opening registers. Per the published award decisions, {na} won {wa} and {nb} won {wb} of these.",
          recs, [["supplier", a], ["supplier", b]])
 
 # award not to the lowest price read out (80/20 and 90/10 preference points can lawfully change the order)
@@ -567,13 +567,19 @@ for p, sids in ph.items():
 
 # single-bid tenders, grouped by winner
 single = collections.defaultdict(list)
+def only_bid(i):
+    """the one row read is the whole register: serial number 1 (or none printed) and readable. A serial above 1 means rows above it were
+    not read (OCR), so the tender had more bids than were read."""
+    sn = str(bids[i][3] or "").strip().lstrip("0")
+    return sn in ("", "1", "None") and not (not CT and bids[i][16])
 for ref, idx in bid_tenders.items():
-    if len(idx) == 1:
+    if len(idx) == 1 and only_bid(idx[0]):
         for s in winners.get(ref_key(ref), ()) or ([bids[idx[0]][10]] if bids[idx[0]][10] else []):
             single[s].append(idx[0])
 for sid, idx in single.items():
     if len(idx) >= 2 and sid in REG.by:
-        flag("single", f"{REG.by[sid]['names'].most_common(1)[0][0]}: sole bidder on {len(idx)} City tenders", "Tenders where the published opening register lists one bid only.",
+        flag("single", f"{REG.by[sid]['names'].most_common(1)[0][0]}: sole bidder on {len(idx)} {'City' if CT else M['label']} tenders",
+             "Tenders where the published opening register lists one bid only." + ("" if CT else " Registers are read by OCR: a tender counts only when the one row read is serial number 1 and readable."),
              [["bids", i] for i in idx], [["supplier", sid]])
 
 # award within 12 months of registration: only where a registration date came from a company-register source (registry.json),
