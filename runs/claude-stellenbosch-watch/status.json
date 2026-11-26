@@ -2,9 +2,9 @@
  "run": "45724015305",
  "branch": "claude/stellenbosch-watch",
  "sha": "3f8987e6d44db966ba8e7566fdfd5474c7eba538",
- "at": "2026-11-26T00:02:24Z",
+ "at": "2026-11-26T00:07:32Z",
  "url": "",
  "deploy_job": "failure",
- "district_jobs": "",
- "metro_job": "pending"
+ "district_jobs": "skipped",
+ "metro_job": "success"
 }
