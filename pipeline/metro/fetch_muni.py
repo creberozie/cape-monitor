@@ -455,6 +455,8 @@ def parse_awards_cells(pdf_path, kind):
                 for row in tab.extract():
                     h = header_map(row)
                     if h: cols = h; continue
+                    if any(re.search(r"(?i)^\s*(?:successful\s*bidder|awarded\s*to|offers?\s*received|bid\s*number|description)\b", c or "") for c in row): continue   # a header row in another form
+
                     if cols is None or len(row) <= max(cols): continue
                     v = {f: row[j] for j, f in cols.items()}
                     ref = re.sub(r"\s+", " ", v.get("ref") or "").strip()
@@ -581,7 +583,7 @@ def name_problem(name):
     if len(w) > 12: return "too many words for a name"
     # a fragment in lower case ('of TENDER', 'on ZTD GROUP'), or OF / AND in capitals; capital ON, AT, IN start real names ('ON POINT ON TIME SOLUTIONS')
     if re.match(r"(?:of|and|for|to|in|with|at|on|by|from|as|including|ending|period)\b", n) or re.match(r"(?:OF|AND)\b", n): return "starts like a sentence fragment"
-    if re.search(r"(?i)\bname of bidders?\b|\btender number\b|^number\b|…{3,}|\.{6,}", n): return "form or header text"
+    if re.search(r"(?i)\bname of bidders?\b|\btender number\b|^number\b|^successful bidder|^awarded to\b|^offers? received|…{3,}|\.{6,}", n): return "form or header text"
     if re.fullmatch(r"\(?[A-Z](?:\s[A-Z]){1,3}\)?", n): return "initials only"
     if DESCRIPTIVE.search(n) and not COMPANY.search(n): return "reads as tender description"
     if re.search(r"\bL\d(?:FOR|AND|OF)\b|\b\w+(?:FOR|AND)\s+A\s+PERIOD\b", n, re.I): return "columns run together"

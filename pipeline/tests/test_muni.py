@@ -49,6 +49,11 @@ class AwardRegisterCells(unittest.TestCase):
         self.assertEqual(got, {("BSM35/21", "AKHILE MANAGEMENT AND CONSULTING (PTY) LTD"), ("BSM44/21", "TUNILITE T/A EEZIBUILD IT"),
                                ("BSM44/21", "UKUYENZA TRADING (PTY) LTD"), ("BSM10/21", "STELLFIRE SERVICES CC"), ("BSM40/21", "LEVEGO ENVIRONMENTAL SERVICES (PTY)")})
 
+    def test_header_text_is_never_a_bidder(self):
+        # the CI build of 2026-11-26 read 'Successful Bidder' as a supplier from a header row in another form; the gate stopped it
+        self.assertEqual(F.name_problem("Successful Bidder"), "form or header text")
+        self.assertFalse(any(re.match(r"(?i)successful|awarded to", r["bidder"]) for r in self.rows))
+
     def test_amount_date_and_level_stay_in_the_row(self):
         r = next(r for r in self.rows if r["bidder"].startswith("LEVEGO"))
         self.assertEqual((r["amount"], r["approved"], r["level"], r["closing"]), (1250000.0, "2021-02-19", "LEVEL 2", "2021-01-11"))
