@@ -5,7 +5,8 @@ import { restore, signIn, signUp } from "./auth";
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 
-export async function accessGate(brand = "CAPE MONITOR", blurb = "Public records of the City of Cape Town, joined and sourced."): Promise<void> {
+export async function accessGate(brand = "CAPE MONITOR", blurb = "Public records of the City of Cape Town, joined and sourced.",
+  app = "Cape Monitor", actions = "district, panels and records opened, exports"): Promise<void> {
   if (!ACCESS.configured) return;
   const signedIn = await restore().catch(() => false);
   if (!ACCESS.requireAccount || signedIn) return;
@@ -20,7 +21,7 @@ export async function accessGate(brand = "CAPE MONITOR", blurb = "Public records
       <label>Password<input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
       <button class="tb on" type="submit">Create account</button>
       <div class="msg" role="status" aria-live="polite"></div>
-      <p class="note">Cape Monitor records your sign-in and the main actions you take (district, panels and records opened, exports) so the operator can see how it is used. The records are kept for 12 months and are not shared. The number of people online is shown to everyone; names are not.</p>
+      <p class="note">${esc(app)} records your sign-in and the main actions you take (${esc(actions)}) so the operator can see how it is used. The records are kept for 12 months and are not shared. The number of people online is shown to everyone; names are not.</p>
     </form>`;
     document.body.appendChild(box);
     const f = box.querySelector("form")!; let mode: "up" | "in" = "up";

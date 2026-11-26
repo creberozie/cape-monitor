@@ -99,7 +99,7 @@ async function overview(el: HTMLElement) {
         <div class="note">Stellenbosch's award registers and deviation reports do not name the directorate. Departments here are those the eTender portal names.</div></div>
       <div class="tile" style="grid-column:1/-1"><div class="caps">Latest awards</div><div class="tscroll"><table class="t"><thead><tr><th>Date</th><th>Number</th><th>Kind</th><th>Description</th><th>Awarded to</th><th>Amount as published</th></tr></thead><tbody>
         ${O.latest.map((r: any) => `<tr><td class="mono">${esc(r.d || "")}</td><td><a href="#t=${esc(r.ref)}" data-tender="${esc(r.ref)}">${esc(r.ref)}</a></td><td>${r.kind}</td><td>${esc(r.desc)}</td><td>${r.sup ? `<a href="#s=${esc(r.sup)}" data-sup="${esc(r.sup)}">${esc(r.sup_name || r.name)}</a>` : esc(r.name)}</td><td class="mono">${esc(r.v || "")}</td></tr>`).join("")}</tbody></table></div></div>
-    </div><div class="note credit-line">ZopStopper Stellenbosch. Records of Stellenbosch Municipality (WC024). Created by Crehan de Jager.</div>`;
+    </div>${CREDITS}`;
   el.querySelectorAll("[data-supname]").forEach((b) => (b as HTMLElement).onclick = () => { const r = O.top.find((x: any[]) => x[1] === (b as HTMLElement).dataset.supname); if (r) openSupplier(r[0]); });
 }
 
@@ -170,7 +170,11 @@ async function sources(el: HTMLElement) {
     <h3>Not added, and why</h3>${S.not_added.map((n: any) => `<div class="feeditem"><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.name)}</a><div class="meta">${esc(n.why)}</div></div>`).join("")}
     <h3>Limits</h3><div class="note">Suppliers are identified by published name only (normalised for case, punctuation and suffixes). Names read by OCR are also matched ignoring spaces, because OCR often drops them; nothing else is merged.
     A pattern flag is a pattern in published data, not a finding. Restricted-list matches are name matches only. Some records name private individuals exactly as the municipality published them.</div>
-    <div class="note credit-line">Created by Crehan de Jager.</div>
+    <h3>Known problems under review (November 2026 audit)</h3><div class="note">Checked against the source PDFs: some tender-award rows read from older builds sat on the wrong tender number
+    or split one company's name into two; registers are now read cell by cell from their tables, and each row still links to its PDF to check. A panel award repeats the tender's amount on each
+    member, so adding award amounts can count one tender more than once. Some deviations read from Council agendas name the wrong contractor or miss the amount. Bid-opening registers are read
+    by OCR; a tender may have had more bids than were read. Verify any row against its source document before relying on it.</div>
+    ${CREDITS}
     <div class="note">Money tables in this build: ${Object.values(m.tables).map((t: any) => `${esc(t.name)} (${fmt(t.n)})`).join("; ")}.</div>`;
 }
 
@@ -219,8 +223,12 @@ function openHash() {
   if (h.startsWith("tab=") && TABS.some(([k]) => k === h.slice(4))) return openTab(h.slice(4));
 }
 
+const CREDITS = `<div class="zcredits credit-line"><b>ZopStopper Stellenbosch</b>: public records of Stellenbosch Municipality (WC024), joined and sourced.
+  Created by Crehan de Jager. <span class="ded">Dedicated to Robert Duigan.</span><br>Sources: Stellenbosch Municipality registers and Council agendas · National Treasury eTender portal,
+  Municipal Money and restricted-supplier report. Patterns shown are not findings of wrongdoing.</div>`;
+
 async function boot() {
-  await accessGate("ZOPSTOPPER STELLENBOSCH", "Public records of Stellenbosch Municipality (WC024), joined and sourced. Created by Crehan de Jager.");
+  await accessGate("ZOPSTOPPER STELLENBOSCH", "Public records of Stellenbosch Municipality (WC024), joined and sourced.", "ZopStopper", "sections, profiles and records opened, exports");
   let m;
   try { m = await moneyMeta(); } catch { $("#bootmsg").textContent = "The Stellenbosch data is not in this build yet."; return; }
   $("#fresh").innerHTML = `Data <b>${esc(m.built.slice(0, 10))}</b>`;
@@ -235,7 +243,7 @@ async function boot() {
   let deferred: any = null;
   addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferred = e; $("#install").hidden = false; });
   $("#install").onclick = async () => { if (deferred) { deferred.prompt(); await deferred.userChoice; deferred = null; $("#install").hidden = true; } };
-  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(() => {});
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/watch/sw.js", { scope: "/watch/" }).catch(() => {});
   const h = decodeURIComponent(location.hash.slice(1));
   await openTab(h.startsWith("tab=") && TABS.some(([k]) => k === h.slice(4)) ? h.slice(4) : "overview");
   addEventListener("hashchange", openHash);

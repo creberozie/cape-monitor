@@ -394,6 +394,110 @@ def parse_awards(text, kind):
     return rows
 
 
+# ---------------------------------------------------------------- the same registers read cell by cell from their ruled table
+# The registers are ruled tables. Read from the layout text, a cell set at the bottom of its box (February 2021 and others) puts a bidder
+# beside the next tender's number, and a name that wraps in its cell becomes two bidders. Read from the table's own cells (pdfplumber,
+# ruling lines), every value stays in its row. The layout reader is kept for registers without a ruled table (scans read by OCR).
+CELL_COLS = [   # (field, header pattern); the first pattern that matches a header cell names its column
+    ("ref", r"^(?:BID|TENDER|FQ|RFQ|QUOTATION)\s*(?:NUMBER|NO\.?|REF)|^NUMBER$"),
+    ("desc", r"^DESCRIPTION"), ("department", r"^DEPARTMENT|^DIRECTORATE"), ("pm", r"^PROJECT\s*MANAGER"),
+    ("closing", r"^CLOSING"), ("serial", r"^NO\.?$"), ("offers", r"^OFFERS?\s*RECEIVED"),
+    ("bidder", r"^SUCCESSFUL\s*BIDDER|^AWARDED\s*TO|^SUCCESSFUL\s*SERVICE"), ("level", r"B-?BBEE|^LEVEL|CONTRIBUTOR"),
+    ("approved", r"^(?:DATE\s*APPROVED|AWARD\s*DATE|DATE\s*OF\s*AWARD)"), ("amount", r"^AMOUNT|^VALUE|^PRICE"),
+    ("completion", r"COMPLETION|DELIVERY\s*PERIOD|CONTRACT\s*PERIOD"), ("locality", r"^LOCAL"), ("cidb", r"^CIDB")]
+CELL_SETTINGS = {"vertical_strategy": "lines", "horizontal_strategy": "lines", "snap_tolerance": 3, "intersection_tolerance": 4}
+
+
+def header_map(row):
+    """{column index: field} when the row is a register's header row (it names a reference column and a bidder or offers column)"""
+    cols = {}
+    for j, c in enumerate(row):
+        t = re.sub(r"\s+", " ", c or "").strip().upper().rstrip(".…")
+        for field, pat in CELL_COLS:
+            if field in cols.values() and field != "amount": continue
+            if re.search(pat, t):
+                if field == "amount" and "amount" in cols.values():   # 'Offers received | Amount | Successful bidder | Amount approved'
+                    prev = next(k for k, v in cols.items() if v == "amount")
+                    if cols.get(prev - 1) == "offers": cols[prev] = "offer_amount"
+                    else: break
+                cols[j] = field; break
+    return cols if "ref" in cols.values() and ("bidder" in cols.values() or "offers" in cols.values()) else None
+
+
+def cell_lines(c):
+    return [re.sub(r"\s+", " ", x).strip() for x in str(c or "").split("\n") if x.strip()]
+
+
+def cell_names(c, n_levels=0):
+    """the bidder names in one cell: lines are one wrapped name, except numbered entries ('1. A', '2. B'), or lines that each end in a
+    company suffix when the B-BBEE cell beside them gives one level per line"""
+    lines = cell_lines(c)
+    if not lines: return []
+    if any(re.match(r"\d{1,2}[.)]\s", l) for l in lines):
+        out = []
+        for l in lines:
+            if re.match(r"\d{1,2}[.)]\s", l) or not out: out.append(re.sub(r"^\d{1,2}[.)]\s*", "", l))
+            else: out[-1] += " " + l
+        return out
+    if n_levels > 1 and len(lines) == n_levels and all(COMPANY_END.search(l) or len(l.split()) >= 2 for l in lines): return lines
+    return [" ".join(lines)]
+
+
+def parse_awards_cells(pdf_path, kind):
+    """Rows of an award register read from its table cells (see parse_awards for the fields). [] when the file has no ruled table with a
+    register header, so the caller falls back to the layout reader."""
+    import pdfplumber
+    rx = re.compile(r"^(" + REFRX[kind] + r")\b", re.I)
+    blocks, cols, b = [], None, None
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            for tab in upright_chars(page).find_tables(CELL_SETTINGS):
+                for row in tab.extract():
+                    h = header_map(row)
+                    if h: cols = h; continue
+                    if cols is None or len(row) <= max(cols): continue
+                    v = {f: row[j] for j, f in cols.items()}
+                    ref = re.sub(r"\s+", " ", v.get("ref") or "").strip()
+                    m = rx.match(ref)
+                    if m:
+                        b = {"ref": re.sub(r"\s+", " ", m.group(1)), "desc": [], "closing": None, "department": None, "rows": []}; blocks.append(b)
+                    elif ref and not re.fullmatch(r"[\d\s.]*", ref): b = None; continue   # a row of some other table (totals, notes)
+                    if b is None: continue
+                    for f in ("desc",):
+                        if v.get(f): b["desc"] += cell_lines(v[f])
+                    if v.get("closing") and not b["closing"]: b["closing"] = iso(cell_lines(v["closing"])[0])
+                    if v.get("department") and not b["department"]: b["department"] = " ".join(cell_lines(v["department"]))
+                    b["rows"].append(v)
+    rows = []
+    for b in blocks:
+        desc = re.sub(r"\s+", " ", " ".join(b["desc"])).strip()
+        bidders, offers, approved, completion = [], [], None, None
+        for v in b["rows"]:
+            lv = [l for l in cell_lines(v.get("level")) if re.fullmatch(LEVEL + r"|[1-8]|N/?A", l, re.I)]
+            names = cell_names(v.get("bidder"), len(lv))
+            amt = " ".join(cell_lines(v.get("amount"))) or None
+            for k, n in enumerate(names):
+                bidders.append({"name": n, "level": lv[k] if k < len(lv) else (lv[0] if len(lv) == 1 else None), "amount": amt if len(names) == 1 or k == 0 else None,
+                                "shared": len(names) > 1})
+            if not names and amt and bidders and not bidders[-1]["amount"]: bidders[-1]["amount"] = amt   # an amount on the line below its bidder
+            for n in cell_names(v.get("offers")):
+                offers.append({"name": n, "amount": " ".join(cell_lines(v.get("offer_amount"))) or None})
+            d = [iso(x) for x in cell_lines(v.get("approved")) if iso(x)]
+            if d and not approved: approved = d[0]
+            c = cell_lines(v.get("completion"))
+            if c and not completion: completion = iso(c[0]) or c[0]
+        base = {"ref": b["ref"], "desc": desc, "closing": b["closing"], "approved": approved, "completion": completion, "reader": "table cells",
+                **({"department": b["department"]} if b["department"] else {})}
+        for o in offers:
+            rows.append({**base, "bidder": o["name"].strip(" -"), "level": None, "amount_text": o["amount"], "amount": None, "panel": 0, "status": "offer"})
+        named = [x for x in bidders if x["name"].strip(" -")]
+        for x in named:
+            a = x["amount"]
+            rows.append({**base, "bidder": x["name"].strip(" -"), "level": x["level"], "amount_text": a,
+                         "amount": money(a) if a and re.search(r"\d", a) and re.search(r"R\s*\d|\d[ ,.]\d{3}", a) else None, "panel": len(named)})
+    return rows
+
+
 def prefetch(docs, ocr=False):
     """download (and, with ocr=True, OCR the scanned ones) four at a time; newest first, within the run's OCR budget. Results are cached on disk."""
     t0 = time.time(); os.environ.setdefault("OMP_THREAD_LIMIT", "1")   # one thread per tesseract, four in parallel
@@ -421,7 +525,11 @@ def awards():
             if re.search(r"INVITATION\s+TO\s+BID", text.split("\f")[0], re.I) and re.search(r"(?i)TOTAL\s+BID\s+PRICE|NAME\s+OF\s+BIDDER|[MS]BD\s*\d", text.split("\f")[0]):
                 read.append({**slimdoc(d), "how": "bid invitation, not an award register", "rows": 0}); continue   # the quotation pack itself, filed with the awards
             kind = "fq" if d["kind"] == "rfq" else d["kind"]
-            rows = parse_awards(text, kind)
+            rows = []
+            if how == "text":   # a ruled table: read cell by cell (the layout reader puts bidders on the wrong tender in bottom-aligned registers)
+                try: rows = parse_awards_cells(fetch_file(d["file"]), kind) or (parse_awards_cells(fetch_file(d["file"]), "rfq") if kind == "fq" else [])
+                except Exception as e: log("cells", d["file"][-80:], str(e)[:100])
+            if not rows: rows = parse_awards(text, kind)
             if not rows and kind == "fq": rows = parse_awards(text, "rfq")
             if not rows and re.search(r"^\s*NONE\s*$", text, re.M): how += ", none awarded that month"
             if how == "ocr":
