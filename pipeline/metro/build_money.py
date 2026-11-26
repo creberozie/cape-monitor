@@ -197,24 +197,42 @@ def method(how):
     """how a row was read, in the words the app shows"""
     h = str(how or "")
     return ("PDF Text (Council agenda)" if "agenda" in h else "Single-pass OCR (amount not parsed)" if h.startswith("ocr") else "PDF Text" if h.startswith("text") else h)
+def notice(r, kind):
+    """the data-quality notice for a row kept but not taken at face value; None for a clean row. 'LABEL: explanation' (the app shows the label)"""
+    st = r.get("status")
+    if st == "offer": return ("OFFER, NOT THE AWARD: listed in the register as an offer received for this quotation; the award is the row marked as awarded. "
+                              "Not counted in totals or supplier profiles.")
+    if st == "unclear": return (f"NAME UNCLEAR: the supplier column holds text that does not read as a supplier name ({r.get('status_why')}). Shown as printed; "
+                                "not linked to a supplier and its amount is not counted. Check the register.")
+    if st == "illegible": return ("NOT LEGIBLE (OCR): the scan did not read cleanly enough to name the supplier or parse the amount. Shown as read; "
+                                  "not linked to a supplier and not counted. Check the scan.")
+    if kind == "rfq" and r.get("amount"):
+        date = r.get("approved") or r.get("published") or ""
+        lim = next((t[1] for t in M["thresholds"] if date >= t[0]), None) if date else None
+        if lim and r["amount"] > lim:
+            return (f"ABOVE QUOTATION LIMIT: R{r['amount']:,.0f} is above the R{lim:,.0f} limit for formal written price quotations on {date}. Either the register was "
+                    "misread or a quotation was used above the limit (which needs a competitive bid). Not counted in totals until checked against the register.")
+    return None
 if not CT:
     MA = load("muni-awards")
     if MA:
         for i, r in enumerate(sorted(MA["rows"], key=lambda r: (r.get("approved") or r.get("published") or "", muni_ref(r["ref"])))):
-            s = REG.get(r["bidder"]); sids = [s["id"]] if s else []
+            dq = notice(r, "awards")
+            s = None if dq else REG.get(r["bidder"]); sids = [s["id"]] if s else []
             date = r.get("approved") or r.get("published")
             rates = "Yes" if r.get("amount_text") and not r.get("amount") and re.match(r"(?i)rates", r["amount_text"]) else ""
             if s:
                 s["refs"]["awards"].append(i)
                 if date: s["years"].add(date[:4])
                 if r.get("amount"): s["award_value"] += r["amount"]
-            awards.append([date, r["ref"], r.get("doc_title"), "Award" + (f" (panel of {r['panel']})" if r.get("panel", 1) > 1 else ""), "Awarded", r.get("desc"),
-                           r["bidder"], r.get("amount_text"), r.get("amount"), None, None, rates, sids, r.get("doc"), r.get("closing"), r.get("level"), r.get("completion"), method(r.get("how")),
-                           r.get("published")])
+            awards.append([date, r["ref"], r.get("doc_title"), "Offer received" if r.get("status") == "offer" else "Award" + (f" (panel of {r['panel']})" if r.get("panel", 1) > 1 else ""),
+                           "Offer (not the award)" if r.get("status") == "offer" else "Awarded", r.get("desc"),
+                           r["bidder"], r.get("amount_text"), None if dq else r.get("amount"), None, None, rates, sids, r.get("doc"), r.get("closing"), r.get("level"), r.get("completion"), method(r.get("how")),
+                           r.get("published"), dq])
         table("awards", MA["title"], [["date", "Date approved"], ["ref", "Bid number"], ["decision", "Register"], ["reason", "Reason"], ["code", "Decision"], ["desc", "Description"],
               ["vendor", "Successful bidder as published"], ["value_text", "Amount approved, as published"], ["value", "Amount (parsed, R)"], ["budget_text", "Budget, as published"],
               ["budget", "Budget (parsed, R)"], ["rates", "Rates based"], ["sup", "Suppliers"], ["doc", "Register (PDF)"], ["closing", "Closing date"], ["bbbee", "B-BBEE level"],
-              ["completion", "Completion"], ["how", "Extraction method"], ["published", "Register published"]], awards, f"{M['label']}: tenders awarded", MA["url"], MA["retrieved"],
+              ["completion", "Completion"], ["how", "Extraction method"], ["published", "Register published"], ["dq", "Data-quality note"]], awards, f"{M['label']}: tenders awarded", MA["url"], MA["retrieved"],
               "Read from the municipality's monthly 'Tenders awarded' registers (PDF). One row per successful bidder; a panel award lists every member with the tender's amount "
               "(usually 'RATES': a rates-based contract with no single total). Amounts are as published. Rows are read from the register's layout; check them against the PDF linked on each row.")
     DV = load("muni-deviations")
@@ -227,7 +245,7 @@ if not CT:
                 if r.get("date"): s["years"].add(r["date"][:4])
             awards.append([r.get("date") or r["agenda_date"], r["number"], f"Reported to Council: {r['agenda']}", f"Deviation (reg. 36): {r.get('reason') or 'reason not stated'}", "Approved",
                            f"{r.get('description')}. Why the SCM process was not followed, as reported: {r.get('substantiation')}", r["contractor"], r.get("price_text"), r.get("price"),
-                           None, None, "", sids, r["doc"], None, None, None, method("council agenda"), r.get("agenda_date")])
+                           None, None, "", sids, r["doc"], None, None, None, method("council agenda"), r.get("agenda_date"), None])
         tables["awards"]["n"] = len(awards)
         for k in range(0, max(1, len(awards)), SHARD): dump(awards[k:k + SHARD], os.path.join(PUB, "t", f"awards-{k // SHARD}.json"))
         tables["awards"]["shards"] = max(1, math.ceil(len(awards) / SHARD))
@@ -237,12 +255,13 @@ if not CT:
     MF = load("muni-fq")
     if MF:
         for i, r in enumerate(sorted(MF["rows"], key=lambda r: (r.get("approved") or r.get("published") or "", muni_ref(r["ref"])))):
-            s = REG.get(r["bidder"]); sid = s["id"] if s else None
+            dq = notice(r, "rfq")
+            s = None if dq and r.get("status") else REG.get(r["bidder"]); sid = s["id"] if s else None
             date = r.get("approved") or r.get("published")
             if s:
-                s["refs"]["rfq"].append(i); s["rfq_value"] += r.get("amount") or 0
+                s["refs"]["rfq"].append(i); s["rfq_value"] += 0 if dq else r.get("amount") or 0
                 if date: s["years"].add(date[:4])
-            rfq.append([date, r["ref"], "Directorate not published", "No category published", r.get("desc"), r["bidder"], r.get("level"), r.get("amount"), sid, r.get("doc"), None,
+            rfq.append([date, r["ref"], "Directorate not published", "No category published", r.get("desc"), r["bidder"], r.get("level"), None if r.get("status") else r.get("amount"), sid, r.get("doc"), dq,
                         r.get("amount_text"), r.get("closing"), r.get("doc_title"), method(r.get("how")), r.get("published")])
         table("rfq", MF["title"], [["date", "Award date"], ["tracking", "Quotation number"], ["directorate", "Directorate"], ["group", "Category"], ["group_text", "Description"],
               ["supplier", "Awarded to, as published"], ["bbbee", "B-BBEE level"], ["value", "Amount (parsed, R)"], ["sup", "Supplier"], ["doc", "Register (PDF)"], ["dq", "Data-quality note"],
@@ -260,14 +279,14 @@ if BD:
         prices = [b["price"] for b in t["bids"] if b["price"]]
         lo = min(prices) if prices else None
         for b in t["bids"]:
-            s = REG.get(b["bidder"], ocr="conf" in b); sid = s["id"] if s else None
+            s = None if b.get("status") else REG.get(b["bidder"], ocr="conf" in b); sid = s["id"] if s else None
             i = len(bids)
             if s:
                 s["refs"]["bids"].append(i); s["n_bids"] += 1
                 if t.get("closing"): s["years"].add(t["closing"][:4])
             rank = (sorted(prices).index(b["price"]) + 1) if b["price"] and prices else None
             bids.append([t.get("closing"), t["ref"], t["description"], b["n"], b["bidder"], b["price_text"], b["price"], rank, len(t["bids"]),
-                         " / ".join(b["hdi"]), sid, t["doc"] + (f"#page={b['page']}" if b.get("page") else "")] + ([b.get("conf"), b.get("page"), "Dual-Pass OCR", t.get("published")] if not CT else []))
+                         " / ".join(b["hdi"]), sid, t["doc"] + (f"#page={b['page']}" if b.get("page") else "")] + ([b.get("conf"), b.get("page"), "Dual-Pass OCR", t.get("published"), notice(b, "bids")] if not CT else []))
             bid_tenders[t["ref"]].append(i)
     if CT:
         table("bids", BD["title"], [["closing", "Closing date"], ["ref", "Tender reference"], ["desc", "Description"], ["n", "Serial no."], ["bidder", "Bidder as published"],
@@ -278,7 +297,7 @@ if BD:
     else:
         table("bids", BD["title"], [["closing", "Closing date"], ["ref", "Tender reference"], ["desc", "Description"], ["n", "Serial no."], ["bidder", "Bidder as read (OCR)"],
               ["price_text", "Price as read (OCR)"], ["price", "Price (parsed, R)"], ["rank", "Price rank (1 = lowest)"], ["n_bids", "Bids read on this tender"],
-              ["hdi", "B-BBEE level as read"], ["sup", "Supplier"], ["doc", "Register (scan)"], ["conf", "OCR confidence (0-100)"], ["page", "Page of the scan"], ["how", "Extraction method"], ["published", "Register published"]], bids, f"{M['label']}: bid-opening registers", BD["url"], BD["retrieved"],
+              ["hdi", "B-BBEE level as read"], ["sup", "Supplier"], ["doc", "Register (scan)"], ["conf", "OCR confidence (0-100)"], ["page", "Page of the scan"], ["how", "Extraction method"], ["published", "Register published"], ["dq", "Data-quality note"]], bids, f"{M['label']}: bid-opening registers", BD["url"], BD["retrieved"],
               "The municipality publishes its bid-opening registers as scanned images. Each was read by OCR (tesseract): every row here is machine-read, with its confidence, "
               f"and links to the scan. Rows below confidence {BD.get('min_conf', 60)} and handwritten registers are not shown. Prices are as read out at the opening, before evaluation.")
 

@@ -88,7 +88,8 @@ class RotatedAndStrayText(unittest.TestCase):
                 {"ref": "B/SM 46/23", "bidder": "AND EQUIPMENT AT THE STELLENBOSCH MUNICIPALITY L1FOR A PERIOD"},
                 {"ref": "B/SM 11/24", "bidder": "EXEO KHOKELA"}, {"ref": "B/SM 43/22", "bidder": "THE STANDARD BANK OF SOUTH AFRICA LIMITED"}]
         out, warn = F.check_names(rows)
-        names = sorted(r["bidder"] for r in out)
+        names = sorted(r["bidder"] for r in out if not r.get("status"))
+        self.assertEqual([r["status"] for r in out if r.get("status")], ["unclear"])   # kept as printed, marked
         self.assertEqual(names, ["EXEO KHOKELA", "EXEO KHOKELA", "THE STANDARD BANK OF SOUTH AFRICA LIMITED"])   # the first recovered from the mixed line
         self.assertEqual(len(warn), 2); self.assertEqual(warn[0]["recovered"], ["EXEO KHOKELA"]); self.assertEqual(warn[1]["recovered"], [])
 
@@ -96,7 +97,8 @@ class RotatedAndStrayText(unittest.TestCase):
         rows = [{"ref": "BSM 51/23", "bidder": "GUNDO EVOLUTION (PTY) LTD VK DISTRIBUTORS (PTY) LTD AMILA INVESTMENT (PTY) LTD CHLORCAPE (PTY) LTD"},
                 {"ref": "BSM 84/25", "bidder": "CC"}, {"ref": "BSM 1/25", "bidder": "(PTY) LTD"}]
         out, warn = F.check_names(rows)
-        self.assertEqual([r["bidder"] for r in out], ["GUNDO EVOLUTION (PTY) LTD", "VK DISTRIBUTORS (PTY) LTD", "AMILA INVESTMENT (PTY) LTD", "CHLORCAPE (PTY) LTD"])
+        self.assertEqual([r["bidder"] for r in out if r.get("status") == "unclear"], ["CC", "(PTY) LTD"])   # kept as printed, marked, no supplier
+        self.assertEqual([r["bidder"] for r in out if not r.get("status")], ["GUNDO EVOLUTION (PTY) LTD", "VK DISTRIBUTORS (PTY) LTD", "AMILA INVESTMENT (PTY) LTD", "CHLORCAPE (PTY) LTD"])
         self.assertEqual(len(warn), 3)
 
 
@@ -104,6 +106,8 @@ class OffersReceivedRegisters(unittest.TestCase):
     def test_numbered_offers_are_not_awards(self):
         # March 2021 quotation register: numbered offers received, then the award date, the awardee and the amount
         rows = F.parse_awards(fx("stb-fq-offers-2021-03.txt"), "fq")
+        offers = [r for r in rows if r.get("status") == "offer"]; rows = [r for r in rows if not r.get("status")]
+        self.assertTrue(offers and all(r["amount"] is None and not re.match(r"\d", r["bidder"]) for r in offers))   # offers kept, marked, never with an award amount
         first = rows[0]
         self.assertEqual((first["ref"], first["bidder"], first["amount"], first["approved"], first["closing"]), ("FQ75/21", "MSCT BEE Services", 115000.00, "2021-02-01", None))
         self.assertFalse(any(re.match(r"\d{1,2}\.\s", r["bidder"]) for r in rows))
