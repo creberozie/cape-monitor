@@ -2,11 +2,13 @@
  ⛅️ wrangler 4.168.0
 ────────────────────
 ✨ Compiled Worker successfully
-Uploading... (12536/12537)
-Uploading... (12537/12537)
-✨ Success! Uploaded 1 files (12536 already uploaded) (0.92 sec)
+Uploading... (12398/12536)
+Uploading... (12444/12536)
+Uploading... (12490/12536)
+Uploading... (12536/12536)
+✨ Success! Uploaded 138 files (12398 already uploaded) (1.37 sec)
 
 ✨ Uploading _headers
 ✨ Uploading Functions bundle
 🌎 Deploying...
-✨ Deployment complete! Take a peek over at https://aae6718a.cape-monitor.pages.dev
+✨ Deployment complete! Take a peek over at https://0d3caae9.cape-monitor.pages.dev
