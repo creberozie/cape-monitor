@@ -27,11 +27,10 @@ dist/assets/gate-D8p32kZd.js       55.97 kB │ gzip:  19.56 kB
 dist/assets/dist-DwhOg3L3.js      217.56 kB │ gzip:  56.25 kB
 dist/assets/main-BUu7X1gw.js    1,187.53 kB │ gzip: 334.86 kB
 
-[32m✓ built in 13.99s[39m
-[33m[33m[PLUGIN_TIMINGS] [0mJavaScript callbacks ran for 13.6s of this 14.0s build (98%).
+[32m✓ built in 32.77s[39m
+[33m[33m[PLUGIN_TIMINGS] [0mJavaScript callbacks ran for 32.5s of this 32.8s build (99%).
 The slowest callbacks, timed inside each callback (the wait before a callback starts is excluded, the time it awaits is included):
-  - plugin vite:prepare-out-dir renderStart (97%, 13.5s, 1 call)
-Additional callback time came from the callbacks below and from callbacks under 1s.
+  - plugin vite:prepare-out-dir renderStart (99%, 32.4s, 1 call)
 1 callback is listed without a time. Its calls overlapped, so the time inside one call includes work from other calls. To find its cost, profile the build with `node --cpu-prof`:
   - plugin vite:build-html transform (2 calls)
 See https://rolldown.rs/reference/InputOptions.checks#bundlertimings for more details.
