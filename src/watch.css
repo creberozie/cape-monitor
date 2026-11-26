@@ -27,3 +27,10 @@ table.t td.num, table.t th.num { text-align: right; }
   body.watch #dockbody { padding: 10px 10px 30px; }
   .wgrid { grid-template-columns: 1fr; } .wgrid .wide { grid-column: auto; }
 }
+body.watch .kpis { grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); }
+.kpi .mk { display: block; font: 600 10px var(--mono); color: var(--warn); font-style: normal; margin-top: 2px; }
+.ychart { width: 100%; height: auto; max-height: 220px; display: block; } .ychart text { font: 10px var(--mono); fill: var(--mu); } .ychart text.v { fill: var(--ink); font-weight: 600; }
+.ychart rect:hover { opacity: .8; }
+.legend { display: flex; gap: 14px; font-size: 11px; color: var(--mu); margin: 4px 0; } .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.ibar { display: inline-block; height: 8px; background: #c0394f; opacity: .75; border-radius: 2px; margin-right: 8px; vertical-align: 0; }
+.tv-c { font-size: 12px; color: var(--mu); display: inline-flex; gap: 5px; align-items: center; }

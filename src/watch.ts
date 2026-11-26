@@ -53,7 +53,19 @@ async function openTab(k: string) {
   } catch (e) { el.innerHTML = `<div class="empty">This part is not in this build yet (${esc(e)}).</div>`; }
 }
 
-const kpi = (v: any, l: string, tabk = "") => `<div class="kpi${tabk ? " click" : ""}" ${tabk ? `data-go="${tabk}" style="cursor:pointer"` : ""}><b>${v}</b><span>${esc(l)}</span></div>`;
+const kpi = (v: any, l: string, tabk = "", extra = "") => `<div class="kpi${tabk ? " click" : ""}" ${tabk ? `data-go="${tabk}" style="cursor:pointer"` : ""}><b>${v}</b><span>${esc(l)}</span>${extra}</div>`;
+const plus = (n: number) => n ? `<em class="mk" title="Rows kept with a data-quality notice (offers, unclear names, illegible scans); not counted here">+${fmt(n)} ⚠</em>` : "";
+// awards per year as stacked bars (tenders, quotations, deviations); counts, because many registers publish rates rather than amounts
+function yearChart(Y: any[][]) {
+  if (!Y.length) return `<div class="empty">Not in this build.</div>`;
+  const W = 560, H = 170, P = 22, bw = (W - P) / Y.length, max = Math.max(...Y.map((r) => r[4] + r[5] + r[6]));
+  const C = ["var(--ac2)", "#e9c46a", "#c0394f"], L = ["Tender awards", "Quotations", "Deviations"];
+  const bars = Y.map((r, i) => { let y0 = H - P; return [4, 5, 6].map((k, j) => { const h = (r[k] / max) * (H - P - 14); y0 -= h;
+    return h ? `<rect x="${(P + i * bw + bw * 0.15).toFixed(1)}" y="${y0.toFixed(1)}" width="${(bw * 0.7).toFixed(1)}" height="${h.toFixed(1)}" fill="${C[j]}"><title>${r[0]}: ${fmt(r[k])} ${L[j].toLowerCase()}${r[j + 1] ? ", " + short(r[j + 1]) + " in published amounts" : ""}</title></rect>` : ""; }).join("")
+    + `<text x="${(P + i * bw + bw / 2).toFixed(1)}" y="${H - 6}" text-anchor="middle">${r[0]}</text><text x="${(P + i * bw + bw / 2).toFixed(1)}" y="${(y0 - 3).toFixed(1)}" text-anchor="middle" class="v">${fmt(r[4] + r[5] + r[6])}</text>`; }).join("");
+  return `<svg class="ychart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Published awards per year">${bars}</svg>
+    <div class="legend">${L.map((l, j) => `<span><i style="background:${C[j]}"></i>${l}</span>`).join("")}</div>`;
+}
 const fy = (y: number) => `${y - 1}/${String(y).slice(2)}`;
 
 async function overview(el: HTMLElement) {
@@ -62,7 +74,9 @@ async function overview(el: HTMLElement) {
   const c = O.counts;
   const U = O.uifw || []; const years = [...new Set(U.map((r: any) => r.year))].sort() as number[];
   const uv = (y: number, k: string) => U.find((r: any) => r.year === y && r.item === k)?.amount;
-  el.innerHTML = `<div class="kpis">${kpi(fmt(c.awards || 0), "tender award rows", "awards")}${kpi(fmt(c.rfq || 0), "quotations awarded", "rfq")}${kpi(fmt(c.bids || 0), "bids read out (OCR)", "bids")}
+  const K = O.clean || { awards: c.awards, rfq: c.rfq, bids: c.bids, deviations: 0 }, MK = O.marked || {};
+  const umax = Math.max(1, ...years.map((y) => uv(y, "irregular") || 0));
+  el.innerHTML = `<div class="kpis">${kpi(fmt(K.awards || 0), "tender awards", "awards", plus(MK.awards))}${kpi(fmt(K.rfq || 0), "quotations awarded", "rfq", plus(MK.rfq))}${kpi(fmt(K.bids || 0), "bids read out (OCR)", "bids", plus(MK.bids))}${K.deviations ? kpi(fmt(K.deviations), "deviations reported to Council", "awards") : ""}
       ${kpi(fmt(c.etenders || 0), "eTender records", "etenders")}${kpi(fmt(c.suppliers), "supplier profiles", "suppliers")}${kpi(fmt(O.n_flags), "pattern flags", "flags")}
       ${kpi(fmt(O.restricted), "restricted-list name matches", "flags")}${kpi(fmt(O.cape_town), "same name in Cape Town records", "suppliers")}</div>
     <div class="wgrid">
@@ -73,8 +87,10 @@ async function overview(el: HTMLElement) {
         <div class="note">Counts each published amount naming the supplier. Rates-based awards (no single total) add nothing to value; see Suppliers for counts.</div></div>
       <div class="tile wide"><div class="caps">Irregular, fruitless and unauthorised expenditure (audited, per financial year)</div>
         ${years.length ? `<div class="tscroll"><table class="t"><thead><tr><th>Year</th><th class="num">Irregular</th><th class="num">Fruitless and wasteful</th><th class="num">Unauthorised</th><th>Audit opinion</th></tr></thead><tbody>
-        ${years.slice().reverse().slice(0, 10).map((y) => { const o = (O.audit || []).find((r: any) => r.year === y); return `<tr><td class="mono">${fy(y)}</td><td class="num mono">${uv(y, "irregular") != null ? rand(uv(y, "irregular")) : "—"}</td><td class="num mono">${uv(y, "fruitless") != null ? rand(uv(y, "fruitless")) : "—"}</td><td class="num mono">${uv(y, "unauthorised") != null ? rand(uv(y, "unauthorised")) : "—"}</td><td>${o ? (o.report ? `<a href="${esc(o.report)}" target="_blank" rel="noopener">${esc(o.opinion)}</a>` : esc(o.opinion)) : ""}</td></tr>`; }).join("")}</tbody></table></div>
-        <div class="note">National Treasury Municipal Money, from the notes to the audited annual financial statements; audit opinions from Treasury's audit-opinion data with the Auditor-General's report linked. <button class="mini" data-go="finance">Finances and audit</button></div>` : `<div class="empty">Not in this build.</div>`}</div>
+        ${years.slice().reverse().slice(0, 10).map((y) => { const o = (O.audit || []).find((r: any) => r.year === y); return `<tr><td class="mono">${fy(y)}</td><td class="num mono">${uv(y, "irregular") != null ? `<span class="ibar" style="width:${Math.round(60 * (uv(y, "irregular") || 0) / umax)}px"></span>` + rand(uv(y, "irregular")) : "—"}</td><td class="num mono">${uv(y, "fruitless") != null ? rand(uv(y, "fruitless")) : "—"}</td><td class="num mono">${uv(y, "unauthorised") != null ? rand(uv(y, "unauthorised")) : "—"}</td><td>${o ? (o.report ? `<a href="${esc(o.report)}" target="_blank" rel="noopener">${esc(o.opinion)}</a>` : esc(o.opinion)) : ""}</td></tr>`; }).join("")}</tbody></table></div>
+        <div class="note">National Treasury Municipal Money, from the notes to the audited annual financial statements; audit opinions from Treasury's audit-opinion data with the Auditor-General's report linked. <button class="mini" data-go="finance">Finances and audit</button></div>` : `<div class="empty">Not in this build.</div>`}
+        <div class="caps" style="margin-top:14px">Published awards per year</div>${yearChart(O.by_year || [])}
+        <div class="note">Rows without a notice, by award date. Counts, not rand: many registers publish rates, not totals (hover a bar for the published amounts). The first record is dated ${esc(O.first || "")}; the last year is to date.</div></div>
       <div class="tile"><div class="caps">Deviations reported to Council (MFMA SCM Regulation 36)</div>
         ${O.devs.n ? O.devs.latest.map((r: any[]) => `<div class="row" data-tender="${esc(r[0])}"><span class="t">${esc(r[0])}: ${esc(r[1])}</span><small>${esc(r[2] || "")}${r[3] ? " · " + short(r[3]) : ""}</small></div>`).join("")
           + `<div class="note">${fmt(O.devs.n)} deviations, ${short(O.devs.total)} together, read from the monthly deviations item in the Council agendas. Largest contractors by deviation value:</div>`

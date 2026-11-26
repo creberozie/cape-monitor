@@ -56,7 +56,7 @@ export const hidePersons = () => { try { return localStorage.getItem("cm-hide-pe
 export const IDENTITY_NOTE = "A supplier is identified only by its published name, normalised for case, punctuation and suffixes such as (Pty) Ltd or CC. No fuzzy matching: two spellings of one company appear as two profiles, and two companies with the same name would share one. Check the CIPC register before relying on identity.";
 
 // ---------------------------------------------------------------- generic table renderer (filter, sort, group, export)
-interface View { tid: string; rows: any[][]; q: string; sort: number; dir: number; group: number; year: string }
+interface View { tid: string; rows: any[][]; q: string; sort: number; dir: number; group: number; year: string; clean: boolean }
 let view: View | null = null;
 const hidden = new Set(["sup", "bidders", "oid", "portal_id"]);
 const linkCols: Record<string, string> = { doc: "Register", url: "Document" };
@@ -74,10 +74,14 @@ function cell(t: TableMeta, k: number, v: any, names: Map<string, string>) {
 
 export async function tableView(tid: string, host: HTMLElement, opts: { filter?: (r: any[]) => boolean; title?: string } = {}) {
   const m = await moneyMeta(); const t = m.tables[tid]; if (!t) { host.innerHTML = `<div class="empty">Not in this build.</div>`; return; }
-  if (!view || view.tid !== tid) { host.innerHTML = `<div class="empty">Loading ${fmt(t.n)} records…</div>`; view = { tid, rows: await allRows(tid), q: "", sort: -1, dir: 1, group: -1, year: "" }; }
+  if (!view || view.tid !== tid) { host.innerHTML = `<div class="empty">Loading ${fmt(t.n)} records…</div>`; view = { tid, rows: await allRows(tid), q: "", sort: -1, dir: 1, group: -1, year: "", clean: false }; }
   const names = await supNames(); const v = view;
   const dateCol = t.fields.findIndex((f) => /^(date|closing|published|approved|month)$/.test(f[0]));
+  if (v.sort === -1 && dateCol >= 0) { v.sort = dateCol; v.dir = -1; }   // newest first
+  const dqCol = fi(t, "dq");
   let rows = opts.filter ? v.rows.filter(opts.filter) : v.rows;
+  const nMarked = dqCol >= 0 ? rows.filter((r) => r[dqCol]).length : 0;
+  if (v.clean && dqCol >= 0) rows = rows.filter((r) => !r[dqCol]);
   const years = dateCol >= 0 ? [...new Set(rows.map((r) => String(r[dateCol] ?? "").slice(0, 4)).filter((y) => /^\d{4}$/.test(y)))].sort() : [];
   if (v.year) rows = rows.filter((r) => String(r[dateCol] ?? "").startsWith(v.year));
   const q = v.q.toLowerCase().trim();
@@ -92,20 +96,24 @@ export async function tableView(tid: string, host: HTMLElement, opts: { filter?:
     const top = [...g].sort((a, b) => numCol >= 0 ? b[1][1] - a[1][1] : b[1][0] - a[1][0]).slice(0, 40);
     groupHtml = `<div class="tile"><div class="caps">By ${esc(t.fields[v.group][1])}${numCol >= 0 ? " · total " + esc(t.fields[numCol][1]) : " · records"}</div>${bars(top.map(([k, x]) => [k, numCol >= 0 ? x[1] : x[0]] as [string, number]), 40, numCol >= 0 ? short : fmt)}</div>`;
   }
-  const cols = t.fields.map((f, k) => k).filter((k) => !hidden.has(t.fields[k][0]) || t.fields[k][0] === "sup");
+  // a column with the same text in every row says nothing per row: shown once above the table instead
+  const same = v.rows.length > 20 ? t.fields.map((f, k) => k).filter((k) => { const x = v.rows[0][k]; return typeof x === "string" && x !== "" && v.rows.every((r) => r[k] === x); }) : [];
+  const cols = t.fields.map((f, k) => k).filter((k) => (!hidden.has(t.fields[k][0]) || t.fields[k][0] === "sup") && !same.includes(k) && !(k === dqCol && !nMarked));
   const show = rows.slice(0, 400);
   host.innerHTML = `<div class="toolbar">${opts.title ? `<b>${esc(opts.title)}</b>` : ""}<input class="tv-q" placeholder="Filter rows…" value="${esc(v.q)}" aria-label="Filter rows">
       ${years.length ? `<select class="tv-y" aria-label="Year"><option value="">All years</option>${years.map((y) => `<option ${y === v.year ? "selected" : ""}>${y}</option>`).join("")}</select>` : ""}
       <select class="tv-g" aria-label="Group by"><option value="-1">Group by…</option>${t.fields.map((f, k) => cols.includes(k) ? `<option value="${k}" ${k === v.group ? "selected" : ""}>${esc(f[1])}</option>` : "").join("")}</select>
+      ${nMarked ? `<label class="tv-c"><input type="checkbox" ${v.clean ? "checked" : ""}> Hide ${fmt(nMarked)} rows with a ⚠ notice</label>` : ""}
       <button class="tb tv-x">Export CSV</button>
       <span class="note">${fmt(rows.length)} of ${fmt(t.n)} rows${rows.length > 400 ? " (first 400 shown; export has all)" : ""} · <a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.source)}</a> · fetched ${esc(t.retrieved.slice(0, 10))}</span></div>
-    ${t.note ? `<div class="note">${esc(t.note)}</div>` : ""}${groupHtml}
+    ${t.note ? `<div class="note">${esc(t.note)}</div>` : ""}${same.length ? `<div class="note">In every row: ${same.map((k) => `${esc(t.fields[k][1])}: ${esc(v.rows[0][k])}`).join(" · ")}.</div>` : ""}${groupHtml}
     <div class="tscroll"><table class="t"><thead><tr>${cols.map((k) => `<th data-sort="${k}" title="${esc(t.fields[k][0])}">${esc(t.fields[k][1])}${v.sort === k ? (v.dir > 0 ? " ▲" : " ▼") : ""}</th>`).join("")}</tr></thead>
     <tbody>${show.map((r) => `<tr${r[fi(t, "dq")] ? ' class="dq"' : ""}>${cols.map((k) => `<td>${cell(t, k, r[k], names)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
   const rerender = () => tableView(tid, host, opts);
   let tm: any; (host.querySelector(".tv-q") as HTMLInputElement).oninput = (e) => { clearTimeout(tm); tm = setTimeout(() => { v.q = (e.target as HTMLInputElement).value; rerender().then(() => { const el = host.querySelector(".tv-q") as HTMLInputElement; el.focus(); el.setSelectionRange(el.value.length, el.value.length); }); }, 250); };
   (host.querySelector(".tv-g") as HTMLSelectElement).onchange = (e) => { v.group = +(e.target as HTMLSelectElement).value; rerender(); };
   const ys = host.querySelector(".tv-y") as HTMLSelectElement | null; if (ys) ys.onchange = () => { v.year = ys.value; rerender(); };
+  const cc = host.querySelector(".tv-c input") as HTMLInputElement | null; if (cc) cc.onchange = () => { v.clean = cc.checked; rerender(); };
   (host.querySelector(".tv-x") as HTMLElement).onclick = () => exportTable(`${t.id}${v.year ? "-" + v.year : ""}${v.q ? "-filtered" : ""}`, t.fields.map((f) => f[1]),
     rows.map((r) => r.map((x, k) => t.fields[k][0] === "sup" || t.fields[k][0] === "bidders" ? (Array.isArray(x) ? x : x ? [x] : []).map((s: string) => names.get(s) || s).join("; ") : x)),
     `${t.name}. Source: ${t.source} ${t.url}, fetched ${t.retrieved}. Exported from Cape Monitor ${new Date().toISOString().slice(0, 10)}.`);
