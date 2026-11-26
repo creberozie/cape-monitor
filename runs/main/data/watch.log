@@ -1,10 +1,10 @@
-docs → 3894 documents; awards 113, fq 92, rfq 17, bids 616, cancelled 126, open 734, fq_open 1074, rfq_open 276, rfq30 844, scm 2 (94s)
-awards → 2147 tender award rows, 2214 quotation award rows from 206 registers (21 by OCR); 0 failed (372s)
+docs → 3894 documents; awards 113, fq 92, rfq 17, bids 616, cancelled 126, open 734, fq_open 1074, rfq_open 276, rfq30 844, scm 2 (104s)
+awards → 2147 tender award rows, 2214 quotation award rows from 206 registers (21 by OCR); 0 failed (371s)
 bids → 401 tenders, 2027 bids from 607 scanned registers; 0 waiting; 0 failed (2s)
-deviations → 57 deviations from 61 council agendas; 0 waiting; 0 failed (13s)
-etenders → 688 of 12924 Western Cape records; buyer names ['Stellenbosch Municipality']; similar names left out: [] (1s)
-finance → 99 income/expenditure figures, 58 capital, 39 repairs, 102 creditor months, 39 UIFW figures, 14 audit opinions (74s)
-restricted → 409 restricted suppliers (report of 2026-09-15); tender defaulters register: none listed (7s)
+deviations → 57 deviations from 61 council agendas; 0 waiting; 0 failed (12s)
+etenders → 688 of 13041 Western Cape records; buyer names ['Stellenbosch Municipality']; similar names left out: [] (1s)
+finance → 99 income/expenditure figures, 58 capital, 39 repairs, 102 creditor months, 39 UIFW figures, 14 audit opinions (9s)
+restricted → 409 restricted suppliers (report of 2026-09-15); tender defaulters register: none listed (37s)
 money: 29 rows name no supplier (text that is not a name), e.g. ['Appointment of Southern', 'PTY)', 'on ZTD GROUP JV MM PROMAN LOGISTICS', 'ROOF ACT (PTY) LTD TENDER NUMBER', 'LTD']
 money: {'awards': 2204, 'rfq': 2214, 'bids': 2027, 'etenders': 688, 'docs': 3894} suppliers 3123 flags Counter({'retender': 51, 'notlowest': 34, 'official': 33, 'split': 23, 'portal': 9, 'deviation': 5, 'phone': 5, 'single': 3, 'restricted': 2, 'near': 1}) tenders 1865
 muni: stellenbosch {'etenders': 688, 'awards': 2147, 'fq': 2214, 'bids': 2027, 'deviations': 57, 'docs': 3894, 'finance': 99, 'uifw': 39, 'audit': 14, 'restricted': 409, 'tribunal': 112, 'gazette': 230}

@@ -1,10 +1,10 @@
 {
- "run": "45797303062",
+ "run": "45826603482",
  "branch": "main",
  "sha": "b31660013d79309eda12ac9aed90b6d93d0547e4",
- "at": "2026-11-26T11:58:29Z",
+ "at": "2026-11-26T13:26:22Z",
  "url": "https://cape-monitor.pages.dev",
  "deploy_job": "success",
- "district_jobs": "success",
- "metro_job": "success"
+ "district_jobs": "",
+ "metro_job": "pending"
 }
