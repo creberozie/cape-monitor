@@ -414,6 +414,8 @@ def awards():
             if len(text.strip()) < 200:
                 if not ocr_done(d["file"]): read.append({**slimdoc(d), "how": "waiting for OCR", "rows": 0}); continue
                 text = ocr_text(ocr_pages(d["file"])); how = "ocr"
+            if re.search(r"INVITATION\s+TO\s+BID", text.split("\f")[0], re.I) and re.search(r"(?i)TOTAL\s+BID\s+PRICE|NAME\s+OF\s+BIDDER|[MS]BD\s*\d", text.split("\f")[0]):
+                read.append({**slimdoc(d), "how": "bid invitation, not an award register", "rows": 0}); continue   # the quotation pack itself, filed with the awards
             kind = "fq" if d["kind"] == "rfq" else d["kind"]
             rows = parse_awards(text, kind)
             if not rows and kind == "fq": rows = parse_awards(text, "rfq")

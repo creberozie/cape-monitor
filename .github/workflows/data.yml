@@ -118,7 +118,7 @@ jobs:
           ( python3 -I pipeline/metro/fetch_muni.py ${{ env.FULL == 'true' && '' || 'docs awards bids deviations etenders finance restricted' }} \
             && python3 -I pipeline/metro/build_money.py && python3 -I pipeline/metro/build_muni.py ) 2>&1 | tee logs/watch.log
       - name: Validation gate (schema, counts, supplier names); nothing is saved or deployed if it fails
-        run: python3 -I pipeline/metro/validate_watch.py 2>&1 | tee -a logs/watch.log
+        run: set -o pipefail; python3 -I pipeline/metro/validate_watch.py 2>&1 | tee -a logs/watch.log
       - uses: actions/cache/save@v4
         if: always()
         with: { path: pipeline/cache/metro/muni, key: "watch-files-${{ hashFiles('pipeline/cache/metro/muni/*/files.sha256') }}" }
