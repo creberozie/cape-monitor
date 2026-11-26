@@ -79,8 +79,6 @@ not_added = [
      "why": "Scanned handwriting cannot be read reliably by OCR. They are listed under Documents with a link to each scan; no bids are taken from them."},
     {"name": "Award registers whose table is split across two pages side by side (some 2024 quotation registers)", "url": M["site"] + "formal-quotations-awarded/",
      "why": "The left and right halves of each row are on separate pages; the reader does not join them yet. Listed under Documents."},
-    {"name": "Offers received, in the 2019 to 2021 quotation registers", "url": M["site"] + "formal-quotations-awarded/",
-     "why": "These registers list every offer received (numbered) before the award. The awards are read; the offers are not yet kept as bids. Listed under Documents."},
     {"name": "Auditor-General findings (text of the audit reports)", "url": "https://www.agsa.co.za/Reporting/MFMAReports.aspx",
      "why": "Opinions are in as data; the findings are in PDF audit reports, linked per year, not yet read into records."},
     {"name": "Contracts register and long-term contracts (s33)", "url": M["site"] + "downloads/long-term-contracts/", "why": "Not read in this first version."},
@@ -95,18 +93,34 @@ if os.path.exists(os.path.join(MP, "flags.json")):
     import glob
     F = json.load(open(os.path.join(MP, "flags.json"))); S = json.load(open(os.path.join(MP, "suppliers.json")))
     rows = lambda t: sum((json.load(open(f)) for f in sorted(glob.glob(os.path.join(MP, "t", f"{t}-*.json")), key=lambda f: int(f.rsplit("-", 1)[1][:-5]))), [])
-    AW, FQ = rows("awards"), rows("rfq")
+    AW, FQ, BI = rows("awards"), rows("rfq"), rows("bids")
+    fidx = lambda t, k: [f[0] for f in money["tables"][t]["fields"]].index(k) if k in [f[0] for f in money["tables"][t]["fields"]] else None
+    dA, dF, dB = fidx("awards", "dq"), fidx("rfq", "dq"), fidx("bids", "dq")
+    marked = lambda r, i: i is not None and i < len(r) and r[i]
+    clean_aw = [r for r in AW if not marked(r, dA)]; clean_fq = [r for r in FQ if not marked(r, dF)]
+    # spend by year: published amounts of awards, quotations and deviations without a notice (rates-based awards have no amount)
+    by_year = {}
+    for r, k in [(r, 2 if str(r[3]).startswith("Deviation") else 0) for r in clean_aw] + [(r, 1) for r in clean_fq]:
+        y = str(r[0] or "")[:4]
+        if not y.isdigit() or y < "2019": continue
+        e = by_year.setdefault(y, [0, 0, 0, 0, 0, 0]); v = r[8] if k != 1 else r[7]
+        e[k] += v or 0; e[k + 3] += 1
     names = {r[0]: r[1] for r in S["rows"]}
     flags = sorted(F["flags"], key=lambda f: (SEV.get(f["kind"], 3), -(f.get("value") or 0), -len(f["records"])))
     keep = ("id", "kind", "title", "value", "verification_status", "review_reason", "scan")
     devs = sorted([r for r in AW if str(r[3]).startswith("Deviation")], key=lambda r: str(r[0]), reverse=True)
     by_dev = {}
     for r in devs: k = names.get((r[12] or [None])[0], r[6]); by_dev[k] = by_dev.get(k, 0) + (r[8] or 0)
-    latest = sorted([{"d": r[0], "ref": r[1], "desc": str(r[5] or "")[:140], "sup": (r[12] or [None])[0], "name": r[6], "v": r[7], "kind": "Tender"} for r in AW if not str(r[3]).startswith("Deviation")]
-                    + [{"d": r[0], "ref": r[1], "desc": str(r[4] or "")[:140], "sup": r[8], "name": r[5], "v": r[11], "kind": "Quotation"} for r in FQ], key=lambda x: str(x["d"]), reverse=True)[:14]
+    latest = sorted([{"d": r[0], "ref": r[1], "desc": str(r[5] or "")[:140], "sup": (r[12] or [None])[0], "name": r[6], "v": r[7], "kind": "Tender"} for r in clean_aw if not str(r[3]).startswith("Deviation")]
+                    + [{"d": r[0], "ref": r[1], "desc": str(r[4] or "")[:140], "sup": r[8], "name": r[5], "v": r[11], "kind": "Quotation"} for r in clean_fq], key=lambda x: str(x["d"]), reverse=True)[:14]
     ct = S["fields"].index("cape_town") if "cape_town" in S["fields"] else -1
     D = json.load(open(os.path.join(MP, "departments.json")))
-    dump({"built": now(), "counts": money.get("counts", {}), "kinds": F["kinds"], "note": F["note"], "n_flags": len(F["flags"]),
+    dump({"built": now(), "counts": money.get("counts", {}),
+          "clean": {"awards": sum(1 for r in clean_aw if not str(r[3]).startswith("Deviation")), "deviations": sum(1 for r in AW if str(r[3]).startswith("Deviation")),
+                    "rfq": len(clean_fq), "bids": sum(1 for r in BI if not marked(r, dB))},
+          "marked": {"awards": sum(1 for r in AW if marked(r, dA)), "rfq": sum(1 for r in FQ if marked(r, dF)), "bids": sum(1 for r in BI if marked(r, dB))},
+          "first": min((str(r[0]) for r in clean_aw + clean_fq if r[0]), default=None),
+          "by_year": sorted([[y] + [round(x) for x in e] for y, e in by_year.items()]), "kinds": F["kinds"], "note": F["note"], "n_flags": len(F["flags"]),
           "restricted": sum(1 for f in F["flags"] if f["kind"] == "restricted"), "cape_town": sum(1 for r in S["rows"] if ct >= 0 and r[ct]),
           "flags": [{k: f[k] for k in keep if k in f} for f in flags[:12]],
           "top": [[r[0], r[1], r[3] + r[5]] for r in sorted(S["rows"], key=lambda r: -(r[3] + r[5])) if r[3] + r[5] > 0][:12],
