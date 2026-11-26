@@ -323,7 +323,7 @@ def parse_awards(text, kind):
         if hx is None: continue
         first = anchors[0][0]
         start = max([i for i in range(first) if re.search(r"CONTRIBUTOR|DESCRIPTION|SUCCESSFUL|APPROVED|DELIVERY|PERIOD\s*$|Awarded to|Award Date|CIDB", lines[i], re.I)] or [-1]) + 1
-        blocks = {a: {"ref": r, "desc": [], "closing": None, "bidders": [], "amounts": [], "dates": [], "levels": []} for a, r in anchors}
+        blocks = {a: {"ref": r, "desc": [], "closing": None, "bidders": [], "offers": [], "amounts": [], "dates": [], "levels": []} for a, r in anchors}
         arow = [a for a, _ in anchors]
         if carry is not None: blocks[-1] = carry
         prev_of = lambda i: max([a for a in arow if a <= i] or [-1 if carry is not None else first])
@@ -357,7 +357,8 @@ def parse_awards(text, kind):
                     if x <= hx + 4 and not award_col:
                         if not prev["closing"]: prev["closing"] = iso(t)
                     else: prev["dates"].append(iso(t))
-                elif k == "text" and re.match(r"\d{1,2}\.\s", t): continue   # a numbered offer ('1. BEE Online Advisory'): offers received, not the award
+                elif k == "text" and re.match(r"\d{1,2}\.\s", t):   # a numbered offer ('1. BEE Online Advisory'): an offer received, not the award; kept, marked
+                    prev["offers"].append({"name": re.sub(r"^\d{1,2}\.\s*", "", t), "amount": None}); continue
                 elif k == "text" and x >= hx - 1 and line_bidder is None and len(re.sub(r"[^A-Za-z]", "", t)) >= 2 and not re.fullmatch(r"(?i)\d+ (?:years?|months?)", t):
                     p = pending[1] if pending and pending[0] == i - 1 else None
                     if (p is not None and not m and not p["level"] and len(t.split()) <= 4
@@ -377,6 +378,9 @@ def parse_awards(text, kind):
         carry = blocks[arow[-1]]
         all_blocks += [b for a, b in blocks.items() if a != -1]
     for b in all_blocks:
+        for o in b["offers"]:
+            rows.append({"ref": b["ref"], "desc": re.sub(r"\s+", " ", " ".join(b["desc"])).strip(), "closing": b["closing"], "bidder": re.sub(r"\s+", " ", o["name"]).strip(" -"),
+                         "level": None, "amount_text": None, "amount": None, "approved": None, "completion": None, "panel": 0, "status": "offer"})
         if not b["bidders"]: continue
         dates = [d for d in b["dates"] if d]
         rate_only = [bd["amount"] for bd in b["bidders"] if bd["amount"]] + b["amounts"]
@@ -423,9 +427,10 @@ def awards():
             if how == "ocr":
                 # a register read by OCR: keep a row only when the name reads as a name; its amount is shown as read but not parsed
                 # (it was read once; the bid-register check of two agreeing readings is not done for these yet)
-                good = [r for r in rows if re.fullmatch(r"[A-Za-z][A-Za-z0-9&'.,()/\- ]{2,}", r["bidder"]) and len(re.sub(r"[^A-Za-z]", "", r["bidder"])) >= 4]
-                for r in good: r["amount"] = None; r["amount_note"] = "read by OCR; not parsed"
-                rows = good
+                for r in rows:
+                    r["amount"] = None; r["amount_note"] = "read by OCR; not parsed"
+                    if not (re.fullmatch(r"[A-Za-z][A-Za-z0-9&'.,()/\- ]{2,}", r["bidder"]) and len(re.sub(r"[^A-Za-z]", "", r["bidder"])) >= 4):
+                        r["status"] = "illegible"   # kept, marked: the name did not read cleanly
             for r in rows: r.update({"doc": d["file"], "doc_page": d["page"], "doc_title": d["title"], "published": d["published"], "how": how, "kind": d["kind"]})
             out["awards" if kind == "awards" else "fq"] += rows
             read.append({**slimdoc(d), "how": how, "rows": len(rows), **({"rotated_chars": pdf_meta(d["file"])["rotated_chars"]} if pdf_meta(d["file"]).get("rotated_chars") else {})})
@@ -496,7 +501,7 @@ def check_names(rows):
     Returns (rows, warnings)."""
     out, bad = [], []
     for r in rows:
-        why = name_problem(r["bidder"])
+        why = None if r.get("status") else name_problem(r["bidder"])
         if not why: out.append(r); continue
         parts = split_merged(r["bidder"])
         if parts:
@@ -511,6 +516,7 @@ def check_names(rows):
         hit = next((k for k in known if re.search(r"(?<![A-Z0-9])" + re.escape(k) + r"(?![A-Z0-9])", up)), None)
         warn.append({"ref": r["ref"], "text": r["bidder"], "reason": why, "doc": r.get("doc"), "recovered": [hit] if hit else []})
         if hit: out.append({**r, "bidder": hit, "name_note": f"name recovered from text mixed with the description: '{r['bidder']}'"})
+        else: out.append({**r, "status": "unclear", "status_why": why})   # kept as printed, marked: not a supplier name
     return out, warn
 
 
@@ -586,8 +592,12 @@ def parse_register(pages):
             if d2 and d1 == d2 and len(d2) >= 4:
                 m = m2 or m1; price = float(re.sub(r"\D", "", m.group(1)) + "." + m.group(2))
             lv = [x for x in " ".join(w["text"] for w in level_w).split() if re.fullmatch(r"(?i)L\d|[1-8]|N/?A|NC|NIA", x)]
-            if conf < MIN_CONF or len(re.sub(r"[^A-Za-z]", "", name)) < 3 or re.search(r"NAME OF BIDDER", name, re.I):
-                out["unreadable"] += 1; continue
+            if re.search(r"NAME OF BIDDER", name, re.I): continue
+            if conf < MIN_CONF or len(re.sub(r"[^A-Za-z]", "", name)) < 3:   # kept, marked: not legible enough to name a bidder or rank a price
+                out["unreadable"] += 1
+                if re.search(r"[A-Za-z0-9]", name + (pt or "")) and conf > 0:
+                    out["bids"].append({"n": n, "bidder": name, "price_text": pt or "", "price": None, "hdi": [], "conf": conf, "page": pno, "status": "illegible"})
+                continue
             out["bids"].append({"n": n, "bidder": name, "price_text": pt or "", "price": price, "hdi": [lv[0].replace("NIA", "N/A")] if lv else [], "conf": conf, "page": pno,
                                 **({"price_alt": alt} if alt and alt != pt else {})})
     return out

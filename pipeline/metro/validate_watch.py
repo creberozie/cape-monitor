@@ -63,13 +63,14 @@ for r in S["rows"]:
     if HEADER_WORDS.match(name.strip()) or re.search(r"(?i)name of bidders?|successful bidder|^tender price$", name): why = "table header text"
     if why: bad.append(f"{name[:70]} ({why})")
 need(not bad, f"{len(bad)} supplier names match corruption patterns: " + "; ".join(bad[:8]))
-# a quotation (formal written price quotation) above the competitive-bidding threshold of its date points at a misread row (offers, totals)
+# a quotation above the competitive-bidding threshold of its date must carry a notice (ABOVE QUOTATION LIMIT); one without points at a build fault
 rfq_f = [f[0] for f in (data.get("money/money.json") or {}).get("tables", {}).get("rfq", {}).get("fields", [])]
 if rfq_f:
     big = []
     for f in sorted(glob.glob(os.path.join(D, "money", "t", "rfq-*.json"))):
         for r in json.load(open(f)):
             v, d = r[rfq_f.index("value")], str(r[rfq_f.index("date")] or "")
+            if r[rfq_f.index("dq")]: continue   # kept, with a notice that says so
             if v and d and v > next(t[1] for t in M["thresholds"] if d >= t[0]): big.append(f"{r[rfq_f.index('tracking')]} {d} R{v:,.0f}")
     need(not big, f"{len(big)} quotations above the competitive-bidding threshold (misread rows?): " + "; ".join(big[:5]))
 

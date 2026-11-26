@@ -68,7 +68,7 @@ function cell(t: TableMeta, k: number, v: any, names: Map<string, string>) {
   if (linkCols[key]) return `<a href="${esc(v)}" target="_blank" rel="noopener">${linkCols[key]} ↗</a>`;
   if (L.refCols.includes(key)) return `<a href="#t=${esc(String(v).replace(/\s/g, ""))}" data-tender="${esc(v)}">${esc(v)}</a>`;
   if (typeof v === "number" && /value|price|total|budget/.test(key)) return `<span class="mono">${rand(v)}</span>`;
-  if (key === "dq") return `<span class="warn" title="${esc(v)}">⚠ suspect value</span>`;
+  if (key === "dq") { const m = /^([A-Z][A-Z ,()]+): /.exec(String(v)); return `<span class="warn" title="${esc(v)}">⚠ ${m ? esc(m[1]) : "suspect value"}</span>`; }
   return esc(v);
 }
 
