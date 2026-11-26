@@ -2,14 +2,14 @@
  ⛅️ wrangler 4.168.0
 ────────────────────
 ✨ Compiled Worker successfully
-Uploading... (12400/12539)
-Uploading... (12446/12539)
-Uploading... (12492/12539)
+Uploading... (12131/12539)
+Uploading... (12267/12539)
+Uploading... (12403/12539)
 Uploading... (12539/12539)
-✨ Success! Uploaded 139 files (12400 already uploaded) (2.23 sec)
+✨ Success! Uploaded 408 files (12131 already uploaded) (3.18 sec)
 
 ✨ Uploading _headers
 ✨ Uploading Functions bundle
 🌎 Deploying...
-✨ Deployment complete! Take a peek over at https://65b9323b.cape-monitor.pages.dev
+✨ Deployment complete! Take a peek over at https://f4968c45.cape-monitor.pages.dev
 ✨ Deployment alias URL: https://claude-zopstopper-audit.cape-monitor.pages.dev

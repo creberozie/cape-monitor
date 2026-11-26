@@ -1,10 +1,10 @@
 {
- "run": "45790129224",
+ "run": "45794059709",
  "branch": "claude/zopstopper-audit",
- "sha": "67c6fad9b2a81d18ed2b9a7e380a422ea548d97b",
- "at": "2026-11-26T09:28:52Z",
+ "sha": "97edeb8fb35a3fb81a9e95f5f1d17cb7c0a02fb7",
+ "at": "2026-11-26T09:54:45Z",
  "url": "https://claude-zopstopper-audit.cape-monitor.pages.dev",
  "deploy_job": "success",
- "district_jobs": "skipped",
- "metro_job": "success"
+ "district_jobs": "",
+ "metro_job": "pending"
 }
