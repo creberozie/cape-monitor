@@ -12,5 +12,5 @@ districts with data: ['blaauwberg', 'table-bay', 'tygerberg', 'northern', 'south
   data/metro/money/money.json 200 5417
   live/news 200 17198
   watch page 200 2364
-  watch data 200 {'suppliers': 3267, 'flags': 122, 'tenders': 1637, 'awards': 2052, 'rfq': 835, 'bids': 2034, 'etenders': 688, 'docs': 3891}
+  watch data 200 {'suppliers': 3269, 'flags': 133, 'tenders': 1637, 'awards': 2053, 'rfq': 835, 'bids': 2027, 'etenders': 688, 'docs': 3891}
 SMOKE OK

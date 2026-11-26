@@ -2,14 +2,14 @@
  ⛅️ wrangler 4.168.0
 ────────────────────
 ✨ Compiled Worker successfully
-Uploading... (12527/12537)
-Uploading... (12530/12537)
-Uploading... (12533/12537)
-Uploading... (12537/12537)
-✨ Success! Uploaded 10 files (12527 already uploaded) (1.33 sec)
+Uploading... (12269/12536)
+Uploading... (12358/12536)
+Uploading... (12447/12536)
+Uploading... (12536/12536)
+✨ Success! Uploaded 267 files (12269 already uploaded) (1.39 sec)
 
 ✨ Uploading _headers
 ✨ Uploading Functions bundle
 🌎 Deploying...
-✨ Deployment complete! Take a peek over at https://b8814f8c.cape-monitor.pages.dev
+✨ Deployment complete! Take a peek over at https://a3f7e418.cape-monitor.pages.dev
 ✨ Deployment alias URL: https://claude-sleepy-curie-ze4dx0.cape-monitor.pages.dev

@@ -1,10 +1,10 @@
 {
- "run": "45731353828",
+ "run": "45729544628",
  "branch": "claude/sleepy-curie-ze4dx0",
- "sha": "23f7639a33d730d8b4e5e862e3582d78ab163768",
- "at": "2026-11-26T00:54:13Z",
+ "sha": "8700d6a6090a943dc095db53f3adf706e71a8fa5",
+ "at": "2026-11-26T01:28:09Z",
  "url": "https://claude-sleepy-curie-ze4dx0.cape-monitor.pages.dev",
  "deploy_job": "success",
  "district_jobs": "",
- "metro_job": ""
+ "metro_job": "pending"
 }
