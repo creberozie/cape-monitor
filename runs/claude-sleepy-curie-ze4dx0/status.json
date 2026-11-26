@@ -2,9 +2,9 @@
  "run": "45731353830",
  "branch": "claude/sleepy-curie-ze4dx0",
  "sha": "23f7639a33d730d8b4e5e862e3582d78ab163768",
- "at": "2026-11-26T01:56:23Z",
+ "at": "2026-11-26T02:02:18Z",
  "url": "https://claude-sleepy-curie-ze4dx0.cape-monitor.pages.dev",
  "deploy_job": "success",
- "district_jobs": "",
- "metro_job": "pending"
+ "district_jobs": "skipped",
+ "metro_job": "success"
 }
