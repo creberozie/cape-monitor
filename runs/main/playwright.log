@@ -1,10 +1,10 @@
 
 Running 62 tests using 2 workers
 
-[1/62] [desktop] › tests/app.spec.ts:21:1 › metro overview loads, lists districts and has no errors
-[2/62] [desktop] › tests/access.spec.ts:7:1 › gated: sign-up signs straight in, shows the online count, logs actions
-[3/62] [desktop] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier
-[4/62] [desktop] › tests/access.spec.ts:23:1 › gated: owners get the Users tab, others do not
+[1/62] [desktop] › tests/access.spec.ts:7:1 › gated: sign-up signs straight in, shows the online count, logs actions
+[2/62] [desktop] › tests/app.spec.ts:21:1 › metro overview loads, lists districts and has no errors
+[3/62] [desktop] › tests/access.spec.ts:23:1 › gated: owners get the Users tab, others do not
+[4/62] [desktop] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier
 [5/62] [desktop] › tests/access.spec.ts:29:1 › open: no wall, straight into the app, nothing overflows
 [6/62] [tablet] › tests/access.spec.ts:7:1 › gated: sign-up signs straight in, shows the online count, logs actions
 [7/62] [tablet] › tests/access.spec.ts:23:1 › gated: owners get the Users tab, others do not
@@ -12,61 +12,61 @@ Running 62 tests using 2 workers
 [9/62] [tablet] › tests/app.spec.ts:21:1 › metro overview loads, lists districts and has no errors
 [10/62] [tablet] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier
 [11/62] [desktop] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
-[12/62] [desktop] › tests/app.spec.ts:57:1 › labour tab: statutory rates, filters, shareable #l= link
-[13/62] [tablet] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
+[12/62] [tablet] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
+[13/62] [desktop] › tests/app.spec.ts:57:1 › labour tab: statutory rates, filters, shareable #l= link
 [14/62] [desktop] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
 [15/62] [desktop] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
 [16/62] [tablet] › tests/app.spec.ts:57:1 › labour tab: statutory rates, filters, shareable #l= link
 [17/62] [tablet] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
 [18/62] [tablet] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
 [19/62] [desktop] › tests/app.spec.ts:92:1 › search finds erven, addresses, places and suburbs city-wide; Enter opens the top match
-[20/62] [phone] › tests/access.spec.ts:7:1 › gated: sign-up signs straight in, shows the online count, logs actions
-[21/62] [tablet] › tests/app.spec.ts:92:1 › search finds erven, addresses, places and suburbs city-wide; Enter opens the top match
+[20/62] [tablet] › tests/app.spec.ts:92:1 › search finds erven, addresses, places and suburbs city-wide; Enter opens the top match
+[21/62] [phone] › tests/access.spec.ts:7:1 › gated: sign-up signs straight in, shows the online count, logs actions
 [22/62] [phone] › tests/access.spec.ts:23:1 › gated: owners get the Users tab, others do not
 [23/62] [phone] › tests/access.spec.ts:29:1 › open: no wall, straight into the app, nothing overflows
 [24/62] [phone] › tests/app.spec.ts:21:1 › metro overview loads, lists districts and has no errors
-[25/62] [phone] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier
-[26/62] [desktop-1440] › tests/access.spec.ts:7:1 › gated: sign-up signs straight in, shows the online count, logs actions
+[25/62] [desktop-1440] › tests/access.spec.ts:7:1 › gated: sign-up signs straight in, shows the online count, logs actions
+[26/62] [phone] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier
 [27/62] [desktop-1440] › tests/access.spec.ts:23:1 › gated: owners get the Users tab, others do not
 [28/62] [desktop-1440] › tests/access.spec.ts:29:1 › open: no wall, straight into the app, nothing overflows
 [29/62] [desktop-1440] › tests/app.spec.ts:21:1 › metro overview loads, lists districts and has no errors
 [30/62] [desktop-1440] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier
 [31/62] [phone] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
-[32/62] [phone] › tests/app.spec.ts:57:1 › labour tab: statutory rates, filters, shareable #l= link
-[33/62] [desktop-1440] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
+[32/62] [desktop-1440] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
+[33/62] [phone] › tests/app.spec.ts:57:1 › labour tab: statutory rates, filters, shareable #l= link
 [34/62] [phone] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
 [35/62] [phone] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
 [36/62] [desktop-1440] › tests/app.spec.ts:57:1 › labour tab: statutory rates, filters, shareable #l= link
 [37/62] [desktop-1440] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
 [38/62] [desktop-1440] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
 [39/62] [phone] › tests/app.spec.ts:92:1 › search finds erven, addresses, places and suburbs city-wide; Enter opens the top match
-[40/62] [phone-390] › tests/access.spec.ts:7:1 › gated: sign-up signs straight in, shows the online count, logs actions
-[41/62] [desktop-1440] › tests/app.spec.ts:92:1 › search finds erven, addresses, places and suburbs city-wide; Enter opens the top match
+[40/62] [desktop-1440] › tests/app.spec.ts:92:1 › search finds erven, addresses, places and suburbs city-wide; Enter opens the top match
+[41/62] [phone-390] › tests/access.spec.ts:7:1 › gated: sign-up signs straight in, shows the online count, logs actions
 [42/62] [phone-390] › tests/access.spec.ts:23:1 › gated: owners get the Users tab, others do not
 [43/62] [phone-390] › tests/access.spec.ts:29:1 › open: no wall, straight into the app, nothing overflows
 [44/62] [phone-390] › tests/app.spec.ts:21:1 › metro overview loads, lists districts and has no errors
-[45/62] [phone-390] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier
-[46/62] [watch-desktop] › tests/watch.spec.ts:23:1 › own identity: ZopStopper icon on /watch without the slash, credits in a box at the bottom, none on the loading screen
-[47/62] [watch-desktop] › tests/watch.spec.ts:31:1 › start page: flags, suppliers, finances and latest awards, with sources, fast and without errors
+[45/62] [watch-desktop] › tests/watch.spec.ts:23:1 › own identity: ZopStopper icon on /watch without the slash, credits in a box at the bottom, none on the loading screen
+[46/62] [watch-desktop] › tests/watch.spec.ts:31:1 › start page: flags, suppliers, finances and latest awards, with sources, fast and without errors
 [watch-desktop] › tests/watch.spec.ts:31:1 › start page: flags, suppliers, finances and latest awards, with sources, fast and without errors
-watch start page ready in 376 ms
+watch start page ready in 256 ms
 
-[48/62] [watch-desktop] › tests/watch.spec.ts:49:1 › supplier profile: records with source links, and the same name in Cape Town
-[49/62] [watch-desktop] › tests/watch.spec.ts:69:1 › flag dossier lists the records behind the pattern; scan-review and name-match labels
+[47/62] [watch-desktop] › tests/watch.spec.ts:49:1 › supplier profile: records with source links, and the same name in Cape Town
+[48/62] [watch-desktop] › tests/watch.spec.ts:69:1 › flag dossier lists the records behind the pattern; scan-review and name-match labels
+[49/62] [phone-390] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier
 [50/62] [watch-desktop] › tests/watch.spec.ts:86:1 › search finds a supplier and a tender number
 [51/62] [watch-desktop] › tests/watch.spec.ts:100:1 › sections and sources: every tab renders, sources list what was left out
 [52/62] [watch-phone] › tests/watch.spec.ts:23:1 › own identity: ZopStopper icon on /watch without the slash, credits in a box at the bottom, none on the loading screen
 [53/62] [watch-phone] › tests/watch.spec.ts:31:1 › start page: flags, suppliers, finances and latest awards, with sources, fast and without errors
 [watch-phone] › tests/watch.spec.ts:31:1 › start page: flags, suppliers, finances and latest awards, with sources, fast and without errors
-watch start page ready in 267 ms
+watch start page ready in 213 ms
 
 [54/62] [watch-phone] › tests/watch.spec.ts:49:1 › supplier profile: records with source links, and the same name in Cape Town
-[55/62] [phone-390] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
-[56/62] [watch-phone] › tests/watch.spec.ts:69:1 › flag dossier lists the records behind the pattern; scan-review and name-match labels
-[57/62] [watch-phone] › tests/watch.spec.ts:86:1 › search finds a supplier and a tender number
-[58/62] [watch-phone] › tests/watch.spec.ts:100:1 › sections and sources: every tab renders, sources list what was left out
+[55/62] [watch-phone] › tests/watch.spec.ts:69:1 › flag dossier lists the records behind the pattern; scan-review and name-match labels
+[56/62] [watch-phone] › tests/watch.spec.ts:86:1 › search finds a supplier and a tender number
+[57/62] [watch-phone] › tests/watch.spec.ts:100:1 › sections and sources: every tab renders, sources list what was left out
+[58/62] [phone-390] › tests/app.spec.ts:50:1 › justice, feed, watchlist and sources panels
 [59/62] [phone-390] › tests/app.spec.ts:57:1 › labour tab: statutory rates, filters, shareable #l= link
 [60/62] [phone-390] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
 [61/62] [phone-390] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
 [62/62] [phone-390] › tests/app.spec.ts:92:1 › search finds erven, addresses, places and suburbs city-wide; Enter opens the top match
-  62 passed (3.6m)
+  62 passed (3.4m)

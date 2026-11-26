@@ -1,5 +1,5 @@
-data index: [('blaauwberg', '2026-11-26'), ('table-bay', '2026-11-26'), ('tygerberg', '2026-11-26'), ('northern', '2026-11-26'), ('southern', '2026-11-26'), ('cape-flats', '2026-11-26'), ('mitchells-plain-khayelitsha', '2026-11-26'), ('helderberg', '2026-11-26')] metro 2026-11-26T02:20:14+00:00
-search index: 853892 erven in 116 files, 852792 addresses in 448 files, 7486 places
+data index: [('blaauwberg', '2026-11-26'), ('table-bay', '2026-11-26'), ('tygerberg', '2026-11-26'), ('northern', '2026-11-26'), ('southern', '2026-11-26'), ('cape-flats', '2026-11-26'), ('mitchells-plain-khayelitsha', '2026-11-26'), ('helderberg', '2026-11-26')] metro 2026-11-26T10:02:29+00:00
+search index: 853903 erven in 116 files, 852802 addresses in 448 files, 7486 places
 
 > cape-monitor@1.0.0 prebuild
 > npm run vendor
@@ -27,15 +27,15 @@ dist/assets/gate-D8p32kZd.js       55.97 kB │ gzip:  19.56 kB
 dist/assets/dist-DwhOg3L3.js      217.56 kB │ gzip:  56.25 kB
 dist/assets/main-BUu7X1gw.js    1,187.53 kB │ gzip: 334.86 kB
 
-[32m✓ built in 11.85s[39m
-[33m[33m[PLUGIN_TIMINGS] [0mJavaScript callbacks ran for 11.5s of this 11.8s build (97%).
+[32m✓ built in 28.21s[39m
+[33m[33m[PLUGIN_TIMINGS] [0mJavaScript callbacks ran for 27.9s of this 28.2s build (99%).
 The slowest callbacks, timed inside each callback (the wait before a callback starts is excluded, the time it awaits is included):
-  - plugin vite:prepare-out-dir renderStart (96%, 11.4s, 1 call)
+  - plugin vite:prepare-out-dir renderStart (98%, 27.7s, 1 call)
 Additional callback time came from the callbacks below and from callbacks under 1s.
 1 callback is listed without a time. Its calls overlapped, so the time inside one call includes work from other calls. To find its cost, profile the build with `node --cpu-prof`:
   - plugin vite:build-html transform (2 calls)
 See https://rolldown.rs/reference/InputOptions.checks#bundlertimings for more details.
 [39m
 168 tile files moved under dist/t/
-dist: 12540 files
+dist: 12542 files
 check ok
