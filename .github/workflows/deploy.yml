@@ -6,7 +6,7 @@ name: Deploy
 on:
   push:
     branches: [main, "claude/**"]
-    paths: ["src/**", "functions/**", "public/**", "index.html", "package.json", "vite.config.ts", "tests/**", ".github/workflows/deploy.yml"]
+    paths: ["src/**", "functions/**", "public/**", "index.html", "watch/**", "pipeline/seed/**", "package.json", "vite.config.ts", "tests/**", "playwright.config.ts", ".github/workflows/deploy.yml"]
   workflow_dispatch: {}
   workflow_call:
     inputs:
@@ -37,11 +37,25 @@ jobs:
       - { uses: actions/cache/restore@v4, with: { path: public/data/d/mitchells-plain-khayelitsha, key: "good-mitchells-plain-khayelitsha-x", restore-keys: "good-mitchells-plain-khayelitsha-" } }
       - { uses: actions/cache/restore@v4, with: { path: public/data/d/helderberg, key: "good-helderberg-x", restore-keys: "good-helderberg-" } }
       - { uses: actions/cache/restore@v4, with: { path: public/data/metro, key: "good-metro-x", restore-keys: "good-metro-" } }
+      - { uses: actions/cache/restore@v4, with: { path: public/data/muni, key: "good-muni-x", restore-keys: "good-muni-" } }   # ZopStopper (/watch/)
+      - name: ZopStopper data shipped with the branch, used when it is newer than the data run's saved copy
+        run: |
+          if [ -f pipeline/seed/muni-stellenbosch.tar.gz ]; then
+            T=$(mktemp -d); tar -xzf pipeline/seed/muni-stellenbosch.tar.gz -C "$T"
+            built() { python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['built'])" "$1" 2>/dev/null || echo 0; }
+            S=$(built "$T/muni/stellenbosch/money/money.json"); C=$(built public/data/muni/stellenbosch/money/money.json)
+            if [[ "$S" > "$C" ]]; then rm -rf public/data/muni; mkdir -p public/data; mv "$T/muni" public/data/muni; echo "::notice::ZopStopper: branch data ($S) is newer than saved data ($C)"; fi
+          fi
       - name: Hold back if there is no data for this branch yet
         id: hasdata
         run: |
           if ls public/data/d/*/manifest.json >/dev/null 2>&1 && [ -f public/data/metro/notices.json ]; then echo "ok=true" >> "$GITHUB_OUTPUT"
           else echo "ok=false" >> "$GITHUB_OUTPUT"; echo "::warning::No saved data for ${BRANCH} yet. Nothing deployed; the Data run deploys once it has built the data."; fi
+      - name: ZopStopper validation gate (schema, counts, supplier names); the deploy stops if the data fails
+        if: ${{ steps.hasdata.outputs.ok == 'true' }}
+        run: |
+          pip install -q jsonschema
+          MUNI=stellenbosch python3 -I pipeline/metro/validate_watch.py
       - name: Index, build and check (file size, file count) before deploying
         if: ${{ steps.hasdata.outputs.ok == 'true' }}
         env:   # accounts (optional): repository variables; REQUIRE_ACCOUNT_ACCESS=false opens the app to everyone

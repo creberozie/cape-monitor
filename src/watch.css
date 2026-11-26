@@ -1,0 +1,29 @@
+/* ZopStopper: Cape Monitor's styles, laid out for reading instead of a map. Its own accent colour (wine), so the two apps are told apart. */
+body.watch { --ac: #e9c46a; --ac2: #7fb3ff; --dock: 0px; --tabs: 38px; --right: 0px; }
+body.watch.inspect { --right: min(560px, 44vw); }
+body.watch .brand .dot { background: #c0394f; box-shadow: 0 0 10px #c0394f; }
+body.watch #top { background: #1a0d10; border-bottom-color: #3a1c22; }
+body.watch #tabs { position: fixed; top: calc(var(--top) + env(safe-area-inset-top)); left: 0; right: 0; height: var(--tabs); background: var(--pn); z-index: 30; align-items: stretch; }
+body.watch #dockbody { position: fixed; top: calc(var(--top) + var(--tabs) + env(safe-area-inset-top)); left: 0; right: var(--right); bottom: 0; overflow: auto; padding: 12px 16px 40px; outline: none; }
+body.watch #right { top: calc(var(--top) + var(--tabs) + env(safe-area-inset-top)); bottom: 0; width: var(--right); display: none; }
+body.watch.inspect #right { display: block; }
+body.watch.inspect #closeinspect { display: block; position: fixed; top: calc(var(--top) + var(--tabs) + 8px + env(safe-area-inset-top)); right: 12px; z-index: 46; background: var(--pn); }
+body.watch.inspect #right > :first-child { margin-right: 34px; }
+body.watch #toast { bottom: 14px; }
+.wgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 10px; } .wgrid .wide { grid-column: span 2; }
+.sev { display: inline-block; min-width: 54px; text-align: center; font: 600 10px var(--mono); letter-spacing: .06em; border-radius: 3px; padding: 1px 4px; margin-right: 6px; border: 1px solid var(--ln); }
+.sev.s1 { color: #ff8a8a; border-color: #ff5d5d; } .sev.s2 { color: var(--warn); border-color: var(--warn); } .sev.s3 { color: var(--mu); }
+#boot .credit .dedication { display: block; margin-top: 6px; font-size: 10px; color: var(--dim); opacity: .7; letter-spacing: .02em; }
+.ocr { font: 600 10px var(--mono); color: var(--warn); border: 1px solid var(--warn); border-radius: 3px; padding: 0 4px; }
+table.t td.num, table.t th.num { text-align: right; }
+.opinion { font-weight: 600; } .opinion.clean { color: var(--ac); }
+@media (max-width: 900px) {
+  body.watch.inspect { --right: 0px; }
+  body.watch.inspect #right { left: 0; width: 100%; top: auto; bottom: 0; height: 62vh; z-index: 44; border-top: 1px solid var(--ac); border-left: 0; }
+  body.watch.inspect #dockbody { bottom: 62vh; }
+  body.watch.inspect #closeinspect { top: auto; bottom: calc(62vh - 18px); }
+  body.watch.inspect #right > :first-child { margin-right: 0; }
+  body.watch .chip { display: none; } body.watch .brand { font-size: 10.5px; letter-spacing: .08em; }
+  body.watch #dockbody { padding: 10px 10px 30px; }
+  .wgrid { grid-template-columns: 1fr; } .wgrid .wide { grid-column: auto; }
+}

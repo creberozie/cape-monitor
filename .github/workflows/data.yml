@@ -70,10 +70,9 @@ jobs:
       # and the eTender portal drops old records that earlier runs kept
       - uses: actions/cache/restore@v4
         with: { path: pipeline/cache/metro, key: "metro-raw-${{ github.run_id }}", restore-keys: "metro-raw-" }
-      - name: Unit tests (labour, company register, private-individual rule)
-        run: python3 -m unittest discover -s pipeline/tests
       - name: Fetch and build metro-wide data
-        env:   # optional licensed company-register provider; empty secrets leave that part switched off
+        env:   # optional licensed company-register provider; empty secrets leave that part switched off; ZopStopper runs in the watch job
+          RUN_MUNI: "0"
           REGISTRY_API_URL: ${{ secrets.REGISTRY_API_URL }}
           REGISTRY_API_KEY: ${{ secrets.REGISTRY_API_KEY }}
         run: |
@@ -89,8 +88,56 @@ jobs:
         uses: actions/upload-artifact@v4
         with: { name: log-metro, path: logs, retention-days: 14 }
 
+  # ZopStopper (MUNI=stellenbosch): runs alongside the metro job and deploys as soon as it is done. It reads the eTender archive, the
+  # Cape Town supplier index and the gazette notices from the last metro run that saved them (one run behind at most).
+  # Downloaded PDFs, agenda text and OCR results are kept in their own cache, keyed by the SHA-256 list of the files (files.sha256), so a
+  # run with nothing new reads only the municipality's document list and the Treasury APIs. Target: under 8 minutes with a warm cache.
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env: { MUNI: stellenbosch }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      # tesseract: the bid-opening registers are scanned images, read by OCR (two readings per price)
+      - run: sudo apt-get install -y poppler-utils tesseract-ocr >/dev/null && pip install pillow pdfplumber pypdfium2 jsonschema reportlab pytest
+      - uses: actions/cache/restore@v4
+        with: { path: pipeline/cache/metro, key: "metro-raw-${{ github.run_id }}", restore-keys: "metro-raw-" }
+      - uses: actions/cache/restore@v4   # newer than what metro-raw carries for this folder
+        with: { path: pipeline/cache/metro/muni, key: "watch-files-x", restore-keys: "watch-files-" }
+      - uses: actions/cache/restore@v4
+        with: { path: public/data/metro, key: "good-metro-x", restore-keys: "good-metro-" }
+      - uses: actions/cache/restore@v4   # last good ZopStopper data: kept parts (gazette notices) when this run cannot rebuild them
+        with: { path: public/data/muni, key: "good-muni-x", restore-keys: "good-muni-" }
+      - name: Unit tests (readers, OCR register, deviations, rotated text, names, restricted list)
+        run: python3 -m pytest -q pipeline/tests
+      - name: Fetch and build ZopStopper data
+        run: |
+          set -o pipefail; mkdir -p logs
+          ( python3 -I pipeline/metro/fetch_muni.py ${{ env.FULL == 'true' && '' || 'docs awards bids deviations etenders finance restricted' }} \
+            && python3 -I pipeline/metro/build_money.py && python3 -I pipeline/metro/build_muni.py ) 2>&1 | tee logs/watch.log
+      - name: Validation gate (schema, counts, supplier names); nothing is saved or deployed if it fails
+        run: set -o pipefail; python3 -I pipeline/metro/validate_watch.py 2>&1 | tee -a logs/watch.log
+      - uses: actions/cache/save@v4
+        if: always()
+        with: { path: pipeline/cache/metro/muni, key: "watch-files-${{ hashFiles('pipeline/cache/metro/muni/*/files.sha256') }}" }
+      - uses: actions/cache/save@v4
+        with: { path: public/data/muni, key: "good-muni-${{ github.run_id }}" }
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: log-watch, path: logs, retention-days: 14 }
+
+  # ZopStopper first: deployed as soon as its job is done, with the other parts' last good data
+  deploy-watch:
+    needs: [watch]
+    if: ${{ always() && needs.watch.result == 'success' }}
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit
+    with: { data_run: "${{ github.run_id }}", metro_result: "pending" }
+
   deploy:
-    needs: [district, metro]
+    needs: [district, metro, watch, deploy-watch]
     if: ${{ always() }}
     uses: ./.github/workflows/deploy.yml
     secrets: inherit

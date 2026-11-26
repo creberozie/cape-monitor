@@ -32,6 +32,21 @@ Plot dossiers list registered businesses whose register address matches the plot
 **Districts**: every City GIS layer with records in the district, building plans, service requests, City sales and the plot dossier.
 **Live**: news and NGO feeds tagged to suburbs; NASA FIRMS fires; AIS ships (needs an aisstream.io key).
 
+## ZopStopper (/watch/)
+
+A second app in the same build for Stellenbosch Municipality (WC024), money and governance first, with no map: `watch/index.html`
+and `src/watch.ts`, built to `dist/watch/`, with its own manifest, icon and service worker so it installs as a separate app.
+It reuses the money views in `src/money.ts` (data folder and wording set by `configureMoney`).
+
+Data: `MUNI=stellenbosch` runs the same money pipeline (`pipeline/metro/muni.py` holds the buyer names, place names and the
+R300 000 local-municipality threshold of GN 4198, GG 49863). `fetch_muni.py` reads the municipality's document library through its
+public WordPress API, the monthly tender and quotation award registers (scanned ones by OCR), the bid-opening registers (all scanned:
+OCR with tesseract; a price is parsed only when a second digits-only reading of the cell has the same digits), its eTender records
+(filtered from the Western Cape archive), Treasury Municipal Money (budget against actual; unauthorised, irregular, fruitless and
+wasteful expenditure; audit opinions) and Treasury's restricted-supplier report (name matches only). Supplier profiles show the
+same normalised name in Cape Town's records. Output: `public/data/muni/stellenbosch/`. The data workflow runs it after Cape Town in
+the metro job and keeps its own last good data.
+
 ## How it runs
 
 ```

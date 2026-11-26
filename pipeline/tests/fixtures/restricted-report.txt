@@ -1,0 +1,82 @@
+  Restricted Supplier and Tender Defaulter Report
+
+
+
+
+            Name of Supplier/         Registration Number/    Restriction Type      Restriction Reason              Period From            Period To               Authorized By
+            Name of Person            Identification Number
+          1 ADAMS, HELENA ROSE        6704030828082           Restricted Supplier   Non - Declaration of Interest             2023-09-04               2028-09-03 Drakenstein - WC
+                                                                                                                                                                  Local Municipality
+          2 ALUOGY BUSINESS           2012/189440/07          Restricted Supplier   Misrepresentation of                      2025-09-19               2035-09-18 Amatola Water
+            ENTERPRISE                                                              information                                                                   Board
+          3 ALX CONSULTING            2023/746253/07          Restricted Supplier   Misrepresentation of                      2025-09-22               2035-09-21 Amatola Water
+                                                                                    information                                                                   Board
+          4 AMANZIAMAHLE PROJECT      2018/601249/07          Restricted Supplier   Collusive bidding and                     2026-03-25               2036-03-24 Office of the
+            SOLUTIONS                                                               fronting                                                                      Premier - Gauteng
+          5 AMOD, MUHAMMADH           8705215141082           Restricted Supplier   Collusive bidding and                     2024-09-13               2029-09-12 City of Cape Town
+            SHUAYB                                                                  fronting                                                                      Metropolitan
+                                                                                                                                                                  Municipality
+          6 Angel Frost Investments   2005/014562/07          Restricted Supplier   Fraud and Corruption                      2026-07-21               2036-07-21 Eskom
+          7 Ankeli (Pty) Ltd          2012/137565/07          Restricted Supplier   Submission of Fraudulent                  2016-12-08               2026-12-07 South African
+                                                                                    Health Certificate                                                            Police Services
+                                                                                                                                                                  (SAPS)
+          8 ASIVE INVESTMENTS         2012/105959/07          Restricted Supplier   Submission of Fraudulent                  2023-03-28               2033-03-28 City of Ekurhuleni
+            CONSULTANTS                                                             Invoices for goods never                                                      Metropolitan
+                                                                                    received by the department                                                    Municipality
+          9 Aubrey Siyanda Khuzwayo   7508315278080           Restricted Supplier   Submission of Fraudulent                  2016-12-08               2026-12-07 South African
+                                                                                    Health Certificate                                                            Police Services
+                                                                                                                                                                  (SAPS)
+        10 AYABONGWA MNDAYI           2018/356553/07          Restricted Supplier   Submission of Fraudulent                  2023-03-28               2033-03-28 City of Ekurhuleni
+                                                                                    Invoices for goods never                                                      Metropolitan
+                                                                                    received by the department                                                    Municipality
+        11 AZRAGO                     2009/185283/23          Restricted Supplier   Fraud                                     2024-06-26               2034-06-25 Health - Free State
+        12 BAFUNE CONSTRUCTION        2008/156638/23          Restricted Supplier   Engaged in corrupt and                    2026-07-09               2036-01-09 Eskom
+           AND ELECTRICAL                                                           fraudulent practices in
+                                                                                    competing for a contract
+
+
+
+
+Page: 1 of 35                                                                                                                                             Generated on: 2026-09-15 15:56:03
+  Restricted Supplier and Tender Defaulter Report
+
+
+
+
+            Name of Supplier/             Registration Number/    Restriction Type      Restriction Reason               Period From            Period To               Authorized By
+            Name of Person                Identification Number
+        13 Bain & Company South Africa    1996/000558/10          Restricted Supplier   Engaged in corrupt and                     2022-09-05               2032-09-04 South African
+           Incorporated                                                                 fraudulent practices in                                                        Revenue Service
+                                                                                        competing for SARS contract
+        14 BANDIMIHLA TRADING AND         2008/172094/23          Restricted Supplier   Fraud                                      2026-07-18               2035-08-18 Eskom
+           PROJECTS
+        15 Bandwidth Technologies (Pty)   2011/141358/07          Restricted Supplier   Fraud and Corruption                       2020-10-26               2030-10-25 MICTSETA
+           Ltd
+        16 BANI, RICHARD                  9010240000000           Restricted Supplier   Fraud                                      2025-09-30               2035-10-01 Perishable Products
+                                                                                                                                                                       Export Control
+                                                                                                                                                                       Board
+        17 Bankuna Engineering and        2014/051256/07          Restricted Supplier   Non-performance                            2018-11-21               2028-11-20 Johannesburg
+           Construction (Pty) Ltd                                                                                                                                      Water
+        18 BANY, RICHARD                  9010246272264           Restricted Supplier   Fraud                                      2025-09-30               2035-10-01 Perishable Products
+                                                                                                                                                                       Export Control
+                                                                                                                                                                       Board
+        19 Bianca Mari Mackay             8811270119086           Restricted Supplier   Misrepresentation of                       2018-09-04               2028-09-03 Western Cape:
+                                                                                        information                                                                    Department of
+                                                                                                                                                                       Health
+        20 BIJOJO TRADERS                 2005/029447/23          Restricted Supplier   Collusive bidding and                      2026-07-12               2029-07-12 Eskom
+                                                                                        fronting
+        21 BIKA, FAVOUR MPINGA            0509231532086           Restricted Supplier   Poor performance                           2025-09-15               2027-03-15 City of Cape Town
+                                                                                                                                                                       Metropolitan
+                                                                                                                                                                       Municipality
+        22 BIX-BERRY 110                  2011/090671/23          Restricted Supplier   Supplier submitted a falsified             2025-05-19               2035-05-20 Correctional
+                                                                                        Tax Clearance Certificate                                                      Services - National
+        23 Bonwelong Skills Development   2004/029186/23          Restricted Supplier   Non-performance                            2018-02-13               2028-12-02 National:
+           cc T/A LP Hospitality Youth                                                                                                                                 Department of
+           Training Programme                                                                                                                                          Tourism
+        24 BOON GROUP                     2019/563877/07          Restricted Supplier   Collusive bidding and                      2024-09-13               2029-09-12 City of Cape Town
+                                                                                        fronting                                                                       Metropolitan
+                                                                                                                                                                       Municipality
+
+
+
+Page: 2 of 35                                                                                                                                                  Generated on: 2026-09-15 15:56:03

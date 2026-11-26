@@ -5,15 +5,15 @@ import { restore, signIn, signUp } from "./auth";
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 
-export async function accessGate(): Promise<void> {
+export async function accessGate(brand = "CAPE MONITOR", blurb = "Public records of the City of Cape Town, joined and sourced."): Promise<void> {
   if (!ACCESS.configured) return;
   const signedIn = await restore().catch(() => false);
   if (!ACCESS.requireAccount || signedIn) return;
   return new Promise((resolve) => {
     const box = document.createElement("div"); box.id = "gate";
     box.innerHTML = `<form class="gate" novalidate>
-      <div class="brand big"><span class="dot"></span>CAPE MONITOR</div>
-      <p class="mu">Public records of the City of Cape Town, joined and sourced. Sign in, or create a free account to start.</p>
+      <div class="brand big"><span class="dot"></span>${esc(brand)}</div>
+      <p class="mu">${esc(blurb)} Sign in, or create a free account to start.</p>
       <div class="seg" role="tablist"><button type="button" data-m="up" aria-pressed="true">Create account</button><button type="button" data-m="in" aria-pressed="false">Sign in</button></div>
       <label class="nm">Name<input name="name" autocomplete="name" maxlength="80"></label>
       <label>E-mail<input name="email" type="email" autocomplete="email" required></label>
