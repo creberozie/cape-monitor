@@ -46,10 +46,10 @@ Running 62 tests using 2 workers
 [43/62] [phone-390] › tests/access.spec.ts:29:1 › open: no wall, straight into the app, nothing overflows
 [44/62] [phone-390] › tests/app.spec.ts:21:1 › metro overview loads, lists districts and has no errors
 [45/62] [watch-desktop] › tests/watch.spec.ts:23:1 › own identity: ZopStopper icon on /watch without the slash, credits in a box at the bottom, none on the loading screen
-[46/62] [phone-390] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier
-[47/62] [watch-desktop] › tests/watch.spec.ts:31:1 › start page: flags, suppliers, finances and latest awards, with sources, fast and without errors
+[46/62] [watch-desktop] › tests/watch.spec.ts:31:1 › start page: flags, suppliers, finances and latest awards, with sources, fast and without errors
+[47/62] [phone-390] › tests/app.spec.ts:31:1 › money panels, supplier profile, flag and tender dossier
 [watch-desktop] › tests/watch.spec.ts:31:1 › start page: flags, suppliers, finances and latest awards, with sources, fast and without errors
-watch start page ready in 285 ms
+watch start page ready in 260 ms
 
 [48/62] [watch-desktop] › tests/watch.spec.ts:49:1 › supplier profile: records with source links, and the same name in Cape Town
 [49/62] [watch-desktop] › tests/watch.spec.ts:69:1 › flag dossier lists the records behind the pattern; scan-review and name-match labels
@@ -58,7 +58,7 @@ watch start page ready in 285 ms
 [52/62] [watch-phone] › tests/watch.spec.ts:23:1 › own identity: ZopStopper icon on /watch without the slash, credits in a box at the bottom, none on the loading screen
 [53/62] [watch-phone] › tests/watch.spec.ts:31:1 › start page: flags, suppliers, finances and latest awards, with sources, fast and without errors
 [watch-phone] › tests/watch.spec.ts:31:1 › start page: flags, suppliers, finances and latest awards, with sources, fast and without errors
-watch start page ready in 202 ms
+watch start page ready in 203 ms
 
 [54/62] [watch-phone] › tests/watch.spec.ts:49:1 › supplier profile: records with source links, and the same name in Cape Town
 [55/62] [watch-phone] › tests/watch.spec.ts:69:1 › flag dossier lists the records behind the pattern; scan-review and name-match labels
@@ -69,4 +69,4 @@ watch start page ready in 202 ms
 [60/62] [phone-390] › tests/app.spec.ts:66:1 › free tier by default; ?preview_tier=pro shows the Pro preview chip
 [61/62] [phone-390] › tests/app.spec.ts:73:1 › district: map, layer panel, click logic (point, then plot, then smallest area), dossier and share link
 [62/62] [phone-390] › tests/app.spec.ts:92:1 › search finds erven, addresses, places and suburbs city-wide; Enter opens the top match
-  62 passed (3.3m)
+  62 passed (3.1m)
