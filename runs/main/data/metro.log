@@ -1,5 +1,5 @@
 8 districts, 778 suburbs
-== districts: ok (60s)
+== districts: ok (68s)
 odp-tender-awards     1000/17967
 odp-tender-awards     11000/17967
 odp-rfq-awards     1000/91748
@@ -12,37 +12,37 @@ odp-rfq-awards     61000/91748
 odp-rfq-awards     71000/91748
 odp-rfq-awards     81000/91748
 odp-rfq-awards     91000/91748
-odp → [('odp-tender-awards', '17967 rows'), ('odp-rfq-awards', '91748 rows'), ('odp-property-disposals', '130 rows')] (40s)
-etenders Open {'portal_total': 2104, 'read': 2104, 'new_or_changed': 32} kept so far 13073
-etenders Awarded {'portal_total': 37638, 'read': 9000, 'new_or_changed': 28} kept so far 13096
-etenders Closed {'portal_total': 112755, 'read': 5999, 'new_or_changed': 98} kept so far 13108
-etenders Cancelled {'portal_total': 23337, 'read': 7568, 'new_or_changed': 5} kept so far 13111
-etenders → 13111 Western Cape tenders kept; 1 unreadable 100-record pages; incremental read (356s)
-== money-fetch: ok (397s)
-money: {'awards': 3818, 'rfq': 91748, 'bids': 32048, 'etenders': 13111, 'land': 130, 'docs': 750} suppliers 27370 flags Counter({'split': 1247, 'official': 239, 'cobid': 180, 'phone': 169, 'notlowest': 49, 'repeat': 36, 'growth': 26, 'deviation': 18, 'single': 15, 'near': 2}) tenders 3884
-== money-build: ok (8s)
+odp → [('odp-tender-awards', '17967 rows'), ('odp-rfq-awards', '91748 rows'), ('odp-property-disposals', '130 rows')] (172s)
+etenders Open {'portal_total': 2141, 'read': 2141, 'new_or_changed': 4} kept so far 13115
+etenders Awarded {'portal_total': 37673, 'read': 1500, 'new_or_changed': 0} kept so far 13115
+etenders Closed {'portal_total': 112769, 'read': 3079, 'new_or_changed': 1} kept so far 13115
+etenders Cancelled {'portal_total': 23346, 'read': 3018, 'new_or_changed': 1} kept so far 13115
+etenders → 13115 Western Cape tenders kept; 0 unreadable 100-record pages; incremental read (44s)
+== money-fetch: ok (216s)
+money: {'awards': 3818, 'rfq': 91748, 'bids': 32048, 'etenders': 13115, 'land': 130, 'docs': 750} suppliers 27370 flags Counter({'split': 1247, 'official': 239, 'cobid': 180, 'phone': 169, 'notlowest': 49, 'repeat': 36, 'growth': 26, 'deviation': 18, 'single': 15, 'near': 2}) tenders 3884
+== money-build: ok (12s)
 registry: 2 suppliers with register details (2 with a number printed in published records); provider not configured; 0 looked up this run
 == registry: ok (0s)
 news24 20 
 iol-wc 30 
 capetownetc 10 
 citizen 75 
-dailymaverick 52 
+dailymaverick 51 
 gitoc 12 
 gitoc-assassination 12 
-211 items kept, 7 name a Cape Town suburb
-== feeds: ok (1s)
-2 pages; 3415 Competition Tribunal cases; 345 name a City supplier; 26 name a Cape Town suburb
-== justice: ok (8s)
+210 items kept, 5 name a Cape Town suburb
+== feeds: ok (3s)
+1 pages; 3415 Competition Tribunal cases; 345 name a City supplier; 26 name a Cape Town suburb
+== justice: ok (5s)
 meibc 34 documents from 21 pages (0 page errors)
 mibco 0 documents from 3 pages (0 page errors)
 nbcrfli 61 documents from 13 pages (0 page errors)
 salgbc 2 documents from 3 pages (0 page errors)
 lrs 133 posts
 97 documents; 0 employers matched to supplier profiles
-== labour: ok (42s)
+== labour: ok (50s)
 stellenbosch 233 gazette notices name one of its places
 621 gazettes; 1180 notices kept; 605 City of Cape Town; 736 name an erf; 3 failed
-== gazettes: ok (106s)
-metro money: {'suppliers': 27370, 'flags': 1981, 'tenders': 3884, 'awards': 3818, 'rfq': 91748, 'bids': 32048, 'etenders': 13111, 'land': 130, 'docs': 750}
+== gazettes: ok (119s)
+metro money: {'suppliers': 27370, 'flags': 1981, 'tenders': 3884, 'awards': 3818, 'rfq': 91748, 'bids': 32048, 'etenders': 13115, 'land': 130, 'docs': 750}
 check ok
